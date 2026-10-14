@@ -335,6 +335,40 @@ export default function HomePage() {
               </tr>)}</tbody>
             </table>
           </div>}
+        </section> : activePage === "employees" ? <section className="panel" style={{ maxWidth: 1200 }}>
+          <div className="eyebrow">MODUL / KARYAWAN</div>
+          <div className="section-head" style={{marginTop:12}}>
+            <div><h1>Pengelolaan karyawan</h1><p className="subtle">Tambah, edit, dan nonaktifkan karyawan. Karyawan aktif tersedia pada pilihan di halaman absensi kamera.</p></div>
+            <button className="btn" onClick={()=>setActivePage("dashboard")}>← Kembali</button>
+          </div>
+          {employeeError && <div className="error-box" role="alert">{employeeError}</div>}
+          {employeeNotice && <div className="info-box" role="status">{employeeNotice}</div>}
+          {["owner","admin"].includes(profile?.role ?? "") && <form onSubmit={saveEmployee} className="panel" style={{marginTop:18,background:"rgba(10,20,38,.45)"}}>
+            <h2>{editingEmployeeId ? "Edit karyawan" : "Tambah karyawan baru"}</h2>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:14,marginTop:14}}>
+              <div className="field"><label htmlFor="employee-code">Kode karyawan *</label><input id="employee-code" required maxLength={40} value={employeeForm.employee_code} onChange={e=>setEmployeeForm(f=>({...f,employee_code:e.target.value}))} placeholder="Contoh: KRY-001"/></div>
+              <div className="field"><label htmlFor="employee-name">Nama lengkap *</label><input id="employee-name" required maxLength={120} value={employeeForm.full_name} onChange={e=>setEmployeeForm(f=>({...f,full_name:e.target.value}))} placeholder="Nama karyawan"/></div>
+              <div className="field"><label htmlFor="employee-email">Email (opsional)</label><input id="employee-email" type="email" value={employeeForm.email} onChange={e=>setEmployeeForm(f=>({...f,email:e.target.value}))} placeholder="karyawan@bisnis.com"/></div>
+              <div className="field"><label htmlFor="employee-phone">Nomor HP (opsional)</label><input id="employee-phone" type="tel" value={employeeForm.phone} onChange={e=>setEmployeeForm(f=>({...f,phone:e.target.value}))} placeholder="+628..."/></div>
+              <div className="field"><label htmlFor="employee-title">Jabatan (opsional)</label><input id="employee-title" value={employeeForm.job_title} onChange={e=>setEmployeeForm(f=>({...f,job_title:e.target.value}))} placeholder="Contoh: Kasir"/></div>
+              <div className="field"><label htmlFor="employee-joined">Tanggal bergabung</label><input id="employee-joined" type="date" value={employeeForm.joined_on} onChange={e=>setEmployeeForm(f=>({...f,joined_on:e.target.value}))}/></div>
+            </div>
+            <div className="field"><label htmlFor="employee-notes">Catatan (opsional)</label><textarea id="employee-notes" rows={2} value={employeeForm.notes} onChange={e=>setEmployeeForm(f=>({...f,notes:e.target.value}))} placeholder="Catatan internal"/></div>
+            <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button className="btn btn-primary" type="submit" disabled={employeeSaving}>{employeeSaving?"Menyimpan…":editingEmployeeId?"Simpan perubahan":"Tambah karyawan"}</button>{editingEmployeeId && <button className="btn" type="button" onClick={resetEmployeeForm}>Batal edit</button>}</div>
+          </form>}
+          <div className="section-head" style={{marginTop:24}}><div><h2>Daftar karyawan</h2><p className="subtle">{employeeRows.length} data · Gunakan status nonaktif jika karyawan memiliki riwayat absensi.</p></div><button className="btn" type="button" onClick={()=>setActivePage("employees")} disabled={employeeLoading}>Muat ulang</button></div>
+          {employeeLoading ? <p className="subtle">Memuat daftar karyawan…</p> : employeeRows.length===0 ? <div className="info-box">Belum ada karyawan. Isi formulir di atas untuk menambahkan karyawan pertama.</div> : <div style={{overflowX:"auto"}}>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:13,minWidth:760}}>
+              <thead><tr style={{textAlign:"left",color:"#91a1b8"}}><th style={{padding:10}}>Kode</th><th style={{padding:10}}>Nama</th><th style={{padding:10}}>Kontak / Jabatan</th><th style={{padding:10}}>Status</th><th style={{padding:10}}>Aksi</th></tr></thead>
+              <tbody>{employeeRows.map(emp=><tr key={emp.id} style={{borderTop:"1px solid #25334a"}}>
+                <td style={{padding:10}}><strong>{emp.employee_code}</strong></td><td style={{padding:10}}>{emp.full_name}<div className="subtle">{emp.joined_on||"Tanggal bergabung belum diisi"}</div></td>
+                <td style={{padding:10}}>{emp.email||emp.phone||"Kontak belum diisi"}<div className="subtle">{emp.job_title||"Jabatan belum diisi"}</div></td>
+                <td style={{padding:10}}><span className="status">{emp.employment_status==="active"?"AKTIF":"NONAKTIF"}</span></td>
+                <td style={{padding:10}}><div style={{display:"flex",gap:8,flexWrap:"wrap"}}><button className="btn" type="button" onClick={()=>{setEditingEmployeeId(emp.id);setEmployeeForm({employee_code:emp.employee_code,full_name:emp.full_name,email:emp.email||"",phone:emp.phone||"",job_title:emp.job_title||"",joined_on:emp.joined_on||"",notes:emp.notes||""});setEmployeeError("");setEmployeeNotice("");}}>Edit</button><button className="btn" type="button" onClick={()=>void toggleEmployeeStatus(emp)}>{emp.employment_status==="active"?"Nonaktifkan":"Aktifkan"}</button></div></td>
+              </tr>)}</tbody>
+            </table>
+          </div>}
+          <div className="info-box" style={{marginTop:16}}>Data karyawan tidak otomatis membuat akun login atau mengubah role OWNER/ADMIN. Pengelolaan akun dan role dilakukan terpisah demi keamanan.</div>
         </section> : <section className="panel" style={{ maxWidth: 900 }}>
           <div className="eyebrow">MODUL / {activePage.toUpperCase()}</div><h1 style={{ marginTop: 12 }}>{moduleTitle}</h1><p className="subtle">{descriptions[activePage]}</p>
           <div className="info-box">Modul ini masih dalam tahap fondasi. Kami tidak akan menampilkan data contoh seolah-olah merupakan data bisnis asli.</div>
