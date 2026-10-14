@@ -882,7 +882,7 @@ export default function HomePage() {
     setLeaveSaving(false);
   }
   async function reviewLeaveRequest(id:string,status:"approved"|"rejected"){
-    if(!profile||!["owner","admin"].includes(profile.role))return;
+    if(!profile||!["owner","admin","hrd"].includes(profile.role))return;
     const {error:saveError}=await supabase.from("leave_requests").update({status,reviewed_by:profile.id,reviewed_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq("id",id);
     if(saveError)setLeaveError("Status permohonan gagal diperbarui.");else setBusinessRefresh(v=>v+1);
   }
