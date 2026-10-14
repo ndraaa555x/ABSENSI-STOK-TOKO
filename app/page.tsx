@@ -43,6 +43,10 @@ export default function HomePage() {
   const [busy, setBusy] = useState(false);
   const [resetMode, setResetMode] = useState(false);
   const [activePage, setActivePage] = useState<ModuleKey>("dashboard");
+  const [menuSearch, setMenuSearch] = useState("");
+  const [employeeSearch, setEmployeeSearch] = useState("");
+  const [attendanceSearch, setAttendanceSearch] = useState("");
+  const [accountSearch, setAccountSearch] = useState("");
   const [attendanceRows, setAttendanceRows] = useState<AttendanceRow[]>([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [attendanceError, setAttendanceError] = useState("");
@@ -390,7 +394,7 @@ export default function HomePage() {
           <div key={group}>
             <div className="nav-label">{group}</div>
             <nav className="nav-list">
-              {navItems.filter((item) => item.group === group).map((item) => (
+              {navItems.filter((item) => item.group === group && item.label.toLowerCase().includes(menuSearch.trim().toLowerCase())).map((item) => (
                 <button key={item.key} className={`nav-item ${activePage === item.key ? "active" : ""}`} onClick={() => setActivePage(item.key)}>
                   <span className="nav-icon">{item.icon}</span>{item.label}
                 </button>
@@ -398,6 +402,7 @@ export default function HomePage() {
             </nav>
           </div>
         ))}
+        <div className="field" style={{marginTop:18,marginBottom:18}}><label htmlFor="menu-search">Cari menu</label><input id="menu-search" type="search" value={menuSearch} onChange={e=>setMenuSearch(e.target.value)} placeholder="Cari dashboard, absensi..." aria-label="Cari menu website"/></div>
         <div className="side-foot"><strong>◈ Sistem terhubung</strong><p>Data disimpan di Supabase. Akses tabel tetap dikendalikan oleh kebijakan keamanan database.</p></div>
       </aside>
       <section className="main">
@@ -419,7 +424,7 @@ export default function HomePage() {
           <div className="content-grid">
             <section className="panel"><div className="panel-head"><div><h2>Modul bisnis</h2><div className="subtle">Pilih area kerja yang ingin Anda buka</div></div><span className="status">ONLINE</span></div>
               <div className="activity-list">
-                {navItems.filter((item) => item.key !== "dashboard").map((item) => <button className="activity" key={item.key} onClick={() => setActivePage(item.key)} style={{ width: "100%", textAlign: "left", background: "transparent", color: "inherit", borderLeft: 0, borderRight: 0, borderBottom: 0, cursor: "pointer" }}><div className="activity-icon">{item.icon}</div><div className="activity-copy"><strong>{item.label}</strong><span>{descriptions[item.key]}</span></div><span className="activity-time">BUKA ↗</span></button>)}
+                {navItems.filter((item) => item.key !== "dashboard" && (item.label+" "+descriptions[item.key]).toLowerCase().includes(menuSearch.trim().toLowerCase())).map((item) => <button className="activity" key={item.key} onClick={() => setActivePage(item.key)} style={{ width: "100%", textAlign: "left", background: "transparent", color: "inherit", borderLeft: 0, borderRight: 0, borderBottom: 0, cursor: "pointer" }}><div className="activity-icon">{item.icon}</div><div className="activity-copy"><strong>{item.label}</strong><span>{descriptions[item.key]}</span></div><span className="activity-time">BUKA ↗</span></button>)}
               </div>
             </section>
             <section className="panel"><div className="panel-head"><div><h2>Akses cepat</h2><div className="subtle">Pintasan modul</div></div></div><div className="quick-grid">
@@ -433,12 +438,12 @@ export default function HomePage() {
             <button className="btn" onClick={() => setActivePage("dashboard")}>← Kembali</button>
           </div>
           {attendanceError && <div className="error-box" role="alert">{attendanceError}</div>}
-          {attendanceLoading ? <p className="subtle">Memuat riwayat absensi…</p> : attendanceRows.length === 0 ? <div className="info-box">Belum ada riwayat absensi yang dapat ditampilkan.</div> : <div style={{ overflowX: "auto" }}>
+          {attendanceLoading ? <p className="subtle">Memuat riwayat absensi…</p> : attendanceRows.length === 0 ? <div className="info-box">Belum ada riwayat absensi yang dapat ditampilkan.</div> : <><div className="field" style={{maxWidth:480,marginBottom:14}}><label htmlFor="attendance-search">Cari absensi</label><input id="attendance-search" type="search" value={attendanceSearch} onChange={e=>setAttendanceSearch(e.target.value)} placeholder="Nama, kode karyawan, tanggal, status..." /></div><p className="subtle">{attendanceRows.filter(row=>([row.employees?.full_name,row.employees?.employee_code,row.work_date,row.status,row.check_in_method,row.check_out_method].join(" ")).toLowerCase().includes(attendanceSearch.trim().toLowerCase())).length} catatan cocok</p><div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 760 }}>
               <thead><tr style={{ textAlign: "left", color: "#91a1b8" }}>
                 <th style={{ padding: 10 }}>Karyawan</th><th style={{ padding: 10 }}>Tanggal</th><th style={{ padding: 10 }}>Masuk</th><th style={{ padding: 10 }}>Pulang</th><th style={{ padding: 10 }}>Status</th><th style={{ padding: 10 }}>Bukti wajah</th>
               </tr></thead>
-              <tbody>{attendanceRows.map((row) => <tr key={row.id} style={{ borderTop: "1px solid #25334a" }}>
+              <tbody>{attendanceRows.filter(row=>([row.employees?.full_name,row.employees?.employee_code,row.work_date,row.status,row.check_in_method,row.check_out_method].join(" ")).toLowerCase().includes(attendanceSearch.trim().toLowerCase())).map((row) => <tr key={row.id} style={{ borderTop: "1px solid #25334a" }}>
                 <td style={{ padding: 10 }}><strong>{row.employees?.full_name ?? "Karyawan"}</strong><div className="subtle">{row.employees?.employee_code ?? "—"}</div></td>
                 <td style={{ padding: 10 }}>{row.work_date}</td>
                 <td style={{ padding: 10 }}>{row.check_in_at ? new Date(row.check_in_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "—"}</td>
@@ -473,11 +478,11 @@ export default function HomePage() {
             <div className="field"><label htmlFor="employee-notes">Catatan (opsional)</label><textarea id="employee-notes" rows={2} value={employeeForm.notes} onChange={e=>setEmployeeForm(f=>({...f,notes:e.target.value}))} placeholder="Catatan internal"/></div>
             <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button className="btn btn-primary" type="submit" disabled={employeeSaving}>{employeeSaving?"Menyimpan…":editingEmployeeId?"Simpan perubahan":"Tambah karyawan"}</button>{editingEmployeeId && <button className="btn" type="button" onClick={resetEmployeeForm}>Batal edit</button>}</div>
           </form>}
-          <div className="section-head" style={{marginTop:24}}><div><h2>Daftar karyawan</h2><p className="subtle">{employeeRows.length} data · Gunakan status nonaktif jika karyawan memiliki riwayat absensi.</p></div><button className="btn" type="button" onClick={()=>setActivePage("employees")} disabled={employeeLoading}>Muat ulang</button></div>
+          <div className="section-head" style={{marginTop:24}}><div><h2>Daftar karyawan</h2><p className="subtle">{employeeRows.length} data · Gunakan status nonaktif jika karyawan memiliki riwayat absensi.</p></div><button className="btn" type="button" onClick={()=>setActivePage("employees")} disabled={employeeLoading}>Muat ulang</button></div><div className="field" style={{maxWidth:480,marginBottom:14}}><label htmlFor="employee-search">Cari / filter karyawan</label><input id="employee-search" type="search" value={employeeSearch} onChange={e=>setEmployeeSearch(e.target.value)} placeholder="Nama, kode, email, jabatan, status..." /></div>
           {employeeLoading ? <p className="subtle">Memuat daftar karyawan…</p> : employeeRows.length===0 ? <div className="info-box">Belum ada karyawan. Isi formulir di atas untuk menambahkan karyawan pertama.</div> : <div style={{overflowX:"auto"}}>
             <table style={{width:"100%",borderCollapse:"collapse",fontSize:13,minWidth:760}}>
               <thead><tr style={{textAlign:"left",color:"#91a1b8"}}><th style={{padding:10}}>Kode</th><th style={{padding:10}}>Nama</th><th style={{padding:10}}>Kontak / Jabatan</th><th style={{padding:10}}>Status</th><th style={{padding:10}}>Aksi</th></tr></thead>
-              <tbody>{employeeRows.map(emp=><tr key={emp.id} style={{borderTop:"1px solid #25334a"}}>
+              <tbody>{employeeRows.filter(emp=>([emp.employee_code,emp.full_name,emp.email,emp.phone,emp.job_title,emp.employment_status,emp.joined_on].join(" ")).toLowerCase().includes(employeeSearch.trim().toLowerCase())).map(emp=><tr key={emp.id} style={{borderTop:"1px solid #25334a"}}>
                 <td style={{padding:10}}><strong>{emp.employee_code}</strong></td><td style={{padding:10}}>{emp.full_name}<div className="subtle">{emp.joined_on||"Tanggal bergabung belum diisi"}</div></td>
                 <td style={{padding:10}}>{emp.email||emp.phone||"Kontak belum diisi"}<div className="subtle">{emp.job_title||"Jabatan belum diisi"}</div></td>
                 <td style={{padding:10}}><span className="status">{emp.employment_status==="active"?"AKTIF":"NONAKTIF"}</span></td>
@@ -493,9 +498,9 @@ export default function HomePage() {
             <div className="section-head"><div><h2>Pengelolaan akun & role</h2><p className="subtle">Daftar akun login. Hanya Owner yang dapat mengubah role dan status aktif.</p></div><button className="btn" type="button" onClick={()=>setAccountRefresh(n=>n+1)} disabled={accountLoading}>Muat ulang</button></div>
             {accountError && <div className="error-box" role="alert">{accountError}</div>}
             {accountNotice && <div className="info-box" role="status">{accountNotice}</div>}
-            {accountLoading ? <p className="subtle">Memuat akun…</p> : accountRows.length===0 ? <div className="info-box">Belum ada daftar akun yang dapat ditampilkan.</div> : <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:13,minWidth:720}}>
+            {accountLoading ? <p className="subtle">Memuat akun…</p> : accountRows.length===0 ? <div className="info-box">Belum ada daftar akun yang dapat ditampilkan.</div> : <><div className="field" style={{maxWidth:480,marginBottom:14}}><label htmlFor="account-search">Cari akun</label><input id="account-search" type="search" value={accountSearch} onChange={e=>setAccountSearch(e.target.value)} placeholder="Nama, email, role, status..." /></div><div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:13,minWidth:720}}>
               <thead><tr style={{textAlign:"left",color:"#91a1b8"}}><th style={{padding:10}}>Nama / Email</th><th style={{padding:10}}>Karyawan</th><th style={{padding:10}}>Role</th><th style={{padding:10}}>Status</th></tr></thead>
-              <tbody>{accountRows.map(account=><tr key={account.id} style={{borderTop:"1px solid #25334a"}}>
+              <tbody>{accountRows.filter(account=>([account.full_name,account.email,account.role,account.is_active?"aktif":"nonaktif",account.employee?.employee_code,account.employee?.full_name].join(" ")).toLowerCase().includes(accountSearch.trim().toLowerCase())).map(account=><tr key={account.id} style={{borderTop:"1px solid #25334a"}}>
                 <td style={{padding:10}}><strong>{account.full_name||"Tanpa nama"}</strong><div className="subtle">{account.email}</div></td>
                 <td style={{padding:10}}>{account.employee ? account.employee.employee_code+" · "+account.employee.employment_status : "Akun non-karyawan"}</td>
                 <td style={{padding:10}}>{profile?.role==="owner" ? <select aria-label={"Role "+account.email} value={account.role} disabled={accountSavingId===account.id || account.id===profile?.id} onChange={e=>void updateAccount(account,e.target.value as "owner"|"admin"|"employee",account.is_active)}><option value="employee">Employee</option><option value="admin">Admin</option><option value="owner">Owner</option></select> : <span className="status">{account.role.toUpperCase()}</span>}</td>
