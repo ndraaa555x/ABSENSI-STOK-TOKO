@@ -1004,7 +1004,7 @@ export default function HomePage() {
           </div>
           {employeeError && <div className="error-box" role="alert">{employeeError}</div>}
           {employeeNotice && <div className="info-box" role="status">{employeeNotice}</div>}
-          {["owner","admin"].includes(profile?.role ?? "") && <form onSubmit={saveEmployee} className="panel" style={{marginTop:18,background:"rgba(10,20,38,.45)"}}>
+          {["owner","admin","hrd"].includes(profile?.role ?? "") && <form onSubmit={saveEmployee} className="panel" style={{marginTop:18,background:"rgba(10,20,38,.45)"}}>
             <h2>{editingEmployeeId ? "Edit karyawan" : "Tambah karyawan baru"}</h2>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:14,marginTop:14}}>
               <div className="field"><label htmlFor="employee-code">Kode karyawan *</label><input id="employee-code" required maxLength={40} value={employeeForm.employee_code} onChange={e=>setEmployeeForm(f=>({...f,employee_code:e.target.value}))} placeholder="Contoh: KRY-001"/></div>
@@ -1014,7 +1014,7 @@ export default function HomePage() {
               <div className="field"><label htmlFor="employee-title">Jabatan (opsional)</label><input id="employee-title" value={employeeForm.job_title} onChange={e=>setEmployeeForm(f=>({...f,job_title:e.target.value}))} placeholder="Contoh: Kasir"/></div>
               <div className="field"><label htmlFor="employee-joined">Tanggal bergabung</label><input id="employee-joined" type="date" value={employeeForm.joined_on} onChange={e=>setEmployeeForm(f=>({...f,joined_on:e.target.value}))}/></div>
             </div>
-            {!editingEmployeeId && <div className="panel" style={{marginTop:14,background:"rgba(10,20,38,.35)"}}>
+            {!editingEmployeeId && ["owner","admin"].includes(profile?.role ?? "") && <div className="panel" style={{marginTop:14,background:"rgba(10,20,38,.35)"}}>
               <label style={{display:"flex",gap:10,alignItems:"center",cursor:"pointer"}}><input type="checkbox" checked={createLoginAccount} onChange={e=>setCreateLoginAccount(e.target.checked)} /> Buat akun login untuk karyawan ini</label>
               {createLoginAccount && <div style={{marginTop:12}}><p className="subtle">Akun akan login menggunakan email di atas. Pilih role sesuai kewenangan Anda.</p><div className="field"><label htmlFor="new-account-role">Role akun *</label><select id="new-account-role" value={newAccountRole} onChange={e=>setNewAccountRole(e.target.value as "employee"|"hrd"|"admin")}><option value="employee">Karyawan (akses operasional terbatas)</option>{profile?.role==="owner" && <option value="hrd">HRD / SDM</option>}{profile?.role==="owner" && <option value="admin">Admin (akses operasional)</option>}</select></div><div className="field"><label htmlFor="employee-initial-password">Kata sandi awal (minimal 8 karakter) *</label><input id="employee-initial-password" type="password" minLength={8} autoComplete="new-password" required value={employeePassword} onChange={e=>setEmployeePassword(e.target.value)} placeholder="Buat kata sandi sementara"/></div></div>}
             </div>}
