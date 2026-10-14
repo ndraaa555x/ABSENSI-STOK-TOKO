@@ -58,6 +58,7 @@ export default function HomePage() {
   const [accountRows, setAccountRows] = useState<AccountRow[]>([]);
   const [accountLoading, setAccountLoading] = useState(false);
   const [accountSavingId, setAccountSavingId] = useState<string|null>(null);
+  const [accountRefresh, setAccountRefresh] = useState(0);
   const [accountError, setAccountError] = useState("");
   const [accountNotice, setAccountNotice] = useState("");
 
@@ -182,9 +183,9 @@ export default function HomePage() {
     }
     void loadAccounts();
     return () => { alive = false; };
-  }, [activePage, session, profile]);
+  }, [activePage, session, profile, accountRefresh]);
 
-  async function updateAccount(account: AccountRow, role: "admin"|"employee", is_active: boolean) {
+  async function updateAccount(account: AccountRow, role: "owner"|"admin"|"employee", is_active: boolean) {
     setAccountSavingId(account.id); setAccountError(""); setAccountNotice("");
     const { data, error: invokeError } = await supabase.functions.invoke("manage-employee-accounts", {
       body: { action: "update_account", user_id: account.id, role, is_active }
@@ -443,7 +444,7 @@ export default function HomePage() {
           <div className="eyebrow">MODUL / {activePage.toUpperCase()}</div><h1 style={{ marginTop: 12 }}>{moduleTitle}</h1><p className="subtle">{descriptions[activePage]}</p>
           <div className="info-box">{activePage === "settings" ? "Owner dapat mengatur role dan status akun. Role Owner dilindungi dan tidak dapat diubah melalui panel ini." : "Modul ini masih dalam tahap fondasi. Kami tidak akan menampilkan data contoh seolah-olah merupakan data bisnis asli."}</div>
           {activePage === "settings" && ["owner","admin"].includes(profile?.role ?? "") && <section className="panel" style={{marginTop:18}}>
-            <div className="section-head"><div><h2>Pengelolaan akun & role</h2><p className="subtle">Daftar akun login. Hanya Owner yang dapat mengubah role dan status aktif.</p></div><button className="btn" type="button" onClick={()=>setActivePage("settings")} disabled={accountLoading}>Muat ulang</button></div>
+            <div className="section-head"><div><h2>Pengelolaan akun & role</h2><p className="subtle">Daftar akun login. Hanya Owner yang dapat mengubah role dan status aktif.</p></div><button className="btn" type="button" onClick={()=>setAccountRefresh(n=>n+1)} disabled={accountLoading}>Muat ulang</button></div>
             {accountError && <div className="error-box" role="alert">{accountError}</div>}
             {accountNotice && <div className="info-box" role="status">{accountNotice}</div>}
             {accountLoading ? <p className="subtle">Memuat akun…</p> : accountRows.length===0 ? <div className="info-box">Belum ada daftar akun yang dapat ditampilkan.</div> : <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:13,minWidth:720}}>
@@ -451,8 +452,8 @@ export default function HomePage() {
               <tbody>{accountRows.map(account=><tr key={account.id} style={{borderTop:"1px solid #25334a"}}>
                 <td style={{padding:10}}><strong>{account.full_name||"Tanpa nama"}</strong><div className="subtle">{account.email}</div></td>
                 <td style={{padding:10}}>{account.employee ? account.employee.employee_code+" · "+account.employee.employment_status : "Akun non-karyawan"}</td>
-                <td style={{padding:10}}>{account.role==="owner" ? <span className="status">OWNER (dilindungi)</span> : profile?.role==="owner" ? <select aria-label={"Role "+account.email} value={account.role} disabled={accountSavingId===account.id} onChange={e=>void updateAccount(account,e.target.value as "admin"|"employee",account.is_active)}><option value="employee">Employee</option><option value="admin">Admin</option></select> : <span className="status">{account.role.toUpperCase()}</span>}</td>
-                <td style={{padding:10}}>{account.role==="owner" ? <span className="status">AKTIF</span> : profile?.role==="owner" ? <button className="btn" type="button" disabled={accountSavingId===account.id} onClick={()=>void updateAccount(account,account.role as "admin"|"employee",!account.is_active)}>{accountSavingId===account.id?"Menyimpan…":account.is_active?"Nonaktifkan":"Aktifkan"}</button> : <span className="status">{account.is_active?"AKTIF":"NONAKTIF"}</span>}</td>
+                <td style={{padding:10}}>{account.role==="owner" ? <span className="status">OWNER (dilindungi)</span> : profile?.role==="owner" ? <select aria-label={"Role "+account.email} value={account.role} disabled={accountSavingId===account.id} onChange={e=>void updateAccount(account,e.target.value as "owner"|"admin"|"employee",account.is_active)}><option value="employee">Employee</option><option value="admin">Admin</option><option value="owner">Owner</option></select> : <span className="status">{account.role.toUpperCase()}</span>}</td>
+                <td style={{padding:10}}>{account.id===profile?.id ? <span className="status">AKTIF (akun Anda)</span> : profile?.role==="owner" ? <button className="btn" type="button" disabled={accountSavingId===account.id} onClick={()=>void updateAccount(account,account.role,!account.is_active)}>{accountSavingId===account.id?"Menyimpan…":account.is_active?"Nonaktifkan":"Aktifkan"}</button> : <span className="status">{account.is_active?"AKTIF":"NONAKTIF"}</span>}</td>
               </tr>)}</tbody>
             </table></div>}
           </section>}
