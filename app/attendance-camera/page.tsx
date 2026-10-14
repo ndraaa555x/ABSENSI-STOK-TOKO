@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 
-type Employee = { id: string; employee_code: string; full_name: string; employment_status: string };
+type Employee = { id: string; employee_code: string; full_name: string; employment_status: string; profile_id?: string | null };
 type FaceApi = {
   nets: {
     ssdMobilenetv1: { loadFromUri: (url: string) => Promise<void> };
@@ -31,7 +31,9 @@ export default function AttendanceCameraPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [employeeId, setEmployeeId] = useState("");
   const [consent, setConsent] = useState(false);
-  const [mode, setMode] = useState<"enroll" | "checkin" | "checkout">("enroll");
+  const [mode, setMode] = useState<"enroll" | "checkin" | "checkout">("checkin");
+  const [faceRegistered, setFaceRegistered] = useState(false);
+  const isManager = profile?.role === "owner" || profile?.role === "admin";
   const [cameraReady, setCameraReady] = useState(false);
   const [modelReady, setModelReady] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -48,10 +50,15 @@ export default function AttendanceCameraPage() {
       if (!alive) return;
       setProfile(p);
       if (p?.is_active && (p.role === "owner" || p.role === "admin")) {
-        const { data: rows, error: employeeError } = await supabase.from("employees").select("id,employee_code,full_name,employment_status").eq("employment_status", "active").order("full_name");
+        const { data: rows, error: employeeError } = await supabase.from("employees").select("id,employee_code,full_name,employment_status,profile_id").eq("employment_status", "active").order("full_name");
         if (!alive) return;
         if (employeeError) setError("Daftar karyawan tidak dapat dibaca. Periksa kebijakan database.");
         setEmployees((rows ?? []) as Employee[]);
+      } else if (p?.is_active) {
+        const { data: ownEmployee, error: ownError } = await supabase.from("employees").select("id,employee_code,full_name,employment_status,profile_id").eq("profile_id", data.session.user.id).eq("employment_status", "active").maybeSingle();
+        if (!alive) return;
+        if (ownError || !ownEmployee) setError("Akun ini belum ditautkan ke data karyawan aktif. Minta Owner/Admin menghubungkan akun Anda di menu Karyawan.");
+        else setEmployees([ownEmployee as Employee]);
       }
     });
     return () => { alive = false; streamRef.current?.getTracks().forEach(track => track.stop()); };
@@ -90,6 +97,22 @@ export default function AttendanceCameraPage() {
     return () => { alive = false; };
   }, []);
 
+
+  useEffect(() => {
+    let alive = true;
+    async function checkTemplate() {
+      if (!employeeId || !session) { setFaceRegistered(false); return; }
+      const { data, error: templateError } = await supabase.from("employee_face_templates").select("employee_id").eq("employee_id", employeeId).maybeSingle();
+      if (!alive) return;
+      if (templateError) { setError("Status pendaftaran wajah tidak dapat diperiksa. Periksa izin database."); return; }
+      const registered = Boolean(data?.employee_id);
+      setFaceRegistered(registered);
+      setMode(registered ? "checkin" : "enroll");
+    }
+    void checkTemplate();
+    return () => { alive = false; };
+  }, [employeeId, session]);
+
   const startCamera = useCallback(async () => {
     setError(""); setNotice("");
     try {
@@ -127,12 +150,15 @@ export default function AttendanceCameraPage() {
     setBusy(true); setError(""); setNotice("");
     try {
       const { descriptor } = await capture();
-      const { error: saveError } = await supabase.from("employee_face_templates").upsert({
+      if (faceRegistered) throw new Error("Wajah sudah terdaftar. Pendaftaran hanya boleh dilakukan sekali; hubungi Owner/Admin jika perlu peninjauan ulang.");
+      const { error: saveError } = await supabase.from("employee_face_templates").insert({
         employee_id: employeeId, embedding: descriptor, consent_at: new Date().toISOString(),
         enrolled_at: new Date().toISOString(), updated_at: new Date().toISOString(), created_by: session?.user.id
-      }, { onConflict: "employee_id" });
+      });
       if (saveError) throw new Error("Template wajah tidak tersimpan. Pastikan akun Anda Owner/Admin dan kebijakan RLS mengizinkan.");
-      setNotice("Pendaftaran template wajah berhasil. Template berupa fitur numerik; foto pendaftaran tidak disimpan oleh proses ini.");
+      setFaceRegistered(true);
+      setMode("checkin");
+      setNotice("Pendaftaran wajah berhasil. Pendaftaran awal selesai; absensi berikutnya hanya menyediakan Check-in dan Check-out.");
     } catch (e) { setError(e instanceof Error ? e.message : "Pendaftaran wajah gagal."); }
     finally { setBusy(false); }
   }
@@ -181,15 +207,16 @@ export default function AttendanceCameraPage() {
   }
 
   if (!session) return <main className="login-side"><div className="login-card"><h1>Absensi kamera</h1><p>Silakan login terlebih dahulu.</p><Link href="/">Kembali ke login</Link></div></main>;
-  if (!profile || !profile.is_active || !["owner", "admin"].includes(profile.role)) return <main className="login-side"><div className="login-card"><h1>Akses terbatas</h1><p>Untuk menjaga keamanan database, pendaftaran template dan pencatatan absensi melalui kamera saat ini hanya tersedia untuk Owner/Admin.</p><Link href="/">Kembali ke dashboard</Link></div></main>;
+  if (!profile || !profile.is_active) return <main className="login-side"><div className="login-card"><h1>Akses terbatas</h1><p>Akun belum aktif atau profil tidak dapat dibaca. Hubungi Owner/Admin.</p><Link href="/">Kembali ke dashboard</Link></div></main>;
+  if (employees.length === 0 && !isManager) return <main className="login-side"><div className="login-card"><h1>Akun belum terhubung</h1><p>{error || "Akun login Anda belum terhubung ke data karyawan aktif. Minta Owner/Admin menghubungkannya di menu Karyawan."}</p><Link href="/">Kembali ke dashboard</Link></div></main>;
 
   return <main className="login-side" style={{ alignItems: "flex-start", paddingTop: 28 }}>
     <section className="login-card" style={{ width: "min(100%, 980px)" }}>
       <div className="eyebrow">SMART BUSINESS / ABSENSI WAJAH</div>
-      <h1 style={{ marginTop: 10 }}>Pendaftaran wajah & absensi kamera</h1>
-      <p className="subtle">Alur terarah untuk Owner/Admin. Model berjalan di browser; hasil pencocokan merupakan pemeriksaan bantu, bukan jaminan anti-spoofing atau verifikasi biometrik bersertifikasi.</p>
-      <div className="field"><label htmlFor="employee">Pilih karyawan aktif</label><select id="employee" value={employeeId} onChange={e => setEmployeeId(e.target.value)}><option value="">Pilih karyawan…</option>{employees.map(emp => <option key={emp.id} value={emp.id}>{emp.full_name} ({emp.employee_code})</option>)}</select></div>
-      <div className="field"><label htmlFor="mode">Tindakan</label><select id="mode" value={mode} onChange={e => setMode(e.target.value as typeof mode)}><option value="enroll">Daftarkan / perbarui template wajah</option><option value="checkin">Check-in</option><option value="checkout">Check-out</option></select></div>
+      <h1 style={{ marginTop: 10 }}>Absensi karyawan</h1>
+      <p className="subtle">{isManager ? "Mode pengelola: pilih karyawan untuk membantu pendaftaran awal atau pencatatan absensi." : "Pilih Check-in atau Check-out. Pendaftaran wajah hanya dilakukan satu kali pada penggunaan awal."} Pencocokan wajah adalah pemeriksaan bantu, bukan jaminan anti-spoofing.</p>
+      {isManager && <div className="field"><label htmlFor="employee">Pilih karyawan aktif</label><select id="employee" value={employeeId} onChange={e => setEmployeeId(e.target.value)}><option value="">Pilih karyawan…</option>{employees.map(emp => <option key={emp.id} value={emp.id}>{emp.full_name} ({emp.employee_code})</option>)}</select></div>}{!isManager && employees[0] && <div className="info-box">Akun: <strong>{employees[0].full_name}</strong> · {employees[0].employee_code}</div>}
+      <div className="field"><label htmlFor="mode">Tindakan</label><select id="mode" value={mode} onChange={e => setMode(e.target.value as typeof mode)}>{!faceRegistered && <option value="enroll">Daftarkan wajah (sekali saja)</option>}<option value="checkin">Check-in</option><option value="checkout">Check-out</option></select></div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 18, marginTop: 16 }}>
         <div>
           <video ref={videoRef} muted playsInline autoPlay style={{ width: "100%", aspectRatio: "4/3", background: "#0b1220", borderRadius: 14, objectFit: "cover" }} />
@@ -205,7 +232,7 @@ export default function AttendanceCameraPage() {
           {error && <div className="error-box" role="alert" style={{ marginTop: 14 }}>{error}</div>}
         </div>
       </div>
-      <div className="section-head" style={{ marginTop: 24 }}><div><h2>Catatan keamanan</h2><p className="subtle">Pencatatan dibatasi Owner/Admin karena kebijakan database saat ini tidak mengizinkan karyawan menulis langsung ke attendance_records. Browser-based face matching dapat dipalsukan oleh klien yang dimodifikasi; jangan gunakan sebagai satu-satunya bukti identitas untuk keputusan berisiko tinggi.</p></div><Link className="btn" href="/">Kembali ke dashboard</Link></div>
+      <div className="section-head" style={{ marginTop: 24 }}><div><h2>Catatan keamanan</h2><p className="subtle">Karyawan hanya dapat memilih akun karyawannya sendiri. RLS database tetap harus mengizinkan pembacaan template milik sendiri serta pencatatan absensi milik sendiri. Browser-based face matching dapat dipalsukan oleh klien yang dimodifikasi; jangan gunakan sebagai satu-satunya bukti identitas untuk keputusan berisiko tinggi.</p></div><Link className="btn" href="/">Kembali ke dashboard</Link></div>
     </section>
   </main>;
 }
