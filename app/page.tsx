@@ -9,7 +9,8 @@ type Profile = { id: string; email: string; full_name: string | null; role: "own
 type Counts = { employees: number; attendance: number; products: number; finances: number };
 type AttendanceRow = { id: string; work_date: string; check_in_at: string | null; check_out_at: string | null; status: string; check_in_method: string | null; check_out_method: string | null; evidence_path: string | null; employees: { full_name: string; employee_code: string } | null; evidence_url?: string | null };
 type ModuleKey = "dashboard" | "employees" | "attendance" | "inventory" | "finance" | "barcode" | "settings";
-type EmployeeRow = { id:string; employee_code:string; full_name:string; email:string|null; phone:string|null; job_title:string|null; employment_status:"active"|"inactive"; joined_on:string|null; notes:string|null };
+type EmployeeRow = { id:string; employee_code:string; full_name:string; email:string|null; phone:string|null; job_title:string|null; employment_status:"active"|"inactive"; joined_on:string|null; notes:string|null; profile_id?:string|null };
+type AccountRow = { id:string; email:string; full_name:string|null; role:"owner"|"admin"|"employee"; is_active:boolean; employee?:{employee_code:string;employment_status:string;full_name:string}|null };
 const navItems: { key: ModuleKey; icon: string; label: string; group: string }[] = [
   { key: "dashboard", icon: "▦", label: "Ringkasan", group: "UTAMA" },
   { key: "employees", icon: "♙", label: "Karyawan", group: "OPERASIONAL" },
@@ -52,6 +53,13 @@ export default function HomePage() {
   const [employeeNotice, setEmployeeNotice] = useState("");
   const [editingEmployeeId, setEditingEmployeeId] = useState<string|null>(null);
   const [employeeForm, setEmployeeForm] = useState({employee_code:"",full_name:"",email:"",phone:"",job_title:"",joined_on:new Date().toISOString().slice(0,10),notes:""});
+  const [createLoginAccount, setCreateLoginAccount] = useState(false);
+  const [employeePassword, setEmployeePassword] = useState("");
+  const [accountRows, setAccountRows] = useState<AccountRow[]>([]);
+  const [accountLoading, setAccountLoading] = useState(false);
+  const [accountSavingId, setAccountSavingId] = useState<string|null>(null);
+  const [accountError, setAccountError] = useState("");
+  const [accountNotice, setAccountNotice] = useState("");
 
   const loadProfileAndCounts = useCallback(async (currentSession: Session) => {
     setDataLoading(true);
@@ -161,9 +169,38 @@ export default function HomePage() {
     return () => { alive = false; };
   }, [activePage, session, profile]);
 
+  useEffect(() => {
+    if (activePage !== "settings" || !session || !profile?.is_active || !["owner", "admin"].includes(profile.role)) return;
+    let alive = true;
+    async function loadAccounts() {
+      setAccountLoading(true); setAccountError("");
+      const { data, error: invokeError } = await supabase.functions.invoke("manage-employee-accounts", { body: { action: "list_accounts" } });
+      if (!alive) return;
+      if (invokeError || data?.error) { setAccountError(data?.error || "Daftar akun gagal dimuat."); setAccountRows([]); }
+      else setAccountRows((data?.accounts ?? []) as AccountRow[]);
+      setAccountLoading(false);
+    }
+    void loadAccounts();
+    return () => { alive = false; };
+  }, [activePage, session, profile]);
+
+  async function updateAccount(account: AccountRow, role: "admin"|"employee", is_active: boolean) {
+    setAccountSavingId(account.id); setAccountError(""); setAccountNotice("");
+    const { data, error: invokeError } = await supabase.functions.invoke("manage-employee-accounts", {
+      body: { action: "update_account", user_id: account.id, role, is_active }
+    });
+    if (invokeError || data?.error) setAccountError(data?.error || "Role/status akun gagal disimpan.");
+    else {
+      setAccountRows(rows => rows.map(row => row.id === account.id ? { ...row, role, is_active } : row));
+      setAccountNotice("Role dan status akun berhasil diperbarui.");
+    }
+    setAccountSavingId(null);
+  }
+
   function resetEmployeeForm() {
     setEditingEmployeeId(null);
     setEmployeeForm({employee_code:"",full_name:"",email:"",phone:"",job_title:"",joined_on:new Date().toISOString().slice(0,10),notes:""});
+    setCreateLoginAccount(false); setEmployeePassword("");
   }
 
   async function saveEmployee(event: FormEvent<HTMLFormElement>) {
@@ -173,17 +210,46 @@ export default function HomePage() {
     if (!code || !name) { setEmployeeError("Kode dan nama karyawan wajib diisi."); return; }
     setEmployeeSaving(true); setEmployeeError(""); setEmployeeNotice("");
     const payload = { employee_code:code, full_name:name, email:employeeForm.email.trim()||null, phone:employeeForm.phone.trim()||null, job_title:employeeForm.job_title.trim()||null, joined_on:employeeForm.joined_on||null, notes:employeeForm.notes.trim()||null, updated_at:new Date().toISOString() };
-    const result = editingEmployeeId
-      ? await supabase.from("employees").update(payload).eq("id", editingEmployeeId)
-      : await supabase.from("employees").insert({...payload, employment_status:"active", created_by:session?.user.id});
-    if (result.error) setEmployeeError(result.error.code === "23505" ? "Kode karyawan sudah dipakai. Gunakan kode lain." : "Data gagal disimpan. Periksa izin database.");
-    else {
-      setEmployeeNotice(editingEmployeeId ? "Data karyawan diperbarui." : "Karyawan berhasil ditambahkan dan berstatus aktif.");
-      resetEmployeeForm();
-      const { data } = await supabase.from("employees").select("id,employee_code,full_name,email,phone,job_title,employment_status,joined_on,notes").order("created_at", { ascending:false });
-      setEmployeeRows((data ?? []) as EmployeeRow[]);
-      if (session) void loadProfileAndCounts(session);
+    if (createLoginAccount && editingEmployeeId) {
+      setEmployeeError("Pembuatan akun login tersedia saat menambahkan karyawan baru. Untuk karyawan lama, hubungkan akun melalui proses khusus.");
+      setEmployeeSaving(false); return;
     }
+    if (createLoginAccount && (!payload.email || employeePassword.length < 8)) {
+      setEmployeeError("Untuk membuat akun login, email wajib diisi dan kata sandi minimal 8 karakter.");
+      setEmployeeSaving(false); return;
+    }
+    if (editingEmployeeId) {
+      const result = await supabase.from("employees").update(payload).eq("id", editingEmployeeId);
+      if (result.error) setEmployeeError(result.error.code === "23505" ? "Kode karyawan sudah dipakai. Gunakan kode lain." : "Data gagal disimpan. Periksa izin database.");
+      else {
+        setEmployeeNotice("Data karyawan diperbarui.");
+        resetEmployeeForm();
+      }
+    } else {
+      const { data: newEmployee, error: insertError } = await supabase.from("employees")
+        .insert({...payload, employment_status:"active", created_by:session?.user.id})
+        .select("id").single();
+      if (insertError || !newEmployee) {
+        setEmployeeError(insertError?.code === "23505" ? "Kode karyawan sudah dipakai. Gunakan kode lain." : "Data gagal disimpan. Periksa izin database.");
+      } else if (createLoginAccount) {
+        const { data: accountData, error: accountInvokeError } = await supabase.functions.invoke("manage-employee-accounts", {
+          body: { action: "create_employee_account", employee_id: newEmployee.id, email: payload.email, password: employeePassword, full_name: name }
+        });
+        if (accountInvokeError || accountData?.error) {
+          setEmployeeError("Data karyawan tersimpan, tetapi akun login belum berhasil dibuat: " + (accountData?.error || accountInvokeError?.message || "kesalahan server"));
+          setEmployeeNotice("Karyawan dibuat tanpa akun login. Perbaiki kendala akun lalu coba lagi.");
+        } else {
+          setEmployeeNotice("Karyawan dan akun login berhasil dibuat. Berikan email dan kata sandi awal kepada karyawan secara aman.");
+          resetEmployeeForm();
+        }
+      } else {
+        setEmployeeNotice("Karyawan berhasil ditambahkan. Akun login belum dibuat.");
+        resetEmployeeForm();
+      }
+    }
+    const { data: refreshed } = await supabase.from("employees").select("id,employee_code,full_name,email,phone,job_title,employment_status,joined_on,notes,profile_id").order("created_at", { ascending:false });
+    setEmployeeRows((refreshed ?? []) as EmployeeRow[]);
+    if (session) void loadProfileAndCounts(session);
     setEmployeeSaving(false);
   }
 
@@ -353,6 +419,10 @@ export default function HomePage() {
               <div className="field"><label htmlFor="employee-title">Jabatan (opsional)</label><input id="employee-title" value={employeeForm.job_title} onChange={e=>setEmployeeForm(f=>({...f,job_title:e.target.value}))} placeholder="Contoh: Kasir"/></div>
               <div className="field"><label htmlFor="employee-joined">Tanggal bergabung</label><input id="employee-joined" type="date" value={employeeForm.joined_on} onChange={e=>setEmployeeForm(f=>({...f,joined_on:e.target.value}))}/></div>
             </div>
+            {!editingEmployeeId && <div className="panel" style={{marginTop:14,background:"rgba(10,20,38,.35)"}}>
+              <label style={{display:"flex",gap:10,alignItems:"center",cursor:"pointer"}}><input type="checkbox" checked={createLoginAccount} onChange={e=>setCreateLoginAccount(e.target.checked)} /> Buat akun login untuk karyawan ini</label>
+              {createLoginAccount && <div style={{marginTop:12}}><p className="subtle">Karyawan akan login menggunakan email di atas. Role awal otomatis Employee.</p><div className="field"><label htmlFor="employee-initial-password">Kata sandi awal (minimal 8 karakter) *</label><input id="employee-initial-password" type="password" minLength={8} autoComplete="new-password" required value={employeePassword} onChange={e=>setEmployeePassword(e.target.value)} placeholder="Buat kata sandi sementara"/></div></div>}
+            </div>}
             <div className="field"><label htmlFor="employee-notes">Catatan (opsional)</label><textarea id="employee-notes" rows={2} value={employeeForm.notes} onChange={e=>setEmployeeForm(f=>({...f,notes:e.target.value}))} placeholder="Catatan internal"/></div>
             <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button className="btn btn-primary" type="submit" disabled={employeeSaving}>{employeeSaving?"Menyimpan…":editingEmployeeId?"Simpan perubahan":"Tambah karyawan"}</button>{editingEmployeeId && <button className="btn" type="button" onClick={resetEmployeeForm}>Batal edit</button>}</div>
           </form>}
@@ -371,7 +441,21 @@ export default function HomePage() {
           <div className="info-box" style={{marginTop:16}}>Data karyawan tidak otomatis membuat akun login atau mengubah role OWNER/ADMIN. Pengelolaan akun dan role dilakukan terpisah demi keamanan.</div>
         </section> : <section className="panel" style={{ maxWidth: 900 }}>
           <div className="eyebrow">MODUL / {activePage.toUpperCase()}</div><h1 style={{ marginTop: 12 }}>{moduleTitle}</h1><p className="subtle">{descriptions[activePage]}</p>
-          <div className="info-box">Modul ini masih dalam tahap fondasi. Kami tidak akan menampilkan data contoh seolah-olah merupakan data bisnis asli.</div>
+          <div className="info-box">{activePage === "settings" ? "Owner dapat mengatur role dan status akun. Role Owner dilindungi dan tidak dapat diubah melalui panel ini." : "Modul ini masih dalam tahap fondasi. Kami tidak akan menampilkan data contoh seolah-olah merupakan data bisnis asli."}</div>
+          {activePage === "settings" && ["owner","admin"].includes(profile?.role ?? "") && <section className="panel" style={{marginTop:18}}>
+            <div className="section-head"><div><h2>Pengelolaan akun & role</h2><p className="subtle">Daftar akun login. Hanya Owner yang dapat mengubah role dan status aktif.</p></div><button className="btn" type="button" onClick={()=>setActivePage("settings")} disabled={accountLoading}>Muat ulang</button></div>
+            {accountError && <div className="error-box" role="alert">{accountError}</div>}
+            {accountNotice && <div className="info-box" role="status">{accountNotice}</div>}
+            {accountLoading ? <p className="subtle">Memuat akun…</p> : accountRows.length===0 ? <div className="info-box">Belum ada daftar akun yang dapat ditampilkan.</div> : <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:13,minWidth:720}}>
+              <thead><tr style={{textAlign:"left",color:"#91a1b8"}}><th style={{padding:10}}>Nama / Email</th><th style={{padding:10}}>Karyawan</th><th style={{padding:10}}>Role</th><th style={{padding:10}}>Status</th></tr></thead>
+              <tbody>{accountRows.map(account=><tr key={account.id} style={{borderTop:"1px solid #25334a"}}>
+                <td style={{padding:10}}><strong>{account.full_name||"Tanpa nama"}</strong><div className="subtle">{account.email}</div></td>
+                <td style={{padding:10}}>{account.employee ? account.employee.employee_code+" · "+account.employee.employment_status : "Akun non-karyawan"}</td>
+                <td style={{padding:10}}>{account.role==="owner" ? <span className="status">OWNER (dilindungi)</span> : profile?.role==="owner" ? <select aria-label={"Role "+account.email} value={account.role} disabled={accountSavingId===account.id} onChange={e=>void updateAccount(account,e.target.value as "admin"|"employee",account.is_active)}><option value="employee">Employee</option><option value="admin">Admin</option></select> : <span className="status">{account.role.toUpperCase()}</span>}</td>
+                <td style={{padding:10}}>{account.role==="owner" ? <span className="status">AKTIF</span> : profile?.role==="owner" ? <button className="btn" type="button" disabled={accountSavingId===account.id} onClick={()=>void updateAccount(account,account.role as "admin"|"employee",!account.is_active)}>{accountSavingId===account.id?"Menyimpan…":account.is_active?"Nonaktifkan":"Aktifkan"}</button> : <span className="status">{account.is_active?"AKTIF":"NONAKTIF"}</span>}</td>
+              </tr>)}</tbody>
+            </table></div>}
+          </section>}
           <div className="section-head"><div><h2>Ringkasan terkait</h2><div className="subtle">Angka dibaca dari database sesuai hak akses akun.</div></div><button className="btn" onClick={() => setActivePage("dashboard")}>← Kembali ke ringkasan</button></div>
           <div className="stats-grid">
             {(activePage === "inventory" || activePage === "barcode") && <div className="stat-card"><div className="stat-top">Produk</div><div className="stat-value">{counts.products}</div></div>}
