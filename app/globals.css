@@ -122,3 +122,85 @@ h1,h2,h3,p{margin-top:0}h1{font:800 clamp(24px,3vw,34px) Manrope,sans-serif;lett
 .attendance-workspace .eyebrow{color:var(--attendance-accent,#67e8f9)}
 .attendance-workspace .section-head{border-top:1px solid var(--attendance-line,#25334a);padding-top:18px}
 .attendance-workspace video{border:1px solid var(--attendance-line,#25334a)}
+
+
+/* Transaction workspace: high-contrast operational UI, not just role-color changes. */
+.app-shell{--surface-raised:#111b2c;--surface-soft:#0d1626}
+.app-shell .sidebar{box-shadow:14px 0 40px rgba(0,0,0,.16);z-index:5}
+.app-shell .brand{padding-bottom:22px;border-bottom:1px solid var(--role-line)}
+.app-shell .brand-title{letter-spacing:.12em;font-size:12px}
+.app-shell .brand-sub{font-size:9px;letter-spacing:.1em}
+.app-shell .nav-label{font-size:9px;letter-spacing:.16em;color:#8091ab;margin:22px 10px 8px}
+.app-shell .nav-list{gap:5px}
+.app-shell .nav-item{min-height:43px;border:1px solid transparent;border-radius:11px;font-size:12px;font-weight:600;transition:all .18s ease}
+.app-shell .nav-item.active{background:linear-gradient(100deg,color-mix(in srgb,var(--role-accent) 16%,transparent),color-mix(in srgb,var(--role-accent) 4%,transparent));border-color:color-mix(in srgb,var(--role-accent) 32%,transparent);box-shadow:inset 3px 0 var(--role-accent),0 6px 18px rgba(0,0,0,.12)}
+.app-shell .main{min-width:0}
+.app-shell .topbar{padding:8px 0 20px;border-bottom:1px solid rgba(132,153,184,.12)}
+.app-shell .workspace-caption{font-size:11px}
+.app-shell .user-menu{padding:9px 12px;border:1px solid var(--role-line);background:color-mix(in srgb,var(--role-panel) 76%,transparent);border-radius:14px}
+.app-shell .logout-button{position:relative;overflow:hidden;display:flex;align-items:center;gap:12px;width:100%;min-height:54px;padding:10px 12px;border:1px solid rgba(248,113,113,.22);border-radius:14px;background:linear-gradient(110deg,rgba(127,29,29,.2),rgba(15,23,42,.7));color:#fda4af;box-shadow:0 8px 20px rgba(0,0,0,.12);transition:transform .18s ease,border-color .18s ease,background .18s ease}
+.app-shell .logout-button:hover{transform:translateY(-1px);border-color:rgba(248,113,113,.55);background:linear-gradient(110deg,rgba(153,27,27,.28),rgba(15,23,42,.85))}
+.app-shell .logout-symbol{width:34px;height:34px;flex:0 0 34px;border:1px solid rgba(248,113,113,.18);border-radius:11px;background:rgba(248,113,113,.1);font-size:0;position:relative}
+.app-shell .logout-symbol:before{content:"";width:12px;height:15px;border:1.7px solid currentColor;border-right:0;border-radius:4px 0 0 4px;position:absolute;left:8px;top:8px}
+.app-shell .logout-symbol:after{content:"↗";font-size:16px;font-weight:800;position:absolute;right:4px;top:5px}
+.app-shell .logout-button strong{font-size:12px;letter-spacing:.01em}
+.app-shell .logout-button small{font-size:10px;color:#c48d99}
+.app-shell .logout-button:focus-visible,.app-shell .nav-item:focus-visible{outline:2px solid var(--role-accent);outline-offset:3px}
+.business-page{display:grid;gap:18px;min-width:0}
+.business-hero{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:clamp(20px,3vw,32px);border:1px solid var(--role-line);border-radius:22px;background:radial-gradient(ellipse at 88% 10%,var(--role-glow),transparent 46%),linear-gradient(135deg,color-mix(in srgb,var(--role-panel) 92%,#15233a),rgba(7,12,22,.95));box-shadow:0 18px 44px rgba(0,0,0,.16)}
+.business-hero h1{font-size:clamp(25px,3vw,36px);line-height:1.12;letter-spacing:-.035em;margin:10px 0}
+.business-hero p{max-width:650px;margin:0;color:#aab9ce;font-size:13px;line-height:1.7}
+.business-hero-icon{display:grid;place-items:center;flex:0 0 70px;width:70px;height:70px;border-radius:22px;border:1px solid var(--role-line);background:color-mix(in srgb,var(--role-accent) 12%,var(--role-panel));color:var(--role-accent);font-size:30px;box-shadow:0 10px 30px var(--role-glow)}
+.business-columns{display:grid;grid-template-columns:minmax(280px,.86fr) minmax(0,1.14fr);gap:18px;align-items:start}
+.business-page .panel{min-width:0;padding:clamp(17px,2vw,24px);border-color:var(--role-line);background:linear-gradient(155deg,color-mix(in srgb,var(--role-panel) 84%,#101a2b),rgba(8,14,25,.96));box-shadow:0 14px 35px rgba(0,0,0,.12)}
+.business-page h2{font-size:18px;letter-spacing:-.02em;margin:9px 0 18px}
+.business-form .field{margin-bottom:15px}
+.business-form .field label{font-size:11px;color:#c4d0e0;font-weight:700}
+.business-form input,.business-form select,.business-form textarea{border-radius:11px;background:#091323;border-color:#2a3b53;padding:12px;font-size:12px}
+.business-form input:focus,.business-form select:focus,.business-form textarea:focus{border-color:var(--role-accent);box-shadow:0 0 0 3px var(--role-glow);outline:none}
+.business-form .btn{width:100%;min-height:44px;border-radius:12px;font-weight:800}
+.order-product-preview{display:grid;gap:5px;padding:14px;margin:0 0 15px;border:1px solid var(--role-line);border-radius:13px;background:color-mix(in srgb,var(--role-accent) 5%,#08111e);font-size:11px;color:#9fb0c6}
+.order-product-preview strong{color:#edf4ff;font-size:13px}
+.order-product-preview strong:last-child{color:var(--role-accent)}
+.business-history{display:grid;gap:12px}
+.business-history h2{margin-bottom:2px}
+.business-record{padding:15px;border:1px solid rgba(133,155,184,.17);border-radius:14px;background:rgba(8,15,27,.65);min-width:0}
+.business-record+.business-record{margin-top:10px}
+.business-record-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}
+.business-record-head>div{display:grid;gap:5px;min-width:0}
+.business-record-head strong{font-size:12px;overflow-wrap:anywhere}
+.business-record-head small{font-size:10px;color:#8495ae}
+.business-line{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;padding:9px 0;border-top:1px solid rgba(133,155,184,.12);font-size:11px;color:#aab9ce}
+.business-line strong{color:#f0f6ff;white-space:nowrap;font-size:11px}
+.business-record p{font-size:11px;color:#9daec5;line-height:1.6}
+.business-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.business-actions .btn{min-height:34px;border-radius:9px;font-size:11px}
+.status-pill{display:inline-flex;align-items:center;white-space:nowrap;padding:5px 9px;border:1px solid rgba(148,163,184,.18);border-radius:999px;background:rgba(148,163,184,.08);font-size:9px;font-weight:800;letter-spacing:.02em;color:#cbd5e1}
+.status-pending{color:#fcd34d;border-color:rgba(250,204,21,.25);background:rgba(250,204,21,.08)}
+.status-approved,.status-fulfilled{color:#86efac;border-color:rgba(74,222,128,.25);background:rgba(34,197,94,.08)}
+.status-rejected,.status-cancelled{color:#fda4af;border-color:rgba(251,113,133,.25);background:rgba(244,63,94,.08)}
+.app-shell .business-page .info-box,.app-shell .business-page .error-box{border-radius:12px;padding:12px 14px;font-size:12px}
+@media(max-width:950px){.business-columns{grid-template-columns:1fr}.business-history{min-height:0}}
+@media(max-width:720px){
+ .app-shell .brand{padding-bottom:12px}
+ .app-shell .sidebar-bottom{grid-template-columns:minmax(0,1fr) auto;align-items:center}
+ .app-shell .side-foot{min-width:0}
+ .app-shell .side-foot p{font-size:10px;line-height:1.45}
+ .app-shell .logout-button{width:auto;min-width:56px;min-height:48px;padding:7px;justify-content:center}
+ .app-shell .logout-button>span:last-child{display:none}
+ .app-shell .logout-symbol{margin:0}
+ .app-shell .nav-label{display:block;margin-top:12px}
+ .business-hero{padding:20px;border-radius:17px}
+ .business-hero-icon{width:52px;height:52px;flex-basis:52px;border-radius:16px;font-size:23px}
+ .business-hero p{font-size:12px}
+ .business-page .panel{padding:16px}
+ .business-record{padding:12px}
+}
+@media(max-width:430px){
+ .app-shell .sidebar-bottom{grid-template-columns:1fr}
+ .app-shell .logout-button{width:100%;justify-content:flex-start;padding:10px}
+ .app-shell .logout-button>span:last-child{display:block}
+ .business-hero{align-items:flex-start;gap:12px}
+ .business-hero-icon{width:44px;height:44px;flex-basis:44px;border-radius:13px;font-size:20px}
+ .business-record-head{flex-direction:column;align-items:flex-start}
+}
