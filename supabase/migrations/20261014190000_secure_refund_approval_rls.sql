@@ -1,9 +1,10 @@
--- Fix refund approval failing to read a valid order item under caller RLS.
--- The function performs all checks explicitly and runs atomically with a fixed search_path.
+-- Fix refund approval while preserving caller RLS (SECURITY INVOKER).
+-- Serialize approvals by locking the parent order, then read order items without FOR UPDATE.
+-- This avoids requiring UPDATE policy/privilege on product_order_items.
 CREATE OR REPLACE FUNCTION public.approve_product_refund(p_refund_id uuid)
 RETURNS void
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY INVOKER
 SET search_path TO ''
 AS $function$
 DECLARE
@@ -31,15 +32,7 @@ BEGIN
     RAISE EXCEPTION 'Refund ini sudah pernah diproses';
   END IF;
 
-  SELECT * INTO v_item
-  FROM public.product_order_items
-  WHERE id = v_refund.order_item_id
-  FOR UPDATE;
-
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Detail order tidak ditemukan';
-  END IF;
-
+  -- Lock the parent order to serialize approval of multiple refunds from that order.
   SELECT * INTO v_order
   FROM public.product_orders
   WHERE id = v_refund.order_id
@@ -47,6 +40,15 @@ BEGIN
 
   IF NOT FOUND OR v_order.status NOT IN ('approved', 'fulfilled') THEN
     RAISE EXCEPTION 'Order asal tidak valid untuk refund';
+  END IF;
+
+  -- Deliberately no FOR UPDATE here: product_order_items has no UPDATE RLS policy.
+  SELECT * INTO v_item
+  FROM public.product_order_items
+  WHERE id = v_refund.order_item_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Detail order tidak ditemukan';
   END IF;
 
   IF v_item.order_id <> v_refund.order_id OR v_refund.quantity > v_item.quantity THEN
