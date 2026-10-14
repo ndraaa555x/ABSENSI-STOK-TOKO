@@ -245,7 +245,7 @@ export default function HomePage() {
       if (activePage === "orders") {
         const [productsResult, ordersResult, customersResult] = await Promise.all([
           supabase.from("products").select("id,name,sku,unit,sale_price,current_stock,is_active").eq("is_active", true).order("name"),
-          supabase.from("product_orders").select("id,order_code,status,notes,created_at,ordered_by,customer_id,business_customers(store_name,customer_code),product_order_items(id,product_id,quantity,unit_price,line_total,products(name,sku,unit))").order("created_at", {ascending:false}).limit(100),
+          supabase.from("product_orders").select("id,order_code,status,notes,created_at,ordered_by,customer_id,payment_method,payment_evidence_path,stock_reserved,business_customers(store_name,customer_code),product_order_items(id,product_id,quantity,unit_price,line_total,products(name,sku,unit))").order("created_at", {ascending:false}).limit(100),
           supabase.from("business_customers").select("id,customer_code,store_name,owner_name,phone,email,address,notes,created_by,is_active,created_at").eq("is_active",true).order("store_name").limit(500)
         ]);
         if (!alive) return;
