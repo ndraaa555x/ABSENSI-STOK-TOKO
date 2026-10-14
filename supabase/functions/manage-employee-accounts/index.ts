@@ -12,9 +12,10 @@ Deno.serve(async(req:Request)=>{
  const admin=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
  const {data:authData,error:authError}=await admin.auth.getUser(token);
  if(authError||!authData.user) return reply(401,{error:"Sesi login tidak valid."});
- const {data:actor,error:actorError}=await admin.from("profiles").select("id,email,role,is_active").eq("id",authData.user.id).maybeSingle();
+ const {data:actor,error:actorError}=await admin.from("profiles").select("id,email,role,is_active,full_name").eq("id",authData.user.id).maybeSingle();
  if(actorError||!actor||!actor.is_active) return reply(403,{error:"Akun tidak aktif atau profil tidak tersedia."});
  let body:Record<string,unknown>; try{body=await req.json();}catch{return reply(400,{error:"Permintaan tidak valid."});}
+ const writeAudit=async(action:string,entityId:string,details:Record<string,unknown>)=>{const {error}=await admin.from("audit_logs").insert({actor_id:actor.id,action,entity_table:"profiles",entity_id:entityId,details:{actor_name:actor.full_name??actor.email,actor_email:actor.email,actor_role:actor.role,...details}});return error;};
  if(body.action==="list_accounts"){
   if(!["owner","admin"].includes(actor.role)) return reply(403,{error:"Hanya Owner/Admin yang dapat melihat daftar akun."});
   const {data,error}=await admin.from("profiles").select("id,email,full_name,role,is_active,created_at").order("created_at",{ascending:false});
@@ -43,6 +44,8 @@ Deno.serve(async(req:Request)=>{
   if(profileError){await admin.auth.admin.deleteUser(userId);return reply(500,{error:"Profil akun gagal dibuat; akun login dibatalkan."});}
   const {error:linkError}=await admin.from("employees").update({profile_id:userId,email,updated_at:new Date().toISOString()}).eq("id",employeeId).is("profile_id",null);
   if(linkError){await admin.from("profiles").delete().eq("id",userId);await admin.auth.admin.deleteUser(userId);return reply(500,{error:"Akun gagal dihubungkan dengan data karyawan; perubahan dibatalkan."});}
+  const auditError=await writeAudit("create_account",userId,{target_email:email,target_role:requestedRole,result:"success"});
+  if(auditError){await admin.from("employees").update({profile_id:null,updated_at:new Date().toISOString()}).eq("id",employeeId).eq("profile_id",userId);await admin.from("profiles").delete().eq("id",userId);await admin.auth.admin.deleteUser(userId);return reply(500,{error:"Akun dibatalkan karena catatan audit gagal disimpan."});}
   return reply(200,{success:true,user_id:userId,message:"Akun login karyawan berhasil dibuat."});
  }
 
@@ -64,6 +67,8 @@ Deno.serve(async(req:Request)=>{
    await admin.from("employees").update({profile_id:targetId,updated_at:new Date().toISOString()}).eq("id",employeeId).is("profile_id",null);
    return reply(500,{error:"Akun login gagal dihapus; tautan karyawan dipulihkan."});
   }
+  const auditError=await writeAudit("delete_account",targetId,{target_role:target.role,result:"success",source:"employee_management"});
+  if(auditError) return reply(200,{success:true,audit_warning:"Akun sudah dihapus, tetapi catatan audit gagal disimpan."});
   return reply(200,{success:true,message:"Akun login dihapus. Data karyawan dan riwayat absensi tetap disimpan."});
  }
 
@@ -79,6 +84,8 @@ Deno.serve(async(req:Request)=>{
   if(unlinkError) return reply(500,{error:"Akun gagal dilepas dari data karyawan."});
   const {error:deleteError}=await admin.auth.admin.deleteUser(targetId);
   if(deleteError) return reply(500,{error:"Akun login gagal dihapus."});
+  const auditError=await writeAudit("delete_account",targetId,{target_email:target.email,target_role:target.role,target_full_name:target.full_name,result:"success",source:"access_security_settings"});
+  if(auditError) return reply(200,{success:true,audit_warning:"Akun sudah dihapus, tetapi catatan audit gagal disimpan."});
   return reply(200,{success:true,message:"Akun login dan profil pengguna berhasil dihapus; data operasional bisnis tidak ikut dihapus."});
  }
  if(body.action==="update_account"){
@@ -95,6 +102,8 @@ Deno.serve(async(req:Request)=>{
   if(role==="owner"&&active!==true) return reply(400,{error:"Akun dengan role Owner harus tetap aktif."});
   const {error:updateError}=await admin.from("profiles").update({role,is_active:active,updated_at:new Date().toISOString()}).eq("id",targetId);
   if(updateError) return reply(500,{error:"Role/status akun gagal disimpan."});
+  const auditError=await writeAudit("update_account",targetId,{previous_role:target.role,new_role:role,previous_is_active:target.is_active,new_is_active:active,result:"success"});
+  if(auditError) return reply(200,{success:true,audit_warning:"Perubahan tersimpan, tetapi catatan audit gagal disimpan."});
   return reply(200,{success:true,message:"Role dan status akun berhasil diperbarui."});
  }
  return reply(400,{error:"Aksi tidak dikenal."});
