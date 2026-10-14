@@ -532,7 +532,7 @@ export default function HomePage() {
     const order = orderRows.find((item)=>item.id===refundOrderId);
     const item = order?.product_order_items.find((candidate)=>candidate.id===refundItemId);
     const quantity = Number(refundQuantity);
-    if (!item || !Number.isFinite(quantity) || quantity<=0 || quantity>Number(item.quantity)) { setRefundError("Jumlah refund tidak valid atau melebihi jumlah order."); return; }
+    if (!order || !item || !Number.isFinite(quantity) || quantity<=0 || quantity>Number(item.quantity)) { setRefundError("Pilih order dan produk yang valid; jumlah refund tidak boleh melebihi jumlah order."); return; }
     setRefundSubmitting(true); setRefundError(""); setRefundNotice("");
     const refundCode = `REF-${new Date().toISOString().slice(0,10).replaceAll("-","")}-${Math.random().toString(36).slice(2,7).toUpperCase()}`;
     const { error: insertError } = await supabase.from("product_refunds").insert({refund_code:refundCode,order_id:order.id,order_item_id:item.id,requested_by:profile.id,quantity,amount:quantity*Number(item.unit_price),reason:refundReason.trim()});
