@@ -6,7 +6,7 @@ import { Session } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type Profile = { id: string; email: string; full_name: string | null; role: "owner" | "admin" | "employee"; is_active: boolean };
-type Counts = { employees: number; attendance: number; products: number; finances: number };
+type Counts = { employees: number; attendance: number; products: number; finances: number; orders:number; refunds:number; reports:number };
 type AttendanceRow = { id: string; work_date: string; check_in_at: string | null; check_out_at: string | null; status: string; check_in_method: string | null; check_out_method: string | null; evidence_path: string | null; employees: { full_name: string; employee_code: string } | null; evidence_url?: string | null };
 type DailyAttendanceRow = { employee_id: string; check_out_at: string | null; employees: { full_name: string; employee_code: string } | null };
 type AttendanceMode = "once_daily" | "multiple_sessions";
@@ -58,7 +58,7 @@ const descriptions: Record<ModuleKey, string> = {
 export default function HomePage() {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [counts, setCounts] = useState<Counts>({ employees: 0, attendance: 0, products: 0, finances: 0 });
+  const [counts, setCounts] = useState<Counts>({ employees: 0, attendance: 0, products: 0, finances: 0, orders:0, refunds:0, reports:0 });
   const [pageLoading, setPageLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
   const [email, setEmail] = useState("");
@@ -180,19 +180,17 @@ export default function HomePage() {
       setDataLoading(false);
       return;
     }
-    const [employees, attendance, products, finances] = await Promise.all([
+    const [employees, attendance, products, orders, refunds, reports] = await Promise.all([
       supabase.from("employees").select("id", { count: "exact", head: true }),
       supabase.from("attendance_records").select("id", { count: "exact", head: true }),
       supabase.from("products").select("id", { count: "exact", head: true }),
-      supabase.from("financial_transactions").select("id", { count: "exact", head: true })
+      supabase.from("product_orders").select("id", { count: "exact", head: true }),
+      supabase.from("product_refunds").select("id", { count: "exact", head: true }),
+      supabase.from("financial_reports").select("id", { count: "exact", head: true })
     ]);
-    setCounts({
-      employees: employees.count ?? 0,
-      attendance: attendance.count ?? 0,
-      products: products.count ?? 0,
-      finances: finances.count ?? 0
-    });
-    const failed = [employees, attendance, products, finances].some((item) => item.error);
+    const finances = safeProfile.role==="owner" ? await supabase.from("financial_transactions").select("id", { count: "exact", head: true }) : {count:0,error:null};
+    setCounts({employees:employees.count??0,attendance:attendance.count??0,products:products.count??0,finances:finances.count??0,orders:orders.count??0,refunds:refunds.count??0,reports:reports.count??0});
+    const failed = [employees, attendance, products, orders, refunds, reports, finances].some((item) => item.error);
     if (failed) setMessage("Sebagian ringkasan tidak dapat dibaca oleh role atau kebijakan akses saat ini.");
     setDataLoading(false);
   }, []);
@@ -213,7 +211,7 @@ export default function HomePage() {
         void loadProfileAndCounts(nextSession);
       } else {
         setProfile(null);
-        setCounts({ employees: 0, attendance: 0, products: 0, finances: 0 });
+        setCounts({ employees: 0, attendance: 0, products: 0, finances: 0, orders:0, refunds:0, reports:0 });
       }
     });
     return () => { alive = false; subscription.unsubscribe(); };
@@ -741,10 +739,12 @@ export default function HomePage() {
           {message && <div className="info-box">{message}</div>}
           {error && <div className="error-box">{error}</div>}
           <div className="stats-grid">
-            <div className="stat-card"><div className="stat-top"><span>Total Karyawan</span><span className="stat-icon">♙</span></div><div className="stat-value">{dataLoading ? "—" : counts.employees}</div><div className="stat-note">Data karyawan tersimpan</div></div>
-            <div className="stat-card"><div className="stat-top"><span>Catatan Absensi</span><span className="stat-icon">◷</span></div><div className="stat-value">{dataLoading ? "—" : counts.attendance}</div><div className="stat-note">Jumlah catatan yang dapat diakses</div></div>
-            <div className="stat-card"><div className="stat-top"><span>Produk Inventaris</span><span className="stat-icon">▤</span></div><div className="stat-value">{dataLoading ? "—" : counts.products}</div><div className="stat-note">Item produk tersimpan</div></div>
-            <div className="stat-card"><div className="stat-top"><span>Transaksi Keuangan</span><span className="stat-icon">◈</span></div><div className="stat-value">{dataLoading ? "—" : counts.finances}</div><div className="stat-note">Transaksi yang dapat diakses</div></div>
+            <div className="stat-card"><div className="stat-top"><span>{profile?.role==="employee"?"Absensi saya":"Catatan Absensi"}</span><span className="stat-icon">◷</span></div><div className="stat-value">{dataLoading ? "—" : counts.attendance}</div><div className="stat-note">Catatan yang dapat diakses</div></div>
+            <div className="stat-card"><div className="stat-top"><span>Produk tersedia</span><span className="stat-icon">▤</span></div><div className="stat-value">{dataLoading ? "—" : counts.products}</div><div className="stat-note">Produk yang dapat diakses</div></div>
+            <div className="stat-card"><div className="stat-top"><span>Order Produk</span><span className="stat-icon">🛒</span></div><div className="stat-value">{dataLoading ? "—" : counts.orders}</div><div className="stat-note">Order sesuai hak akses</div></div>
+            <div className="stat-card"><div className="stat-top"><span>Refund Produk</span><span className="stat-icon">↩</span></div><div className="stat-value">{dataLoading ? "—" : counts.refunds}</div><div className="stat-note">Permintaan refund tercatat</div></div>
+            <div className="stat-card"><div className="stat-top"><span>Laporan uang</span><span className="stat-icon">↗</span></div><div className="stat-value">{dataLoading ? "—" : counts.reports}</div><div className="stat-note">Laporan sesuai hak akses</div></div>
+            {profile?.role==="owner"&&<div className="stat-card"><div className="stat-top"><span>Transaksi resmi</span><span className="stat-icon">◈</span></div><div className="stat-value">{dataLoading ? "—" : counts.finances}</div><div className="stat-note">Buku besar Owner</div></div>}
           </div>
           <div className="content-grid">
             <section className="panel"><div className="panel-head"><div><h2>Modul bisnis</h2><div className="subtle">Pilih area kerja yang ingin Anda buka</div></div><span className="status">ONLINE</span></div>
