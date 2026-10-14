@@ -33,7 +33,7 @@ export default function AttendanceCameraPage() {
   const [consent, setConsent] = useState(false);
   const [mode, setMode] = useState<"enroll" | "checkin" | "checkout">("checkin");
   const [faceRegistered, setFaceRegistered] = useState(false);
-  const isManager = profile?.role === "owner" || profile?.role === "admin";
+  const isManager = profile?.role === "owner" || profile?.role === "admin" || profile?.role === "hrd";
   const [cameraReady, setCameraReady] = useState(false);
   const [modelReady, setModelReady] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -49,7 +49,7 @@ export default function AttendanceCameraPage() {
       const { data: p } = await supabase.from("profiles").select("role,is_active").eq("id", data.session.user.id).maybeSingle();
       if (!alive) return;
       setProfile(p);
-      if (p?.is_active && (p.role === "owner" || p.role === "admin")) {
+      if (p?.is_active && (p.role === "owner" || p.role === "admin" || p.role === "hrd")) {
         const { data: rows, error: employeeError } = await supabase.from("employees").select("id,employee_code,full_name,employment_status,profile_id").eq("employment_status", "active").order("full_name");
         if (!alive) return;
         if (employeeError) setError("Daftar karyawan tidak dapat dibaca. Periksa kebijakan database.");
