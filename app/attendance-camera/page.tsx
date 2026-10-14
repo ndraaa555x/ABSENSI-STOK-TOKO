@@ -177,10 +177,18 @@ export default function AttendanceCameraPage() {
       if (distance(descriptor, template.embedding as number[]) > 0.52) throw new Error("Wajah tidak cocok dengan template terdaftar. Coba lagi atau minta pemeriksaan manual Owner/Admin.");
       const now = new Date();
       const workDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta", year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
-      const { data: existing, error: lookupError } = await supabase.from("attendance_records").select("id,check_in_at,check_out_at").eq("employee_id", employeeId).eq("work_date", workDate).maybeSingle();
+      const { data: setting, error: settingError } = await supabase.from("app_settings").select("setting_value").eq("setting_key", "attendance_mode").maybeSingle();
+      if (settingError) throw new Error("Aturan absensi tidak dapat dibaca. Hubungi Owner/Admin.");
+      const attendanceMode = (setting?.setting_value as { mode?: string } | null)?.mode === "multiple_sessions" ? "multiple_sessions" : "once_daily";
+      const { data: existing, error: lookupError } = await supabase.from("attendance_records").select("id,check_in_at,check_out_at").eq("employee_id", employeeId).eq("work_date", workDate).is("check_out_at", null).order("check_in_at", { ascending: false }).limit(1).maybeSingle();
       if (lookupError) throw new Error("Riwayat absensi hari ini tidak dapat dibaca.");
-      if (mode === "checkin" && existing?.check_in_at) throw new Error("Karyawan sudah check-in hari ini.");
-      if (mode === "checkout" && (!existing?.check_in_at || existing?.check_out_at)) throw new Error("Check-out hanya bisa dilakukan setelah check-in dan satu kali per hari.");
+      if (mode === "checkin" && existing?.check_in_at) throw new Error("Anda masih memiliki sesi kerja aktif. Lakukan Check-out terlebih dahulu.");
+      if (mode === "checkin" && attendanceMode === "once_daily") {
+        const { count, error: dayError } = await supabase.from("attendance_records").select("id", { count: "exact", head: true }).eq("employee_id", employeeId).eq("work_date", workDate);
+        if (dayError) throw new Error("Riwayat absensi hari ini tidak dapat dibaca.");
+        if ((count ?? 0) > 0) throw new Error("Mode Sekali Sehari aktif: Anda sudah memiliki catatan absensi hari ini.");
+      }
+      if (mode === "checkout" && !existing?.check_in_at) throw new Error("Tidak ada sesi aktif untuk Check-out. Silakan Check-in terlebih dahulu.");
       const path = `${session?.user.id}/${employeeId}/${now.getTime()}.jpg`;
       const { error: uploadError } = await supabase.storage.from("attendance-evidence").upload(path, blob, { contentType: "image/jpeg", upsert: false });
       if (uploadError) throw new Error("Foto bukti gagal diunggah ke penyimpanan privat. Periksa kebijakan Storage.");
