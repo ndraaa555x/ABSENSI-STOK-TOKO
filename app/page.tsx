@@ -285,7 +285,7 @@ export default function HomePage() {
         if (refundsResult.error) setRefundError("Riwayat refund belum dapat dimuat. Periksa izin database.");
         else { setRefundRows((refundsResult.data ?? []) as unknown as RefundRow[]); setRefundError(""); }
       } else if (activePage === "finance-reports") {
-        const [reportsResult, ordersResult] = await Promise.all([
+        const [reportsResult, ordersResult, customersResult] = await Promise.all([
           supabase.from("financial_reports").select("id,report_code,report_type,amount,description,payment_method,status,created_at,submitted_by,related_order_id,related_customer_id,business_customers!financial_reports_related_customer_id_fkey(store_name,customer_code),product_orders(order_code,business_customers(store_name,customer_code))").order("created_at", {ascending:false}).limit(100),
           supabase.from("product_orders").select("id,order_code,status,notes,created_at,ordered_by,customer_id,payment_method,payment_evidence_path,stock_reserved,business_customers(store_name,customer_code),product_order_items(id,product_id,quantity,unit_price,line_total,products(name,sku,unit))").order("created_at",{ascending:false}).limit(100),
           supabase.from("business_customers").select("id,customer_code,store_name,owner_name,phone,email,address,notes,created_by,is_active,created_at").eq("is_active",true).order("store_name").limit(500)
