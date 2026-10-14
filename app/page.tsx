@@ -738,7 +738,7 @@ export default function HomePage() {
           <div key={group}>
             <div className="nav-label">{group}</div>
             <nav className="nav-list">
-              {navItems.filter((item) => item.group === group && (profile?.role === "owner" || (profile?.role === "admin" ? item.key !== "finance" : ["dashboard", "attendance", "orders", "refunds", "finance-reports"].includes(item.key))) && item.label.toLowerCase().includes(menuSearch.trim().toLowerCase())).map((item) => (
+              {navItems.filter((item) => item.group === group && (profile?.role === "owner" || (profile?.role === "admin" ? item.key !== "finance" : ["dashboard", "attendance", "orders", "refunds", "finance-reports", "leave", "notifications"].includes(item.key))) && item.label.toLowerCase().includes(menuSearch.trim().toLowerCase())).map((item) => (
                 <button key={item.key} className={`nav-item ${activePage === item.key ? "active" : ""}`} onClick={() => setActivePage(item.key)}>
                   <span className="nav-icon">{item.icon}</span>{item.label}
                 </button>
