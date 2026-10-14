@@ -10,12 +10,20 @@ type Counts = { employees: number; attendance: number; products: number; finance
 type AttendanceRow = { id: string; work_date: string; check_in_at: string | null; check_out_at: string | null; status: string; check_in_method: string | null; check_out_method: string | null; evidence_path: string | null; employees: { full_name: string; employee_code: string } | null; evidence_url?: string | null };
 type DailyAttendanceRow = { employee_id: string; check_out_at: string | null; employees: { full_name: string; employee_code: string } | null };
 type AttendanceMode = "once_daily" | "multiple_sessions";
-type ModuleKey = "dashboard" | "employees" | "attendance" | "orders" | "refunds" | "finance-reports" | "inventory" | "finance" | "barcode" | "settings";
+type ModuleKey = "dashboard" | "employees" | "attendance" | "orders" | "refunds" | "finance-reports" | "inventory" | "finance" | "barcode" | "leave" | "notifications" | "settings";
 type OrderProduct = { id:string; name:string; sku:string; unit:string; sale_price:number; current_stock:number; is_active:boolean };
 type OrderItem = { id:string; quantity:number; unit_price:number; line_total:number; product_id:string; products:{name:string;sku:string;unit:string}|null };
 type OrderRow = { id:string; order_code:string; status:string; notes:string|null; created_at:string; ordered_by:string; product_order_items:OrderItem[] };
 type RefundRow = { id:string; refund_code:string; order_id:string; order_item_id:string; requested_by:string; quantity:number; amount:number; reason:string; status:string; created_at:string; product_orders:{order_code:string}|null };
 type FinanceReportRow = { id:string; report_code:string; report_type:string; amount:number; description:string; payment_method:string|null; status:string; created_at:string; submitted_by:string };
+type ProductRow = {id:string;sku:string;barcode_value:string;name:string;category_id:string|null;unit:string;description:string|null;sale_price:number;current_stock:number;minimum_stock:number;storage_location:string|null;is_active:boolean;product_categories:{name:string}|null};
+type ProductCategory = {id:string;name:string};
+type StockMovementRow = {id:string;product_id:string;movement_type:string;quantity:number;unit_cost:number|null;reference_code:string|null;reason:string|null;movement_at:string;products:{name:string;sku:string}|null};
+type FinancialCategory = {id:string;name:string;transaction_type:"income"|"expense"};
+type FinancialTransactionRow = {id:string;transaction_code:string;transaction_type:"income"|"expense";amount:number;transaction_at:string;payment_method:string|null;description:string;reference_code:string|null;status:string;financial_categories:{name:string}|null};
+type LeaveRow = {id:string;employee_id:string;leave_type:string;start_date:string;end_date:string;reason:string;status:string;created_at:string;employees:{full_name:string;employee_code:string;profile_id:string|null}|null};
+type NotificationRow = {id:string;title:string;message:string;notification_type:string;read_at:string|null;created_at:string};
+
 type EmployeeRow = { id:string; employee_code:string; full_name:string; email:string|null; phone:string|null; job_title:string|null; employment_status:"active"|"inactive"; joined_on:string|null; notes:string|null; profile_id?:string|null };
 type AccountRow = { id:string; email:string; full_name:string|null; role:"owner"|"admin"|"employee"; is_active:boolean; employee?:{employee_code:string;employment_status:string;full_name:string}|null };
 const navItems: { key: ModuleKey; icon: string; label: string; group: string }[] = [
@@ -25,6 +33,8 @@ const navItems: { key: ModuleKey; icon: string; label: string; group: string }[]
   { key: "orders", icon: "🛒", label: "Order Produk", group: "TRANSAKSI" },
   { key: "refunds", icon: "↩", label: "Refund Produk", group: "TRANSAKSI" },
   { key: "finance-reports", icon: "↗", label: "Laporan Uang", group: "TRANSAKSI" },
+  { key: "leave", icon: "▣", label: "Izin / Cuti", group: "OPERASIONAL" },
+  { key: "notifications", icon: "♢", label: "Notifikasi", group: "UTAMA" },
   { key: "inventory", icon: "▤", label: "Inventaris & Stok", group: "OPERASIONAL" },
   { key: "barcode", icon: "▥", label: "Barcode", group: "OPERASIONAL" },
   { key: "finance", icon: "◈", label: "Keuangan", group: "MANAJEMEN" },
@@ -37,6 +47,8 @@ const descriptions: Record<ModuleKey, string> = {
   orders: "Ajukan order produk untuk kebutuhan operasional kerja dan pantau status persetujuannya.",
   refunds: "Ajukan pengembalian produk dari order yang sudah disetujui atau dipenuhi.",
   "finance-reports": "Catat uang masuk atau pengeluaran harian untuk diperiksa Admin/Owner.",
+  leave: "Ajukan izin/cuti dan pantau statusnya; Admin/Owner meninjau permohonan karyawan.",
+  notifications: "Pusat notifikasi dan pembaruan aktivitas akun.",
   inventory: "Pantau produk dan ketersediaan stok untuk mendukung order kerja.",
   barcode: "Cari produk berdasarkan SKU atau barcode.",
   finance: "Lihat ringkasan transaksi keuangan yang dikelola Owner.",
@@ -86,6 +98,41 @@ export default function HomePage() {
   const [financeReportSubmitting, setFinanceReportSubmitting] = useState(false);
   const [financeReportNotice, setFinanceReportNotice] = useState("");
   const [financeReportError, setFinanceReportError] = useState("");
+  const [productRows,setProductRows]=useState<ProductRow[]>([]);
+  const [productCategories,setProductCategories]=useState<ProductCategory[]>([]);
+  const [stockMovementRows,setStockMovementRows]=useState<StockMovementRow[]>([]);
+  const [inventorySearch,setInventorySearch]=useState("");
+  const [inventoryNotice,setInventoryNotice]=useState("");
+  const [inventoryError,setInventoryError]=useState("");
+  const [inventorySaving,setInventorySaving]=useState(false);
+  const [inventoryForm,setInventoryForm]=useState({sku:"",barcode_value:"",name:"",category_id:"",unit:"pcs",description:"",sale_price:"0",initial_stock:"0",minimum_stock:"0",storage_location:""});
+  const [stockForm,setStockForm]=useState({product_id:"",movement_type:"purchase_in",quantity:"1",unit_cost:"",reference_code:"",reason:"",notes:""});
+  const [stockSaving,setStockSaving]=useState(false);
+  const [barcodeSearch,setBarcodeSearch]=useState("");
+  const [financialRows,setFinancialRows]=useState<FinancialTransactionRow[]>([]);
+  const [financialCategories,setFinancialCategories]=useState<FinancialCategory[]>([]);
+  const [financialSearch,setFinancialSearch]=useState("");
+  const [financialType,setFinancialType]=useState<"income"|"expense">("income");
+  const [financialAmount,setFinancialAmount]=useState("");
+  const [financialCategoryId,setFinancialCategoryId]=useState("");
+  const [financialPayment,setFinancialPayment]=useState("cash");
+  const [financialDescription,setFinancialDescription]=useState("");
+  const [financialReference,setFinancialReference]=useState("");
+  const [financialSaving,setFinancialSaving]=useState(false);
+  const [financialNotice,setFinancialNotice]=useState("");
+  const [financialError,setFinancialError]=useState("");
+  const [leaveRows,setLeaveRows]=useState<LeaveRow[]>([]);
+  const [leaveEmployeeId,setLeaveEmployeeId]=useState("");
+  const [leaveType,setLeaveType]=useState("leave");
+  const [leaveStart,setLeaveStart]=useState(new Date().toISOString().slice(0,10));
+  const [leaveEnd,setLeaveEnd]=useState(new Date().toISOString().slice(0,10));
+  const [leaveReason,setLeaveReason]=useState("");
+  const [leaveNotice,setLeaveNotice]=useState("");
+  const [leaveError,setLeaveError]=useState("");
+  const [leaveSaving,setLeaveSaving]=useState(false);
+  const [notificationRows,setNotificationRows]=useState<NotificationRow[]>([]);
+  const [notificationError,setNotificationError]=useState("");
+
   const [attendanceRows, setAttendanceRows] = useState<AttendanceRow[]>([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [attendanceError, setAttendanceError] = useState("");
@@ -205,6 +252,49 @@ export default function HomePage() {
     void loadBusinessWorkflows();
     return () => { alive = false; };
   }, [activePage, session, profile, businessRefresh]);
+
+  useEffect(() => {
+    if (!session || !profile?.is_active || !["inventory","barcode","finance","leave","notifications"].includes(activePage)) return;
+    let alive=true;
+    async function loadAdditionalModules(){
+      if(activePage==="inventory"||activePage==="barcode"){
+        const [p,c,m]=await Promise.all([
+          supabase.from("products").select("id,sku,barcode_value,name,category_id,unit,description,sale_price,current_stock,minimum_stock,storage_location,is_active,product_categories(name)").order("name").limit(500),
+          supabase.from("product_categories").select("id,name").order("name"),
+          supabase.from("stock_movements").select("id,product_id,movement_type,quantity,unit_cost,reference_code,reason,movement_at,products(name,sku)").order("movement_at",{ascending:false}).limit(50)
+        ]);
+        if(!alive)return;
+        if(p.error)setInventoryError("Produk belum dapat dimuat. Periksa izin inventaris.");else setProductRows((p.data??[]) as unknown as ProductRow[]);
+        if(!c.error)setProductCategories((c.data??[]) as ProductCategory[]);
+        if(!m.error)setStockMovementRows((m.data??[]) as unknown as StockMovementRow[]);
+      }
+      if(activePage==="finance"&&profile.role==="owner"){
+        const [tx,cats]=await Promise.all([
+          supabase.from("financial_transactions").select("id,transaction_code,transaction_type,amount,transaction_at,payment_method,description,reference_code,status,financial_categories(name)").order("transaction_at",{ascending:false}).limit(300),
+          supabase.from("financial_categories").select("id,name,transaction_type").eq("is_active",true).order("name")
+        ]);
+        if(!alive)return;
+        if(tx.error)setFinancialError("Buku keuangan belum dapat dimuat.");else setFinancialRows((tx.data??[]) as unknown as FinancialTransactionRow[]);
+        if(!cats.error)setFinancialCategories((cats.data??[]) as FinancialCategory[]);
+      }
+      if(activePage==="leave"){
+        const {data,error:queryError}=await supabase.from("leave_requests").select("id,employee_id,leave_type,start_date,end_date,reason,status,created_at,employees(full_name,employee_code,profile_id)").order("created_at",{ascending:false}).limit(200);
+        if(!alive)return;
+        if(queryError)setLeaveError("Permohonan izin belum dapat dimuat. Periksa hubungan akun karyawan.");else setLeaveRows((data??[]) as unknown as LeaveRow[]);
+        if(profile.role==="employee"){
+          const {data:emp}=await supabase.from("employees").select("id").eq("profile_id",profile.id).maybeSingle();
+          if(alive&&emp)setLeaveEmployeeId(emp.id);
+        }
+      }
+      if(activePage==="notifications"){
+        const {data,error:queryError}=await supabase.from("notifications").select("id,title,message,notification_type,read_at,created_at").order("created_at",{ascending:false}).limit(100);
+        if(!alive)return;
+        if(queryError)setNotificationError("Notifikasi belum dapat dimuat.");else setNotificationRows((data??[]) as NotificationRow[]);
+      }
+    }
+    void loadAdditionalModules();
+    return ()=>{alive=false;};
+  },[activePage,session,profile,businessRefresh]);
 
   useEffect(() => {
     if (activePage !== "attendance" || !session || !profile?.is_active) return;
@@ -557,6 +647,61 @@ export default function HomePage() {
     const { error: updateError } = await supabase.from(table).update({status,reviewed_by:profile.id,reviewed_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq("id",id);
     if (updateError) { setError("Status gagal diperbarui: "+updateError.message); return; }
     setBusinessRefresh((v)=>v+1);
+  }
+
+  async function saveProduct(event:FormEvent<HTMLFormElement>){
+    event.preventDefault();
+    if(!profile||!["owner","admin"].includes(profile.role)){setInventoryError("Hanya Admin/Owner yang dapat mengelola produk.");return;}
+    setInventorySaving(true);setInventoryError("");setInventoryNotice("");
+    const {error:saveError}=await supabase.rpc("create_product_with_stock",{
+      p_sku:inventoryForm.sku.trim(),p_barcode_value:inventoryForm.barcode_value.trim(),p_name:inventoryForm.name.trim(),
+      p_category_id:inventoryForm.category_id||null,p_unit:inventoryForm.unit.trim(),p_description:inventoryForm.description.trim(),
+      p_sale_price:Number(inventoryForm.sale_price),p_initial_stock:Number(inventoryForm.initial_stock),p_minimum_stock:Number(inventoryForm.minimum_stock),p_storage_location:inventoryForm.storage_location.trim()
+    });
+    if(saveError)setInventoryError("Produk gagal disimpan: "+saveError.message);
+    else{setInventoryNotice("Produk berhasil ditambahkan dan stok awal tercatat.");setInventoryForm({sku:"",barcode_value:"",name:"",category_id:"",unit:"pcs",description:"",sale_price:"0",initial_stock:"0",minimum_stock:"0",storage_location:""});setBusinessRefresh(v=>v+1);}
+    setInventorySaving(false);
+  }
+  async function saveStockMovement(event:FormEvent<HTMLFormElement>){
+    event.preventDefault();if(!profile||!["owner","admin"].includes(profile.role))return;
+    setStockSaving(true);setInventoryError("");setInventoryNotice("");
+    const {error:saveError}=await supabase.rpc("record_stock_movement",{p_product_id:stockForm.product_id,p_movement_type:stockForm.movement_type,p_quantity:Number(stockForm.quantity),p_unit_cost:stockForm.unit_cost?Number(stockForm.unit_cost):null,p_reference_code:stockForm.reference_code.trim()||null,p_reason:stockForm.reason.trim()||null,p_notes:stockForm.notes.trim()||null});
+    if(saveError)setInventoryError("Pergerakan stok gagal: "+saveError.message);
+    else{setInventoryNotice("Stok dan riwayat pergerakan berhasil diperbarui bersama.");setStockForm(v=>({...v,quantity:"1",unit_cost:"",reference_code:"",reason:"",notes:""}));setBusinessRefresh(v=>v+1);}
+    setStockSaving(false);
+  }
+  async function saveFinancialTransaction(event:FormEvent<HTMLFormElement>){
+    event.preventDefault();if(!profile||profile.role!=="owner")return;
+    if(!financialDescription.trim()||!Number.isFinite(Number(financialAmount))||Number(financialAmount)<=0){setFinancialError("Nominal harus lebih dari nol dan keterangan wajib diisi.");return;}
+    setFinancialSaving(true);setFinancialError("");setFinancialNotice("");
+    const code=`TRX-${new Date().toISOString().slice(0,10).replaceAll("-","")}-${Math.random().toString(36).slice(2,7).toUpperCase()}`;
+    const {error:saveError}=await supabase.from("financial_transactions").insert({transaction_code:code,transaction_type:financialType,category_id:financialCategoryId||null,amount:Number(financialAmount),payment_method:financialPayment,description:financialDescription.trim(),reference_code:financialReference.trim()||null,created_by:profile.id});
+    if(saveError)setFinancialError("Transaksi gagal dicatat: "+saveError.message);
+    else{setFinancialNotice("Transaksi resmi berhasil dicatat.");setFinancialAmount("");setFinancialDescription("");setFinancialReference("");setBusinessRefresh(v=>v+1);}
+    setFinancialSaving(false);
+  }
+  async function submitLeaveRequest(event:FormEvent<HTMLFormElement>){
+    event.preventDefault();if(!profile||!leaveEmployeeId){setLeaveError("Akun belum terhubung ke data karyawan. Minta Admin menghubungkan profil.");return;}
+    if(leaveEnd<leaveStart||!leaveReason.trim()){setLeaveError("Tanggal akhir harus setelah tanggal mulai dan alasan wajib diisi.");return;}
+    setLeaveSaving(true);setLeaveError("");setLeaveNotice("");
+    const {error:saveError}=await supabase.from("leave_requests").insert({employee_id:leaveEmployeeId,leave_type:leaveType,start_date:leaveStart,end_date:leaveEnd,reason:leaveReason.trim(),status:"pending"});
+    if(saveError)setLeaveError("Permohonan gagal dikirim: "+saveError.message);
+    else{setLeaveNotice("Permohonan berhasil dikirim untuk ditinjau.");setLeaveReason("");setBusinessRefresh(v=>v+1);}
+    setLeaveSaving(false);
+  }
+  async function reviewLeaveRequest(id:string,status:"approved"|"rejected"){
+    if(!profile||!["owner","admin"].includes(profile.role))return;
+    const {error:saveError}=await supabase.from("leave_requests").update({status,reviewed_by:profile.id,reviewed_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq("id",id);
+    if(saveError)setLeaveError("Status permohonan gagal diperbarui.");else setBusinessRefresh(v=>v+1);
+  }
+  async function markNotificationRead(id:string){
+    const {error:saveError}=await supabase.from("notifications").update({read_at:new Date().toISOString()}).eq("id",id);
+    if(saveError)setNotificationError("Notifikasi gagal diperbarui.");else setNotificationRows(rows=>rows.map(n=>n.id===id?{...n,read_at:new Date().toISOString()}:n));
+  }
+  async function toggleProductActive(product:ProductRow){
+    if(!profile||!["owner","admin"].includes(profile.role))return;
+    const {error:saveError}=await supabase.from("products").update({is_active:!product.is_active,updated_at:new Date().toISOString()}).eq("id",product.id);
+    if(saveError)setInventoryError("Status produk gagal diperbarui.");else{setInventoryNotice(product.is_active?"Produk dinonaktifkan.":"Produk diaktifkan.");setBusinessRefresh(v=>v+1);}
   }
 
   const displayName = profile?.full_name || profile?.email || session.user.email || "Pengguna";
