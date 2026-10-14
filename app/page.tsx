@@ -176,7 +176,7 @@ export default function HomePage() {
   }, [activePage, session, profile]);
 
   useEffect(() => {
-    if (activePage !== "settings" || !session || !profile?.is_active || !["owner", "admin"].includes(profile.role)) return;
+    if (!["settings", "employees"].includes(activePage) || !session || !profile?.is_active || !["owner", "admin"].includes(profile.role)) return;
     let alive = true;
     async function loadAccounts() {
       setAccountLoading(true); setAccountError("");
@@ -199,6 +199,23 @@ export default function HomePage() {
     else {
       setAccountRows(rows => rows.map(row => row.id === account.id ? { ...row, role, is_active } : row));
       setAccountNotice("Role dan status akun berhasil diperbarui.");
+    }
+    setAccountSavingId(null);
+  }
+
+
+  async function deleteEmployeeLogin(emp: EmployeeRow, account: AccountRow) {
+    const confirmed = window.confirm("Hapus akun login untuk " + emp.full_name + " (" + account.email + ")? Data karyawan dan riwayat absensi tetap disimpan, tetapi akun ini tidak bisa login lagi.");
+    if (!confirmed) return;
+    setAccountSavingId(account.id); setEmployeeError(""); setEmployeeNotice("");
+    const { data, error: invokeError } = await supabase.functions.invoke("manage-employee-accounts", {
+      body: { action: "delete_employee_account", user_id: account.id, employee_id: emp.id }
+    });
+    if (invokeError || data?.error) setEmployeeError(data?.error || "Akun gagal dihapus.");
+    else {
+      setAccountRows(rows => rows.filter(row => row.id !== account.id));
+      setEmployeeRows(rows => rows.map(row => row.id === emp.id ? { ...row, profile_id: null } : row));
+      setEmployeeNotice("Akun login dihapus. Data karyawan dan riwayat absensi tetap dipertahankan.");
     }
     setAccountSavingId(null);
   }
@@ -480,34 +497,21 @@ export default function HomePage() {
           </form>}
           <div className="section-head" style={{marginTop:24}}><div><h2>Daftar karyawan</h2><p className="subtle">{employeeRows.length} data · Gunakan status nonaktif jika karyawan memiliki riwayat absensi.</p></div><button className="btn" type="button" onClick={()=>setActivePage("employees")} disabled={employeeLoading}>Muat ulang</button></div><div className="field" style={{maxWidth:480,marginBottom:14}}><label htmlFor="employee-search">Cari / filter karyawan</label><input id="employee-search" type="search" value={employeeSearch} onChange={e=>setEmployeeSearch(e.target.value)} placeholder="Nama, kode, email, jabatan, status..." /></div>
           {employeeLoading ? <p className="subtle">Memuat daftar karyawan…</p> : employeeRows.length===0 ? <div className="info-box">Belum ada karyawan. Isi formulir di atas untuk menambahkan karyawan pertama.</div> : <div style={{overflowX:"auto"}}>
-            <table style={{width:"100%",borderCollapse:"collapse",fontSize:13,minWidth:760}}>
-              <thead><tr style={{textAlign:"left",color:"#91a1b8"}}><th style={{padding:10}}>Kode</th><th style={{padding:10}}>Nama</th><th style={{padding:10}}>Kontak / Jabatan</th><th style={{padding:10}}>Status</th><th style={{padding:10}}>Aksi</th></tr></thead>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:13,minWidth:900}}>
+              <thead><tr style={{textAlign:"left",color:"#91a1b8"}}><th style={{padding:10}}>Kode</th><th style={{padding:10}}>Nama</th><th style={{padding:10}}>Kontak / Jabatan</th><th style={{padding:10}}>Role akun</th><th style={{padding:10}}>Status</th><th style={{padding:10}}>Aksi</th></tr></thead>
               <tbody>{employeeRows.filter(emp=>([emp.employee_code,emp.full_name,emp.email,emp.phone,emp.job_title,emp.employment_status,emp.joined_on].join(" ")).toLowerCase().includes(employeeSearch.trim().toLowerCase())).map(emp=><tr key={emp.id} style={{borderTop:"1px solid #25334a"}}>
                 <td style={{padding:10}}><strong>{emp.employee_code}</strong></td><td style={{padding:10}}>{emp.full_name}<div className="subtle">{emp.joined_on||"Tanggal bergabung belum diisi"}</div></td>
                 <td style={{padding:10}}>{emp.email||emp.phone||"Kontak belum diisi"}<div className="subtle">{emp.job_title||"Jabatan belum diisi"}</div></td>
+                <td style={{padding:10}}>{(() => { const linked = accountRows.find(a => a.id === emp.profile_id || a.employee?.employee_code === emp.employee_code); return linked ? (profile?.role === "owner" || (profile?.role === "admin" && linked.role === "employee") ? <select aria-label={"Role "+linked.email} value={linked.role} disabled={accountSavingId===linked.id || linked.role==="owner"} onChange={e=>void updateAccount(linked,e.target.value as "owner"|"admin"|"employee",linked.is_active)}><option value="employee">Karyawan</option>{profile?.role==="owner" && <><option value="admin">Admin</option><option value="owner">Owner</option></>}</select> : <span className="status">{linked.role==="employee"?"KARYAWAN":linked.role.toUpperCase()}</span>) : <span className="subtle">Belum ada akun</span>; })()}</td>
                 <td style={{padding:10}}><span className="status">{emp.employment_status==="active"?"AKTIF":"NONAKTIF"}</span></td>
-                <td style={{padding:10}}><div style={{display:"flex",gap:8,flexWrap:"wrap"}}><button className="btn" type="button" onClick={()=>{setEditingEmployeeId(emp.id);setEmployeeForm({employee_code:emp.employee_code,full_name:emp.full_name,email:emp.email||"",phone:emp.phone||"",job_title:emp.job_title||"",joined_on:emp.joined_on||"",notes:emp.notes||""});setEmployeeError("");setEmployeeNotice("");}}>Edit</button><button className="btn" type="button" onClick={()=>void toggleEmployeeStatus(emp)}>{emp.employment_status==="active"?"Nonaktifkan":"Aktifkan"}</button></div></td>
+                <td style={{padding:10}}><div style={{display:"flex",gap:8,flexWrap:"wrap"}}><button className="btn" type="button" onClick={()=>{setEditingEmployeeId(emp.id);setEmployeeForm({employee_code:emp.employee_code,full_name:emp.full_name,email:emp.email||"",phone:emp.phone||"",job_title:emp.job_title||"",joined_on:emp.joined_on||"",notes:emp.notes||""});setEmployeeError("");setEmployeeNotice("");}}>Edit</button><button className="btn" type="button" onClick={()=>void toggleEmployeeStatus(emp)}>{emp.employment_status==="active"?"Nonaktifkan":"Aktifkan"}</button>{(() => { const linked = accountRows.find(a => a.id === emp.profile_id || a.employee?.employee_code === emp.employee_code); return linked && linked.role !== "owner" ? <button className="btn" type="button" disabled={accountSavingId===linked.id} onClick={()=>void deleteEmployeeLogin(emp,linked)}>{accountSavingId===linked.id?"Memproses…":"Hapus akun"}</button> : null; })()}</div></td>
               </tr>)}</tbody>
             </table>
           </div>}
-          <div className="info-box" style={{marginTop:16}}>Data karyawan tidak otomatis membuat akun login atau mengubah role OWNER/ADMIN. Pengelolaan akun dan role dilakukan terpisah demi keamanan.</div>
+          <div className="info-box" style={{marginTop:16}}>Pengaturan role dan penghapusan akun login tersedia langsung di daftar karyawan. Role “Employee” ditampilkan sebagai “KARYAWAN”. Menghapus akun login tidak menghapus data karyawan atau riwayat absensi.</div>
         </section> : <section className="panel" style={{ maxWidth: 900 }}>
           <div className="eyebrow">MODUL / {activePage.toUpperCase()}</div><h1 style={{ marginTop: 12 }}>{moduleTitle}</h1><p className="subtle">{descriptions[activePage]}</p>
           <div className="info-box">{activePage === "settings" ? "Owner dapat mengatur role dan status akun lain. Akun Owner yang sedang digunakan dilindungi dari perubahan diri sendiri." : "Modul ini masih dalam tahap fondasi. Kami tidak akan menampilkan data contoh seolah-olah merupakan data bisnis asli."}</div>
-          {activePage === "settings" && ["owner","admin"].includes(profile?.role ?? "") && <section className="panel" style={{marginTop:18}}>
-            <div className="section-head"><div><h2>Pengelolaan akun & role</h2><p className="subtle">Daftar akun login. Hanya Owner yang dapat mengubah role dan status aktif.</p></div><button className="btn" type="button" onClick={()=>setAccountRefresh(n=>n+1)} disabled={accountLoading}>Muat ulang</button></div>
-            {accountError && <div className="error-box" role="alert">{accountError}</div>}
-            {accountNotice && <div className="info-box" role="status">{accountNotice}</div>}
-            {accountLoading ? <p className="subtle">Memuat akun…</p> : accountRows.length===0 ? <div className="info-box">Belum ada daftar akun yang dapat ditampilkan.</div> : <><div className="field" style={{maxWidth:480,marginBottom:14}}><label htmlFor="account-search">Cari akun</label><input id="account-search" type="search" value={accountSearch} onChange={e=>setAccountSearch(e.target.value)} placeholder="Nama, email, role, status..." /></div><div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:13,minWidth:720}}>
-              <thead><tr style={{textAlign:"left",color:"#91a1b8"}}><th style={{padding:10}}>Nama / Email</th><th style={{padding:10}}>Karyawan</th><th style={{padding:10}}>Role</th><th style={{padding:10}}>Status</th></tr></thead>
-              <tbody>{accountRows.filter(account=>([account.full_name,account.email,account.role,account.is_active?"aktif":"nonaktif",account.employee?.employee_code,account.employee?.full_name].join(" ")).toLowerCase().includes(accountSearch.trim().toLowerCase())).map(account=><tr key={account.id} style={{borderTop:"1px solid #25334a"}}>
-                <td style={{padding:10}}><strong>{account.full_name||"Tanpa nama"}</strong><div className="subtle">{account.email}</div></td>
-                <td style={{padding:10}}>{account.employee ? account.employee.employee_code+" · "+account.employee.employment_status : "Akun non-karyawan"}</td>
-                <td style={{padding:10}}>{profile?.role==="owner" ? <select aria-label={"Role "+account.email} value={account.role} disabled={accountSavingId===account.id || account.id===profile?.id} onChange={e=>void updateAccount(account,e.target.value as "owner"|"admin"|"employee",account.is_active)}><option value="employee">Employee</option><option value="admin">Admin</option><option value="owner">Owner</option></select> : <span className="status">{account.role.toUpperCase()}</span>}</td>
-                <td style={{padding:10}}>{account.id===profile?.id ? <span className="status">AKTIF (akun Anda)</span> : profile?.role==="owner" ? <button className="btn" type="button" disabled={accountSavingId===account.id} onClick={()=>void updateAccount(account,account.role,!account.is_active)}>{accountSavingId===account.id?"Menyimpan…":account.is_active?"Nonaktifkan":"Aktifkan"}</button> : <span className="status">{account.is_active?"AKTIF":"NONAKTIF"}</span>}</td>
-              </tr>)}</tbody>
-            </table></div></>}
-          </section>}
           <div className="section-head"><div><h2>Ringkasan terkait</h2><div className="subtle">Angka dibaca dari database sesuai hak akses akun.</div></div><button className="btn" onClick={() => setActivePage("dashboard")}>← Kembali ke ringkasan</button></div>
           <div className="stats-grid">
             {(activePage === "inventory" || activePage === "barcode") && <div className="stat-card"><div className="stat-top">Produk</div><div className="stat-value">{counts.products}</div></div>}
