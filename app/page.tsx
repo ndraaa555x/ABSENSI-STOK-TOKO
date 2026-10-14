@@ -87,6 +87,8 @@ export default function HomePage() {
   const [attendanceSearch, setAttendanceSearch] = useState("");
   const [accountSearch, setAccountSearch] = useState("");
   const [businessRefresh, setBusinessRefresh] = useState(0);
+  const [reviewBusyId, setReviewBusyId] = useState<string | null>(null);
+  const [reviewActionError, setReviewActionError] = useState("");
   const [orderProducts, setOrderProducts] = useState<OrderProduct[]>([]);
   const [customerRows, setCustomerRows] = useState<CustomerRow[]>([]);
   const [customerStoreName, setCustomerStoreName] = useState("");
@@ -810,12 +812,34 @@ export default function HomePage() {
   }
 
   async function reviewBusinessItem(table:"product_orders"|"product_refunds"|"financial_reports", id:string, status:string) {
-    if (!profile || !["owner","admin"].includes(profile.role)) return;
-    if(status==="fulfilled"&&table==="product_orders"){const {error:e}=await supabase.rpc("fulfill_product_order",{p_order_id:id});if(e){setError("Order tidak dapat dipenuhi: "+e.message);return;}}
-    else if(status==="approved"&&table==="product_refunds"){const {error:e}=await supabase.rpc("approve_product_refund",{p_refund_id:id});if(e){setError("Refund tidak dapat disetujui: "+e.message);return;}}
-    else if(status==="approved"&&table==="financial_reports"){const {error:e}=await supabase.rpc("approve_financial_report",{p_report_id:id});if(e){setError("Laporan tidak dapat diposting: "+e.message);return;}}
-    else {const {error:e}=await supabase.from(table).update({status,reviewed_by:profile.id,reviewed_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq("id",id);if(e){setError("Status gagal diperbarui: "+e.message);return;}}
-    setBusinessRefresh(v=>v+1);
+    if (!profile || !["owner","admin"].includes(profile.role)) {
+      setReviewActionError("Hanya OWNER/ADMIN yang dapat menyetujui atau menolak permintaan ini.");
+      return;
+    }
+    const actionId = `${table}:${id}:${status}`;
+    if (reviewBusyId) return;
+    setReviewBusyId(actionId);
+    setReviewActionError("");
+    try {
+      if(status==="fulfilled"&&table==="product_orders"){
+        const {error:e}=await supabase.rpc("fulfill_product_order",{p_order_id:id});
+        if(e) throw new Error("Order tidak dapat dipenuhi: "+e.message);
+      } else if(status==="approved"&&table==="product_refunds"){
+        const {error:e}=await supabase.rpc("approve_product_refund",{p_refund_id:id});
+        if(e) throw new Error("Refund tidak dapat disetujui: "+e.message);
+      } else if(status==="approved"&&table==="financial_reports"){
+        const {error:e}=await supabase.rpc("approve_financial_report",{p_report_id:id});
+        if(e) throw new Error("Laporan tidak dapat diposting: "+e.message);
+      } else {
+        const {error:e}=await supabase.from(table).update({status,reviewed_by:profile.id,reviewed_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq("id",id);
+        if(e) throw new Error("Status gagal diperbarui: "+e.message);
+      }
+      setBusinessRefresh(v=>v+1);
+    } catch (e) {
+      setReviewActionError(e instanceof Error ? e.message : "Tindakan gagal. Periksa koneksi dan izin database, lalu coba lagi.");
+    } finally {
+      setReviewBusyId(null);
+    }
   }
 
   async function saveProduct(event:FormEvent<HTMLFormElement>){
@@ -1085,7 +1109,7 @@ export default function HomePage() {
               <div className="field"><label htmlFor="refund-reason">Alasan refund</label><textarea id="refund-reason" value={refundReason} onChange={e=>setRefundReason(e.target.value)} rows={3} placeholder="Jelaskan kondisi atau alasan pengembalian" required /></div>
               <button className="btn btn-primary" type="submit" disabled={refundSubmitting}>{refundSubmitting?"Mengirim…":"Kirim permintaan refund →"}</button>
             </form>
-            <div className="panel business-history"><div className="eyebrow">PEMANTAUAN</div><h2>Riwayat refund</h2><div className="business-actions"><input aria-label="Cari riwayat refund" placeholder="Cari kode / toko / order…" value={refundHistorySearch} onChange={e=>setRefundHistorySearch(e.target.value)}/><select aria-label="Filter status refund" value={refundHistoryStatus} onChange={e=>setRefundHistoryStatus(e.target.value)}><option value="all">Semua status</option><option value="pending">Dalam tinjauan</option><option value="approved">Disetujui</option><option value="rejected">Ditolak</option></select><label className="field"><span>Dari</span><input type="date" value={refundHistoryFrom} onChange={e=>setRefundHistoryFrom(e.target.value)}/></label><label className="field"><span>Sampai</span><input type="date" value={refundHistoryTo} onChange={e=>setRefundHistoryTo(e.target.value)}/></label></div>{refundRows.filter(r=>(refundHistoryStatus==="all"||r.status===refundHistoryStatus)&&(!refundHistoryFrom||r.created_at.slice(0,10)>=refundHistoryFrom)&&(!refundHistoryTo||r.created_at.slice(0,10)<=refundHistoryTo)&&(`${r.refund_code} ${r.product_orders?.order_code??""} ${r.product_orders?.business_customers?.store_name??""}`).toLowerCase().includes(refundHistorySearch.toLowerCase())).length===0?<p className="subtle">Tidak ada refund yang cocok dengan filter.</p>:refundRows.filter(r=>(refundHistoryStatus==="all"||r.status===refundHistoryStatus)&&(!refundHistoryFrom||r.created_at.slice(0,10)>=refundHistoryFrom)&&(!refundHistoryTo||r.created_at.slice(0,10)<=refundHistoryTo)&&(`${r.refund_code} ${r.product_orders?.order_code??""} ${r.product_orders?.business_customers?.store_name??""}`).toLowerCase().includes(refundHistorySearch.toLowerCase())).map(r=><article className="business-record" key={r.id}><div className="business-record-head"><div><strong>{r.refund_code}</strong><small>Order {r.product_orders?.order_code??"—"} · Toko: {r.product_orders?.business_customers?.store_name??"Tidak ditautkan"} · {new Date(r.created_at).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</small></div><span className={`status-pill ${r.status==="approved"?"status-approved":r.status==="rejected"?"status-rejected":"status-pending"}`}>{r.status==="pending"||r.status==="under_review"?"Dalam tinjauan":r.status==="approved"?"Disetujui":r.status==="rejected"?"Ditolak":r.status}</span></div><p>{r.reason}</p><div className="business-line"><span>{r.quantity} unit</span><strong>{new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(r.amount)}</strong></div>{["owner","admin","hrd"].includes(profile?.role??"")&&r.status==="pending"&&<div className="business-actions"><button className="btn btn-primary" onClick={()=>void reviewBusinessItem("product_refunds",r.id,"approved")}>Setujui</button><button className="btn" onClick={()=>void reviewBusinessItem("product_refunds",r.id,"rejected")}>Tolak</button></div>}</article>)}</div>
+            <div className="panel business-history"><div className="eyebrow">PEMANTAUAN</div><h2>Riwayat refund</h2>{reviewActionError && <div className="error-box" role="alert">{reviewActionError}</div>}<div className="business-actions"><input aria-label="Cari riwayat refund" placeholder="Cari kode / toko / order…" value={refundHistorySearch} onChange={e=>setRefundHistorySearch(e.target.value)}/><select aria-label="Filter status refund" value={refundHistoryStatus} onChange={e=>setRefundHistoryStatus(e.target.value)}><option value="all">Semua status</option><option value="pending">Dalam tinjauan</option><option value="approved">Disetujui</option><option value="rejected">Ditolak</option></select><label className="field"><span>Dari</span><input type="date" value={refundHistoryFrom} onChange={e=>setRefundHistoryFrom(e.target.value)}/></label><label className="field"><span>Sampai</span><input type="date" value={refundHistoryTo} onChange={e=>setRefundHistoryTo(e.target.value)}/></label></div>{refundRows.filter(r=>(refundHistoryStatus==="all"||r.status===refundHistoryStatus)&&(!refundHistoryFrom||r.created_at.slice(0,10)>=refundHistoryFrom)&&(!refundHistoryTo||r.created_at.slice(0,10)<=refundHistoryTo)&&(`${r.refund_code} ${r.product_orders?.order_code??""} ${r.product_orders?.business_customers?.store_name??""}`).toLowerCase().includes(refundHistorySearch.toLowerCase())).length===0?<p className="subtle">Tidak ada refund yang cocok dengan filter.</p>:refundRows.filter(r=>(refundHistoryStatus==="all"||r.status===refundHistoryStatus)&&(!refundHistoryFrom||r.created_at.slice(0,10)>=refundHistoryFrom)&&(!refundHistoryTo||r.created_at.slice(0,10)<=refundHistoryTo)&&(`${r.refund_code} ${r.product_orders?.order_code??""} ${r.product_orders?.business_customers?.store_name??""}`).toLowerCase().includes(refundHistorySearch.toLowerCase())).map(r=><article className="business-record" key={r.id}><div className="business-record-head"><div><strong>{r.refund_code}</strong><small>Order {r.product_orders?.order_code??"—"} · Toko: {r.product_orders?.business_customers?.store_name??"Tidak ditautkan"} · {new Date(r.created_at).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</small></div><span className={`status-pill ${r.status==="approved"?"status-approved":r.status==="rejected"?"status-rejected":"status-pending"}`}>{r.status==="pending"||r.status==="under_review"?"Dalam tinjauan":r.status==="approved"?"Disetujui":r.status==="rejected"?"Ditolak":r.status}</span></div><p>{r.reason}</p><div className="business-line"><span>{r.quantity} unit</span><strong>{new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(r.amount)}</strong></div>{["owner","admin"].includes(profile?.role??"")&&r.status==="pending"&&<div className="business-actions"><button className="btn btn-primary" disabled={reviewBusyId!==null} onClick={()=>void reviewBusinessItem("product_refunds",r.id,"approved")}>{reviewBusyId===`product_refunds:${r.id}:approved`?"Memproses…":"Setujui"}</button><button className="btn" disabled={reviewBusyId!==null} onClick={()=>void reviewBusinessItem("product_refunds",r.id,"rejected")}>{reviewBusyId===`product_refunds:${r.id}:rejected`?"Memproses…":"Tolak"}</button></div>}</article>)}</div>
           </div>
         </section> : activePage === "finance-reports" ? <section className="business-page">
           <div className="business-hero"><div><div className="eyebrow">LAPORAN KEUANGAN HARIAN</div><h1>Laporan Uang Masuk / Keluar</h1><p>Catat transaksi selama shift. Laporan masuk ke antrean pemeriksaan Admin/Owner dan tidak langsung mengubah buku keuangan resmi.</p></div><div className="business-hero-icon">↗</div></div>
