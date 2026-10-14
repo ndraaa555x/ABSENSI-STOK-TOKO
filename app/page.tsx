@@ -278,7 +278,6 @@ export default function HomePage() {
           <div className="section-head"><div><h2>Ringkasan terkait</h2><div className="subtle">Angka dibaca dari database sesuai hak akses akun.</div></div><button className="btn" onClick={() => setActivePage("dashboard")}>← Kembali ke ringkasan</button></div>
           <div className="stats-grid">
             {activePage === "employees" && <div className="stat-card"><div className="stat-top">Karyawan</div><div className="stat-value">{counts.employees}</div></div>}
-            {activePage === "attendance" && <div className="stat-card"><div className="stat-top">Catatan absensi</div><div className="stat-value">{counts.attendance}</div></div>}
             {(activePage === "inventory" || activePage === "barcode") && <div className="stat-card"><div className="stat-top">Produk</div><div className="stat-value">{counts.products}</div></div>}
             {activePage === "finance" && <div className="stat-card"><div className="stat-top">Transaksi</div><div className="stat-value">{counts.finances}</div></div>}
             {activePage === "settings" && <div className="stat-card"><div className="stat-top">Role akun</div><div className="stat-value" style={{ fontSize: 20 }}>{profile?.role?.toUpperCase() ?? "—"}</div><div className="stat-note">Status: {profile?.is_active ? "Aktif" : "Tidak aktif"}</div></div>}
