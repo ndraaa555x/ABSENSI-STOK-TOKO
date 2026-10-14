@@ -443,7 +443,7 @@ export default function HomePage() {
   const moduleTitle = navItems.find((item) => item.key === activePage)?.label ?? "Ringkasan";
 
   return (
-    <main className="app-shell">
+    <main className={`app-shell role-${profile?.role ?? "employee"}`}>
       <aside className="sidebar">
         <div className="brand"><div className="brand-mark">SB</div><div><div className="brand-title">SMART BUSINESS</div><div className="brand-sub">MANAGEMENT SYSTEM</div></div></div>
         {["UTAMA", "OPERASIONAL", "MANAJEMEN"].map((group) => (
@@ -458,13 +458,13 @@ export default function HomePage() {
             </nav>
           </div>
         ))}
-        <div className="field" style={{marginTop:18,marginBottom:18}}><label htmlFor="menu-search">Cari menu</label><input id="menu-search" type="search" value={menuSearch} onChange={e=>setMenuSearch(e.target.value)} placeholder="Cari dashboard, absensi..." aria-label="Cari menu website"/></div>
-        <div className="side-foot"><strong>◈ Sistem terhubung</strong><p>Data disimpan di Supabase. Akses tabel tetap dikendalikan oleh kebijakan keamanan database.</p></div>
+        {profile?.role !== "employee" && <div className="field menu-search"><label htmlFor="menu-search">Cari menu</label><input id="menu-search" type="search" value={menuSearch} onChange={e=>setMenuSearch(e.target.value)} placeholder="Cari menu..." aria-label="Cari menu website"/></div>}
+        <div className="sidebar-bottom"><div className="side-foot"><strong>{profile?.role === "owner" ? "✦ Owner workspace" : profile?.role === "admin" ? "◈ Admin workspace" : "◷ Ruang kerja karyawan"}</strong><p>{profile?.role === "owner" ? "Kontrol penuh bisnis, pengguna, dan konfigurasi." : profile?.role === "admin" ? "Kelola kegiatan operasional sesuai kewenangan." : "Akses cepat untuk kehadiran dan aktivitas pribadi."}</p></div><button className="logout-button" onClick={handleLogout} disabled={busy}><span className="logout-symbol">↪</span><span><strong>{busy ? "Memproses..." : "Keluar dari akun"}</strong><small>Akhiri sesi dengan aman</small></span></button></div>
       </aside>
       <section className="main">
         <header className="topbar">
-          <div><div className="eyebrow">WORKSPACE / {moduleTitle.toUpperCase()}</div><div className="subtle" style={{ marginTop: 5 }}>Pusat kendali operasional bisnis Anda</div></div>
-          <div className="user-menu"><div className="avatar">{displayName.slice(0,1).toUpperCase()}</div><div><div className="user-email">{displayName}</div><div className="user-role">{profile?.role ?? "pengguna"}{isActive ? " · aktif" : " · nonaktif"}</div></div><button className="btn" onClick={handleLogout} disabled={busy}>Keluar</button></div>
+          <div><div className="eyebrow">{profile?.role === "owner" ? "OWNER CONTROL CENTER" : profile?.role === "admin" ? "ADMIN OPERATIONS" : "MY WORKSPACE"} / {moduleTitle.toUpperCase()}</div><div className="subtle workspace-caption" style={{ marginTop: 5 }}>{profile?.role === "owner" ? "Visibilitas menyeluruh dan pengaturan bisnis." : profile?.role === "admin" ? "Pusat kegiatan dan pengelolaan operasional." : "Ruang pribadi untuk kehadiran dan aktivitas kerja."}</div></div>
+          <div className="user-menu"><div className="avatar">{displayName.slice(0,1).toUpperCase()}</div><div className="user-copy"><div className="user-email">{displayName}</div><div className="user-role">{profile?.role === "owner" ? "OWNER" : profile?.role === "admin" ? "ADMIN" : "KARYAWAN"}{isActive ? " · AKTIF" : " · NONAKTIF"}</div></div></div>
         </header>
         {activePage === "dashboard" ? <>
           <div className="welcome"><div><div className="eyebrow">DASHBOARD OVERVIEW</div><h1>Selamat datang, {displayName.split("@")[0]} 👋</h1><p className="subtle" style={{ marginBottom: 0 }}>Berikut ringkasan data yang tersedia pada workspace Anda.</p></div><div className="date-pill">● &nbsp; Database terhubung</div></div>
@@ -480,11 +480,11 @@ export default function HomePage() {
           <div className="content-grid">
             <section className="panel"><div className="panel-head"><div><h2>Modul bisnis</h2><div className="subtle">Pilih area kerja yang ingin Anda buka</div></div><span className="status">ONLINE</span></div>
               <div className="activity-list">
-                {navItems.filter((item) => item.key !== "dashboard" && (item.label+" "+descriptions[item.key]).toLowerCase().includes(menuSearch.trim().toLowerCase())).map((item) => <button className="activity" key={item.key} onClick={() => setActivePage(item.key)} style={{ width: "100%", textAlign: "left", background: "transparent", color: "inherit", borderLeft: 0, borderRight: 0, borderBottom: 0, cursor: "pointer" }}><div className="activity-icon">{item.icon}</div><div className="activity-copy"><strong>{item.label}</strong><span>{descriptions[item.key]}</span></div><span className="activity-time">BUKA ↗</span></button>)}
+                {navItems.filter((item) => item.key !== "dashboard" && (profile?.role === "owner" || (profile?.role === "admin" ? item.key !== "finance" : ["attendance"].includes(item.key))) && (item.label+" "+descriptions[item.key]).toLowerCase().includes(menuSearch.trim().toLowerCase())).map((item) => <button className="activity" key={item.key} onClick={() => setActivePage(item.key)} style={{ width: "100%", textAlign: "left", background: "transparent", color: "inherit", borderLeft: 0, borderRight: 0, borderBottom: 0, cursor: "pointer" }}><div className="activity-icon">{item.icon}</div><div className="activity-copy"><strong>{item.label}</strong><span>{descriptions[item.key]}</span></div><span className="activity-time">BUKA ↗</span></button>)}
               </div>
             </section>
             <section className="panel"><div className="panel-head"><div><h2>Akses cepat</h2><div className="subtle">Pintasan modul</div></div></div><div className="quick-grid">
-              {[{key:"employees" as ModuleKey,icon:"♙",label:"Karyawan",desc:"Data tim"},{key:"attendance" as ModuleKey,icon:"◷",label:"Absensi",desc:"Kehadiran"},{key:"inventory" as ModuleKey,icon:"▤",label:"Inventaris",desc:"Stok & produk"},{key:"finance" as ModuleKey,icon:"◈",label:"Keuangan",desc:"Arus transaksi"}].filter((item) => profile?.role === "owner" || (profile?.role === "admin" && item.key !== "finance")).map((item) => <button className="quick-card" key={item.key} onClick={() => setActivePage(item.key)}><span>{item.icon}</span><strong>{item.label}</strong><small>{item.desc}</small></button>)}
+              {[{key:"employees" as ModuleKey,icon:"♙",label:"Karyawan",desc:"Data tim"},{key:"attendance" as ModuleKey,icon:"◷",label:"Absensi",desc:"Kehadiran"},{key:"inventory" as ModuleKey,icon:"▤",label:"Inventaris",desc:"Stok & produk"},{key:"finance" as ModuleKey,icon:"◈",label:"Keuangan",desc:"Arus transaksi"}].filter((item) => profile?.role === "owner" || (profile?.role === "admin" && item.key !== "finance") || (profile?.role === "employee" && item.key === "attendance")).map((item) => <button className="quick-card" key={item.key} onClick={() => setActivePage(item.key)}><span>{item.icon}</span><strong>{item.label}</strong><small>{item.desc}</small></button>)}
             </div><div className="info-box" style={{ marginTop: 15 }}>Fondasi login dan ringkasan data sudah disiapkan. Form transaksi dan alur operasional akan dikembangkan serta diuji per modul.</div></section>
           </div>
         </> : activePage === "attendance" ? <section className="panel" style={{ maxWidth: 1200 }}>
