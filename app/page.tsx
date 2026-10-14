@@ -272,7 +272,7 @@ export default function HomePage() {
         if(!alive)return;
         if(productError)setInventoryError("Daftar produk belum dapat dimuat.");else setProductRows((p??[]) as unknown as ProductRow[]);
       }
-      if(activePage==="finance"&&profile.role==="owner"){
+      if(activePage==="finance"&&profile?.role==="owner"){
         const [tx,cats]=await Promise.all([
           supabase.from("financial_transactions").select("id,transaction_code,transaction_type,amount,transaction_at,payment_method,description,reference_code,status,financial_categories(name)").order("transaction_at",{ascending:false}).limit(300),
           supabase.from("financial_categories").select("id,name,transaction_type").eq("is_active",true).order("name")
