@@ -4,7 +4,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Session } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
-type Profile = { id: string; email: string; full_name: string | null; role: "owner" | "admin"; is_active: boolean };
+type Profile = { id: string; email: string; full_name: string | null; role: "owner" | "admin" | "employee"; is_active: boolean };
 type Counts = { employees: number; attendance: number; products: number; finances: number };
 type ModuleKey = "dashboard" | "employees" | "attendance" | "inventory" | "finance" | "barcode" | "settings";
 const navItems: { key: ModuleKey; icon: string; label: string; group: string }[] = [
@@ -103,7 +103,11 @@ export default function HomePage() {
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true); setError(""); setMessage("");
-    const { error: authError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    const identifier = email.trim();
+    const credentials = identifier.includes("@")
+      ? { email: identifier, password }
+      : { phone: identifier, password };
+    const { error: authError } = await supabase.auth.signInWithPassword(credentials);
     if (authError) setError("Login gagal. Periksa email, kata sandi, dan status akun Anda.");
     setBusy(false);
   }
@@ -149,7 +153,7 @@ export default function HomePage() {
           <p className="subtle">{resetMode ? "Masukkan email akun untuk meminta instruksi pemulihan." : "Masuk untuk melanjutkan ke dashboard bisnis Anda."}</p>
           {!isSupabaseConfigured && <div className="error-box">Konfigurasi Supabase belum dipasang. Admin deployment perlu mengisi NEXT_PUBLIC_SUPABASE_URL dan NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.</div>}
           <form onSubmit={resetMode ? handleReset : handleLogin}>
-            <div className="field"><label htmlFor="email">Email</label><input id="email" type="email" autoComplete="email" required placeholder="nama@bisnis.com" value={email} onChange={(event) => setEmail(event.target.value)} /></div>
+            <div className="field"><label htmlFor="email">{resetMode ? "Email akun" : "Email atau nomor HP"}</label><input id="email" type="text" inputMode="text" autoComplete="username" required placeholder={resetMode ? "nama@bisnis.com" : "nama@bisnis.com atau +628123456789"} value={email} onChange={(event) => setEmail(event.target.value)} /></div>
             {!resetMode && <div className="field"><label htmlFor="password">Kata sandi</label><input id="password" type="password" autoComplete="current-password" required minLength={6} placeholder="Masukkan kata sandi" value={password} onChange={(event) => setPassword(event.target.value)} /></div>}
             {error && <div className="error-box" role="alert">{error}</div>}
             {message && <div className="info-box" role="status">{message}</div>}
