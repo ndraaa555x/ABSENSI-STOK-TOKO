@@ -13,7 +13,9 @@ type AttendanceMode = "once_daily" | "multiple_sessions";
 type ModuleKey = "dashboard" | "employees" | "attendance" | "orders" | "refunds" | "finance-reports" | "customers" | "inventory" | "finance" | "barcode" | "leave" | "notifications" | "settings";
 type OrderProduct = { id:string; name:string; sku:string; unit:string; sale_price:number; current_stock:number; is_active:boolean };
 type OrderItem = { id:string; quantity:number; unit_price:number; line_total:number; product_id:string; products:{name:string;sku:string;unit:string}|null };
-type OrderRow = { id:string; order_code:string; status:string; notes:string|null; created_at:string; ordered_by:string; customer_id:string|null; payment_method?:string|null; payment_evidence_path?:string|null; stock_reserved?:boolean; business_customers:{store_name:string;customer_code:string}|null; product_order_items:OrderItem[] };
+type OrderCartLine = { product_id:string; quantity:string };
+type OrderCreator = {full_name:string|null;email:string}|null;
+type OrderRow = { id:string; order_code:string; status:string; notes:string|null; created_at:string; ordered_by:string; customer_id:string|null; payment_method?:string|null; payment_evidence_path?:string|null; stock_reserved?:boolean; business_customers:{store_name:string;customer_code:string}|null; ordered_by_profile?:OrderCreator; product_order_items:OrderItem[] };
 type CustomerRow = {id:string;customer_code:string;store_name:string;owner_name:string|null;phone:string|null;email:string|null;address:string|null;notes:string|null;created_by:string;is_active:boolean;created_at:string;order_count:number;last_order_at:string|null};
 type RefundRow = { id:string; refund_code:string; order_id:string; order_item_id:string; requested_by:string; quantity:number; amount:number; reason:string; status:string; created_at:string; product_orders:{order_code:string;customer_id?:string|null;business_customers?:{store_name:string;customer_code:string}|null}|null };
 type FinanceReportRow = { id:string; report_code:string; report_type:string; amount:number; description:string; payment_method:string|null; status:string; created_at:string; submitted_by:string; related_order_id?:string|null; related_customer_id?:string|null; business_customers?:{store_name:string;customer_code:string}|null; product_orders?:{order_code:string;business_customers?:{store_name:string;customer_code:string}|null}|null };
@@ -93,6 +95,16 @@ export default function HomePage() {
   const [financeReportRows, setFinanceReportRows] = useState<FinanceReportRow[]>([]);
   const [selectedOrderProductId, setSelectedOrderProductId] = useState("");
   const [orderQuantity, setOrderQuantity] = useState("1");
+  const [orderCart, setOrderCart] = useState<OrderCartLine[]>([]);
+  const [orderHistorySearch, setOrderHistorySearch] = useState("");
+  const [orderHistoryStatus, setOrderHistoryStatus] = useState("all");
+  const [refundHistorySearch, setRefundHistorySearch] = useState("");
+  const [refundHistoryStatus, setRefundHistoryStatus] = useState("all");
+  const [moneyHistorySearch, setMoneyHistorySearch] = useState("");
+  const [moneyHistoryStatus, setMoneyHistoryStatus] = useState("all");
+  const [selectedCustomerProfileId, setSelectedCustomerProfileId] = useState<string|null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string|null>(null);
+  const [grossProfit, setGrossProfit] = useState(0);
   const [orderNotes, setOrderNotes] = useState("");
   const [orderPaymentMethod, setOrderPaymentMethod] = useState("cash");
   const [orderEvidenceFile, setOrderEvidenceFile] = useState<File|null>(null);
@@ -247,7 +259,7 @@ export default function HomePage() {
       if (activePage === "orders") {
         const [productsResult, ordersResult, customersResult] = await Promise.all([
           supabase.from("products").select("id,name,sku,unit,sale_price,current_stock,is_active").eq("is_active", true).order("name"),
-          supabase.from("product_orders").select("id,order_code,status,notes,created_at,ordered_by,customer_id,payment_method,payment_evidence_path,stock_reserved,business_customers(store_name,customer_code),product_order_items(id,product_id,quantity,unit_price,line_total,products(name,sku,unit))").order("created_at", {ascending:false}).limit(100),
+          supabase.from("product_orders").select("id,order_code,status,notes,created_at,ordered_by,customer_id,payment_method,payment_evidence_path,stock_reserved,business_customers(store_name,customer_code),ordered_by_profile:profiles!product_orders_ordered_by_fkey(full_name,email),product_order_items(id,product_id,quantity,unit_price,line_total,products(name,sku,unit))").order("created_at", {ascending:false}).limit(100),
           supabase.from("business_customers").select("id,customer_code,store_name,owner_name,phone,email,address,notes,created_by,is_active,created_at").eq("is_active",true).order("store_name").limit(500)
         ]);
         if (!alive) return;
@@ -697,17 +709,29 @@ export default function HomePage() {
     window.open(data.signedUrl,"_blank","noopener,noreferrer");
   }
 
-  async function submitProductOrder(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!profile || !selectedOrderProductId) { setOrderError("Pilih produk terlebih dahulu."); return; }
+  function addOrderCartItem() {
     const product = orderProducts.find((item) => item.id === selectedOrderProductId);
     const quantity = Number(orderQuantity);
     if (!product || !Number.isFinite(quantity) || quantity <= 0) { setOrderError("Pilih produk dan jumlah yang valid."); return; }
+    const existing = orderCart.find(line => line.product_id === product.id);
+    const totalQty = quantity + (existing ? Number(existing.quantity) : 0);
+    if (totalQty > Number(product.current_stock)) { setOrderError("Stok "+product.name+" hanya "+product.current_stock+" "+product.unit+"."); return; }
+    setOrderCart(lines => existing ? lines.map(line => line.product_id === product.id ? {...line,quantity:String(totalQty)} : line) : [...lines,{product_id:product.id,quantity:String(quantity)}]);
+    setOrderError(""); setSelectedOrderProductId(""); setOrderQuantity("1");
+  }
+
+  async function submitProductOrder(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!profile || orderCart.length===0 || !selectedOrderCustomerId) { setOrderError("Pilih toko dan tambahkan minimal satu produk."); return; }
     setOrderSubmitting(true); setOrderError(""); setOrderNotice("");
-    const { data: latestProduct, error: stockReadError } = await supabase.from("products").select("id,name,current_stock,unit,is_active").eq("id",product.id).maybeSingle();
-    if (stockReadError || !latestProduct || !latestProduct.is_active) { setOrderError("Produk tidak ditemukan atau tidak dapat dibaca. Muat ulang halaman atau hubungi Admin."); setOrderSubmitting(false); return; }
-    if (Number(latestProduct.current_stock) <= 0) { setOrderError("Stok "+latestProduct.name+" sedang kosong. Minta Admin memperbarui stok inventaris."); setBusinessRefresh(v=>v+1); setOrderSubmitting(false); return; }
-    if (quantity > Number(latestProduct.current_stock)) { setOrderError("Stok tersedia untuk "+latestProduct.name+": "+latestProduct.current_stock+" "+latestProduct.unit+". Kurangi jumlah order agar tidak melebihi stok."); setBusinessRefresh(v=>v+1); setOrderSubmitting(false); return; }
+    const items = orderCart.map(line => ({product_id:line.product_id,quantity:Number(line.quantity)}));
+    for (const line of items) {
+      const product = orderProducts.find(p=>p.id===line.product_id);
+      if (!product || !Number.isFinite(line.quantity) || line.quantity<=0 || line.quantity>Number(product.current_stock)) {
+        setOrderError("Stok atau jumlah untuk "+(product?.name??"produk")+" tidak valid. Periksa keranjang order.");
+        setOrderSubmitting(false); setBusinessRefresh(v=>v+1); return;
+      }
+    }
     let evidencePath: string | null = null;
     if (orderEvidenceFile) {
       if (orderEvidenceFile.size > 3 * 1024 * 1024) { setOrderError("Foto bukti maksimal 3 MB."); setOrderSubmitting(false); return; }
@@ -717,11 +741,14 @@ export default function HomePage() {
       const { error: uploadError } = await supabase.storage.from("order-payment-evidence").upload(evidencePath,orderEvidenceFile,{contentType:orderEvidenceFile.type,upsert:false});
       if (uploadError) { setOrderError("Foto bukti gagal diunggah: "+uploadError.message); setOrderSubmitting(false); return; }
     }
-    const { data: orderResult, error: createError } = await supabase.rpc("submit_product_order",{p_product_id:product.id,p_quantity:quantity,p_notes:orderNotes.trim()||null,p_customer_id:selectedOrderCustomerId||null,p_payment_method:orderPaymentMethod,p_payment_evidence_path:evidencePath});
+    const { data: orderResult, error: createError } = await supabase.rpc("submit_product_order_multi",{
+      p_items:items,p_notes:orderNotes.trim()||null,p_customer_id:selectedOrderCustomerId,
+      p_payment_method:orderPaymentMethod,p_payment_evidence_path:evidencePath
+    });
     const order = Array.isArray(orderResult) ? orderResult[0] : orderResult;
     if (createError || !order) { setOrderError(createError?.message ?? "Order gagal dibuat."); setOrderSubmitting(false); return; }
-    setOrderNotice(`Order ${order.order_code} berhasil dikirim. Stok langsung dicadangkan dan Admin/Owner menerima catatannya.`);
-    setOrderNotes(""); setOrderQuantity("1"); setOrderEvidenceFile(null); setOrderPaymentMethod("cash"); setBusinessRefresh((v)=>v+1); setOrderSubmitting(false);
+    setOrderNotice(`Order ${order.order_code} dengan ${items.length} jenis produk berhasil dikirim. Stok dicadangkan dan menunggu persetujuan Admin/Owner.`);
+    setOrderCart([]); setOrderNotes(""); setOrderQuantity("1"); setOrderEvidenceFile(null); setOrderPaymentMethod("cash"); setBusinessRefresh((v)=>v+1); setOrderSubmitting(false);
   }
 
   async function submitRefund(event: FormEvent<HTMLFormElement>) {
@@ -950,16 +977,16 @@ export default function HomePage() {
           <div className="business-columns">
             <form className="panel business-form" onSubmit={submitProductOrder}>
               <div className="eyebrow">BUAT ORDER BARU</div><h2>Pilih produk</h2>
-              <div className="field"><label htmlFor="order-product">Produk tersedia</label><select id="order-product" value={selectedOrderProductId} onChange={e=>setSelectedOrderProductId(e.target.value)} required><option value="">Pilih produk…</option>{orderProducts.map(p=><option key={p.id} value={p.id} disabled={Number(p.current_stock)<=0}>{p.name} — {new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(p.sale_price)} / {p.unit}</option>)}</select></div>
+              <div className="field"><label htmlFor="order-product">Produk tersedia</label><select id="order-product" value={selectedOrderProductId} onChange={e=>setSelectedOrderProductId(e.target.value)}><option value="">Pilih produk…</option>{orderProducts.map(p=><option key={p.id} value={p.id} disabled={Number(p.current_stock)<=0}>{p.name} — stok {p.current_stock} {p.unit} — {new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(p.sale_price)} / {p.unit}</option>)}</select></div>
               {selectedOrderProductId && (()=>{const p=orderProducts.find(x=>x.id===selectedOrderProductId);return p?<div className="order-product-preview"><strong>{p.name}</strong><span>SKU: {p.sku}</span><span><strong>Stok tersedia:</strong> {p.current_stock} {p.unit}</span><strong>Harga satuan: {new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(p.sale_price)} / {p.unit}</strong></div>:null})()}
               <div className="field"><label htmlFor="order-customer">Nama toko / pembeli *</label><select id="order-customer" value={selectedOrderCustomerId} onChange={e=>setSelectedOrderCustomerId(e.target.value)} required><option value="">Pilih toko / pembeli</option>{customerRows.filter(c=>c.is_active).map(c=><option key={c.id} value={c.id}>{c.store_name} · {c.customer_code}</option>)}</select><small className="subtle">Wajib dipilih agar Admin bisa melihat order berasal dari toko mana. Jika belum terdaftar, daftarkan melalui menu Data Toko / Member.</small></div>
-              <div className="field"><label htmlFor="order-qty">Jumlah</label><input id="order-qty" type="number" min="0.01" step="0.01" max={orderProducts.find(p=>p.id===selectedOrderProductId)?.current_stock ?? undefined} value={orderQuantity} onChange={e=>setOrderQuantity(e.target.value)} required /></div>
+              <div className="field"><label htmlFor="order-qty">Jumlah produk ini</label><input id="order-qty" type="number" min="0.01" step="0.01" max={orderProducts.find(p=>p.id===selectedOrderProductId)?.current_stock ?? undefined} value={orderQuantity} onChange={e=>setOrderQuantity(e.target.value)} required /></div><button className="btn" type="button" disabled={!selectedOrderProductId} onClick={addOrderCartItem}>＋ Tambahkan produk ke order</button><div className="panel" style={{padding:14,marginTop:12}}><h3>Keranjang order ({orderCart.length} jenis produk)</h3>{orderCart.length===0?<p className="subtle">Belum ada produk. Tambahkan satu atau lebih produk berbeda.</p>:orderCart.map(line=>{const p=orderProducts.find(item=>item.id===line.product_id);return <div className="business-line" key={line.product_id}><span>{p?.name??"Produk"} × {line.quantity} {p?.unit??""}<small className="subtle" style={{display:"block"}}>{new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(Number(line.quantity)*(p?.sale_price??0))}</small></span><button className="btn" type="button" onClick={()=>setOrderCart(rows=>rows.filter(row=>row.product_id!==line.product_id))}>Hapus</button></div>})}<div className="business-line"><strong>Total perkiraan</strong><strong>{new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(orderCart.reduce((sum,line)=>sum+Number(line.quantity)*(orderProducts.find(p=>p.id===line.product_id)?.sale_price??0),0))}</strong></div></div>
               <div className="field"><label htmlFor="order-payment-method">Metode pembayaran toko</label><select id="order-payment-method" value={orderPaymentMethod} onChange={e=>setOrderPaymentMethod(e.target.value)}><option value="cash">Tunai / cash</option><option value="bank_transfer">Transfer bank</option><option value="e_wallet">E-wallet / QRIS</option><option value="card">Kartu debit/kredit</option><option value="other">Lainnya / belum diketahui</option></select></div><div className="field"><label htmlFor="order-evidence">Foto bukti pembayaran (opsional, maks. 3 MB)</label><input id="order-evidence" type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>setOrderEvidenceFile(e.target.files?.[0]??null)} /><small className="subtle">JPG, PNG, atau WEBP. Foto tidak wajib; ukuran maksimal 3 MB.</small>{orderEvidenceFile&&<small className="subtle">Dipilih: {orderEvidenceFile.name} ({(orderEvidenceFile.size/1024/1024).toFixed(2)} MB)</small>}</div><div className="field"><label htmlFor="order-notes">Catatan kebutuhan (opsional)</label><textarea id="order-notes" value={orderNotes} onChange={e=>setOrderNotes(e.target.value)} rows={3} placeholder="Contoh: untuk order pelanggan / kebutuhan shift sore" /></div>
-              <button className="btn btn-primary" type="submit" disabled={orderSubmitting||!orderProducts.length||!selectedOrderCustomerId||Number(orderProducts.find(p=>p.id===selectedOrderProductId)?.current_stock??0)<=0}>{orderSubmitting?"Mengirim order…":"Kirim order ke Admin →"}</button>
+              <button className="btn btn-primary" type="submit" disabled={orderSubmitting||!orderProducts.length||!selectedOrderCustomerId||orderCart.length===0}>{orderSubmitting?"Mengirim order…":"Kirim seluruh order ke Admin →"}</button>
               {!orderProducts.length && <p className="subtle">Belum ada produk aktif dengan stok tersedia.</p>}
             </form>
             <div className="panel business-history"><div className="eyebrow">AKTIVITAS TERKINI</div><h2>Riwayat order</h2>
-              {orderRows.length===0?<p className="subtle">Belum ada order yang tercatat.</p>:orderRows.map(o=><article className="business-record" key={o.id}><div className="business-record-head"><div><strong>{o.order_code}</strong><small>{new Date(o.created_at).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</small></div><span className={`status-pill status-${o.status}`}>{o.status==="pending"?"Menunggu":o.status==="approved"?"Disetujui":o.status==="fulfilled"?"Dipenuhi":o.status==="rejected"?"Ditolak":"Dibatalkan"}</span></div>{<p className="subtle">Nama toko/data toko: <strong>{o.business_customers?.store_name??"Tidak ditautkan ke data toko"}</strong>{o.business_customers?.customer_code?` · ${o.business_customers.customer_code}`:""}</p>}<p className="subtle">Pembayaran toko: {({"cash":"Tunai / cash","bank_transfer":"Transfer bank","e_wallet":"E-wallet / QRIS","card":"Kartu debit/kredit","other":"Lainnya / belum diketahui"} as Record<string,string>)[o.payment_method??"other"]??"Belum dicatat"}{o.stock_reserved?" · Stok sudah dicadangkan":""}</p>{o.payment_evidence_path&&(o.ordered_by===profile?.id||["owner","admin"].includes(profile?.role??""))&&<button className="btn" type="button" onClick={()=>void openOrderEvidence(o.payment_evidence_path!)}>Lihat foto bukti</button>}{o.product_order_items?.map(it=><div className="business-line" key={it.id}><span>{it.products?.name ?? "Produk"} × {it.quantity}</span><strong>{new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(it.line_total)}</strong></div>)}{o.notes&&<p className="subtle">{o.notes}</p>}{["owner","admin"].includes(profile?.role??"")&&o.status==="pending"&&<div className="business-actions"><button className="btn btn-primary" onClick={()=>void reviewBusinessItem("product_orders",o.id,"approved")}>Setujui</button><button className="btn" onClick={()=>void reviewBusinessItem("product_orders",o.id,"rejected")}>Tolak</button></div>}{["owner","admin"].includes(profile?.role??"")&&o.status==="approved"&&<div className="business-actions"><button className="btn btn-primary" onClick={()=>void reviewBusinessItem("product_orders",o.id,"fulfilled")}>Tandai dipenuhi</button></div>}</article>)}
+              {orderRows.length===0?<p className="subtle">Belum ada order yang tercatat.</p>:orderRows.map(o=><article className="business-record" key={o.id}><div className="business-record-head"><div><strong>{o.order_code}</strong><small>{new Date(o.created_at).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</small></div><span className={`status-pill status-${o.status}`}>{o.status==="pending"?"Menunggu":o.status==="approved"?"Disetujui":o.status==="fulfilled"?"Dipenuhi":o.status==="rejected"?"Ditolak":"Dibatalkan"}</span></div>{<p className="subtle">Nama toko/data toko: <strong>{o.business_customers?.store_name??"Tidak ditautkan ke data toko"}</strong>{o.business_customers?.customer_code?` · ${o.business_customers.customer_code}`:""}</p>}<p className="subtle">Tanggal order: <strong>{new Date(o.created_at).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</strong></p><p className="subtle">Dibuat oleh: <strong>{o.ordered_by_profile?.full_name||o.ordered_by_profile?.email||"Akun "+o.ordered_by.slice(0,8)}</strong></p><p className="subtle">Pembayaran toko: {({"cash":"Tunai / cash","bank_transfer":"Transfer bank","e_wallet":"E-wallet / QRIS","card":"Kartu debit/kredit","other":"Lainnya / belum diketahui"} as Record<string,string>)[o.payment_method??"other"]??"Belum dicatat"}{o.stock_reserved?" · Stok sudah dicadangkan":""}</p>{o.payment_evidence_path&&(o.ordered_by===profile?.id||["owner","admin"].includes(profile?.role??""))&&<button className="btn" type="button" onClick={()=>void openOrderEvidence(o.payment_evidence_path!)}>Lihat foto bukti</button>}{o.product_order_items?.map(it=><div className="business-line" key={it.id}><span>{it.products?.name ?? "Produk"} × {it.quantity}</span><strong>{new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(it.line_total)}</strong></div>)}{o.notes&&<p className="subtle">{o.notes}</p>}{["owner","admin"].includes(profile?.role??"")&&o.status==="pending"&&<div className="business-actions"><button className="btn btn-primary" onClick={()=>void reviewBusinessItem("product_orders",o.id,"approved")}>Setujui</button><button className="btn" onClick={()=>void reviewBusinessItem("product_orders",o.id,"rejected")}>Tolak</button></div>}{["owner","admin"].includes(profile?.role??"")&&o.status==="approved"&&<div className="business-actions"><button className="btn btn-primary" onClick={()=>void reviewBusinessItem("product_orders",o.id,"fulfilled")}>Tandai dipenuhi</button></div>}</article>)}
             </div>
           </div>
         </section> : activePage === "customers" ? <section className="business-page">
