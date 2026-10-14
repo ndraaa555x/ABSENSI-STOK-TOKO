@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Session } from "@supabase/supabase-js";
-import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 type Employee = { id: string; employee_code: string; full_name: string; employment_status: string };
 type FaceApi = {
@@ -179,8 +180,8 @@ export default function AttendanceCameraPage() {
     } finally { setBusy(false); }
   }
 
-  if (!session) return <main className="login-side"><div className="login-card"><h1>Absensi kamera</h1><p>Silakan login terlebih dahulu.</p><a href="/">Kembali ke login</a></div></main>;
-  if (!profile || !profile.is_active || !["owner", "admin"].includes(profile.role)) return <main className="login-side"><div className="login-card"><h1>Akses terbatas</h1><p>Untuk menjaga keamanan database, pendaftaran template dan pencatatan absensi melalui kamera saat ini hanya tersedia untuk Owner/Admin.</p><a href="/">Kembali ke dashboard</a></div></main>;
+  if (!session) return <main className="login-side"><div className="login-card"><h1>Absensi kamera</h1><p>Silakan login terlebih dahulu.</p><Link href="/">Kembali ke login</Link></div></main>;
+  if (!profile || !profile.is_active || !["owner", "admin"].includes(profile.role)) return <main className="login-side"><div className="login-card"><h1>Akses terbatas</h1><p>Untuk menjaga keamanan database, pendaftaran template dan pencatatan absensi melalui kamera saat ini hanya tersedia untuk Owner/Admin.</p><Link href="/">Kembali ke dashboard</Link></div></main>;
 
   return <main className="login-side" style={{ alignItems: "flex-start", paddingTop: 28 }}>
     <section className="login-card" style={{ width: "min(100%, 980px)" }}>
@@ -204,7 +205,7 @@ export default function AttendanceCameraPage() {
           {error && <div className="error-box" role="alert" style={{ marginTop: 14 }}>{error}</div>}
         </div>
       </div>
-      <div className="section-head" style={{ marginTop: 24 }}><div><h2>Catatan keamanan</h2><p className="subtle">Pencatatan dibatasi Owner/Admin karena kebijakan database saat ini tidak mengizinkan karyawan menulis langsung ke attendance_records. Browser-based face matching dapat dipalsukan oleh klien yang dimodifikasi; jangan gunakan sebagai satu-satunya bukti identitas untuk keputusan berisiko tinggi.</p></div><a className="btn" href="/">Kembali ke dashboard</a></div>
+      <div className="section-head" style={{ marginTop: 24 }}><div><h2>Catatan keamanan</h2><p className="subtle">Pencatatan dibatasi Owner/Admin karena kebijakan database saat ini tidak mengizinkan karyawan menulis langsung ke attendance_records. Browser-based face matching dapat dipalsukan oleh klien yang dimodifikasi; jangan gunakan sebagai satu-satunya bukti identitas untuk keputusan berisiko tinggi.</p></div><Link className="btn" href="/">Kembali ke dashboard</Link></div>
     </section>
   </main>;
 }
