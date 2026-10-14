@@ -10,13 +10,21 @@ type Counts = { employees: number; attendance: number; products: number; finance
 type AttendanceRow = { id: string; work_date: string; check_in_at: string | null; check_out_at: string | null; status: string; check_in_method: string | null; check_out_method: string | null; evidence_path: string | null; employees: { full_name: string; employee_code: string } | null; evidence_url?: string | null };
 type DailyAttendanceRow = { employee_id: string; check_out_at: string | null; employees: { full_name: string; employee_code: string } | null };
 type AttendanceMode = "once_daily" | "multiple_sessions";
-type ModuleKey = "dashboard" | "employees" | "attendance" | "inventory" | "finance" | "barcode" | "settings";
+type ModuleKey = "dashboard" | "employees" | "attendance" | "orders" | "refunds" | "finance-reports" | "inventory" | "finance" | "barcode" | "settings";
+type OrderProduct = { id:string; name:string; sku:string; unit:string; sale_price:number; current_stock:number; is_active:boolean };
+type OrderItem = { id:string; quantity:number; unit_price:number; line_total:number; product_id:string; products:{name:string;sku:string;unit:string}|null };
+type OrderRow = { id:string; order_code:string; status:string; notes:string|null; created_at:string; ordered_by:string; product_order_items:OrderItem[] };
+type RefundRow = { id:string; refund_code:string; order_id:string; order_item_id:string; requested_by:string; quantity:number; amount:number; reason:string; status:string; created_at:string; product_orders:{order_code:string}|null };
+type FinanceReportRow = { id:string; report_code:string; report_type:string; amount:number; description:string; payment_method:string|null; status:string; created_at:string; submitted_by:string };
 type EmployeeRow = { id:string; employee_code:string; full_name:string; email:string|null; phone:string|null; job_title:string|null; employment_status:"active"|"inactive"; joined_on:string|null; notes:string|null; profile_id?:string|null };
 type AccountRow = { id:string; email:string; full_name:string|null; role:"owner"|"admin"|"employee"; is_active:boolean; employee?:{employee_code:string;employment_status:string;full_name:string}|null };
 const navItems: { key: ModuleKey; icon: string; label: string; group: string }[] = [
   { key: "dashboard", icon: "▦", label: "Ringkasan", group: "UTAMA" },
   { key: "employees", icon: "♙", label: "Karyawan", group: "OPERASIONAL" },
   { key: "attendance", icon: "◷", label: "Absensi", group: "OPERASIONAL" },
+  { key: "orders", icon: "🛒", label: "Order Produk", group: "TRANSAKSI" },
+  { key: "refunds", icon: "↩", label: "Refund Produk", group: "TRANSAKSI" },
+  { key: "finance-reports", icon: "↗", label: "Laporan Uang", group: "TRANSAKSI" },
   { key: "inventory", icon: "▤", label: "Inventaris & Stok", group: "OPERASIONAL" },
   { key: "barcode", icon: "▥", label: "Barcode", group: "OPERASIONAL" },
   { key: "finance", icon: "◈", label: "Keuangan", group: "MANAJEMEN" },
@@ -24,12 +32,15 @@ const navItems: { key: ModuleKey; icon: string; label: string; group: string }[]
 ];
 const descriptions: Record<ModuleKey, string> = {
   dashboard: "Pantau ringkasan data bisnis Anda.",
-  employees: "Fondasi data karyawan sudah tersedia di database. Form tambah, edit, dan pencarian akan disiapkan pada tahap modul karyawan.",
-  attendance: "Fondasi pencatatan absensi sudah tersedia di database. Alur check-in, check-out, dan rekap akan dibangun berikutnya.",
-  inventory: "Fondasi produk, kategori, dan pergerakan stok sudah tersedia di database. Form transaksi stok akan dibangun berikutnya.",
-  barcode: "Database memiliki kolom barcode dan SKU. Pemindaian kamera serta cetak label belum diaktifkan pada tahap fondasi ini.",
-  finance: "Fondasi transaksi pemasukan dan pengeluaran sudah tersedia di database. Form pencatatan dan laporan akan dibangun berikutnya.",
-  settings: "Pengaturan dan kontrol akses Owner tersedia pada database. Pengelolaan akun Admin dan pengaturan bisnis akan dibangun berikutnya."
+  employees: "Kelola data dan akun karyawan sesuai kewenangan.",
+  attendance: "Pantau kehadiran dan riwayat kerja sesuai hak akses.",
+  orders: "Ajukan order produk untuk kebutuhan operasional kerja dan pantau status persetujuannya.",
+  refunds: "Ajukan pengembalian produk dari order yang sudah disetujui atau dipenuhi.",
+  "finance-reports": "Catat uang masuk atau pengeluaran harian untuk diperiksa Admin/Owner.",
+  inventory: "Pantau produk dan ketersediaan stok untuk mendukung order kerja.",
+  barcode: "Cari produk berdasarkan SKU atau barcode.",
+  finance: "Lihat ringkasan transaksi keuangan yang dikelola Owner.",
+  settings: "Kelola pengaturan bisnis dan kontrol akses sesuai role."
 };
 
 export default function HomePage() {
@@ -49,6 +60,32 @@ export default function HomePage() {
   const [employeeSearch, setEmployeeSearch] = useState("");
   const [attendanceSearch, setAttendanceSearch] = useState("");
   const [accountSearch, setAccountSearch] = useState("");
+  const [businessRefresh, setBusinessRefresh] = useState(0);
+  const [orderProducts, setOrderProducts] = useState<OrderProduct[]>([]);
+  const [orderRows, setOrderRows] = useState<OrderRow[]>([]);
+  const [refundRows, setRefundRows] = useState<RefundRow[]>([]);
+  const [financeReportRows, setFinanceReportRows] = useState<FinanceReportRow[]>([]);
+  const [selectedOrderProductId, setSelectedOrderProductId] = useState("");
+  const [orderQuantity, setOrderQuantity] = useState("1");
+  const [orderNotes, setOrderNotes] = useState("");
+  const [orderSubmitting, setOrderSubmitting] = useState(false);
+  const [orderNotice, setOrderNotice] = useState("");
+  const [orderError, setOrderError] = useState("");
+  const [refundOrderId, setRefundOrderId] = useState("");
+  const [refundItemId, setRefundItemId] = useState("");
+  const [refundQuantity, setRefundQuantity] = useState("1");
+  const [refundReason, setRefundReason] = useState("");
+  const [refundSubmitting, setRefundSubmitting] = useState(false);
+  const [refundNotice, setRefundNotice] = useState("");
+  const [refundError, setRefundError] = useState("");
+  const [financeReportType, setFinanceReportType] = useState<"income"|"expense">("income");
+  const [financeReportAmount, setFinanceReportAmount] = useState("");
+  const [financeReportDescription, setFinanceReportDescription] = useState("");
+  const [financeReportPayment, setFinanceReportPayment] = useState("cash");
+  const [financeReportReference, setFinanceReportReference] = useState("");
+  const [financeReportSubmitting, setFinanceReportSubmitting] = useState(false);
+  const [financeReportNotice, setFinanceReportNotice] = useState("");
+  const [financeReportError, setFinanceReportError] = useState("");
   const [attendanceRows, setAttendanceRows] = useState<AttendanceRow[]>([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [attendanceError, setAttendanceError] = useState("");
@@ -134,6 +171,40 @@ export default function HomePage() {
     });
     return () => { alive = false; subscription.unsubscribe(); };
   }, [loadProfileAndCounts]);
+
+  useEffect(() => {
+    if (!session || !profile?.is_active || !["orders","refunds","finance-reports"].includes(activePage)) return;
+    let alive = true;
+    async function loadBusinessWorkflows() {
+      if (activePage === "orders") {
+        const [productsResult, ordersResult] = await Promise.all([
+          supabase.from("products").select("id,name,sku,unit,sale_price,current_stock,is_active").eq("is_active", true).gt("current_stock", 0).order("name"),
+          supabase.from("product_orders").select("id,order_code,status,notes,created_at,ordered_by,product_order_items(id,product_id,quantity,unit_price,line_total,products(name,sku,unit))").order("created_at", {ascending:false}).limit(100)
+        ]);
+        if (!alive) return;
+        if (productsResult.error) setOrderError("Daftar produk belum dapat dimuat. Pastikan migrasi order dan izin produk sudah aktif.");
+        else { setOrderProducts((productsResult.data ?? []) as unknown as OrderProduct[]); setOrderError(""); }
+        if (ordersResult.error) setOrderError("Riwayat order belum dapat dimuat. Periksa izin database.");
+        else setOrderRows((ordersResult.data ?? []) as unknown as OrderRow[]);
+      } else if (activePage === "refunds") {
+        const [ordersResult, refundsResult] = await Promise.all([
+          supabase.from("product_orders").select("id,order_code,status,notes,created_at,ordered_by,product_order_items(id,product_id,quantity,unit_price,line_total,products(name,sku,unit))").in("status", ["approved","fulfilled"]).order("created_at", {ascending:false}).limit(100),
+          supabase.from("product_refunds").select("id,refund_code,order_id,order_item_id,requested_by,quantity,amount,reason,status,created_at,product_orders(order_code)").order("created_at", {ascending:false}).limit(100)
+        ]);
+        if (!alive) return;
+        if (!ordersResult.error) setOrderRows((ordersResult.data ?? []) as unknown as OrderRow[]);
+        if (refundsResult.error) setRefundError("Riwayat refund belum dapat dimuat. Periksa izin database.");
+        else { setRefundRows((refundsResult.data ?? []) as unknown as RefundRow[]); setRefundError(""); }
+      } else if (activePage === "finance-reports") {
+        const { data, error: queryError } = await supabase.from("financial_reports").select("id,report_code,report_type,amount,description,payment_method,status,created_at,submitted_by").order("created_at", {ascending:false}).limit(100);
+        if (!alive) return;
+        if (queryError) setFinanceReportError("Laporan uang belum dapat dimuat. Periksa izin database.");
+        else { setFinanceReportRows((data ?? []) as unknown as FinanceReportRow[]); setFinanceReportError(""); }
+      }
+    }
+    void loadBusinessWorkflows();
+    return () => { alive = false; };
+  }, [activePage, session, profile, businessRefresh]);
 
   useEffect(() => {
     if (activePage !== "attendance" || !session || !profile?.is_active) return;
@@ -438,6 +509,56 @@ export default function HomePage() {
     </main>
   );
 
+  async function submitProductOrder(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!profile || !selectedOrderProductId) { setOrderError("Pilih produk terlebih dahulu."); return; }
+    const product = orderProducts.find((item) => item.id === selectedOrderProductId);
+    const quantity = Number(orderQuantity);
+    if (!product || !Number.isFinite(quantity) || quantity <= 0 || quantity > Number(product.current_stock)) { setOrderError("Jumlah order tidak valid atau melebihi stok tersedia."); return; }
+    setOrderSubmitting(true); setOrderError(""); setOrderNotice("");
+    const orderCode = `ORD-${new Date().toISOString().slice(0,10).replaceAll("-","")}-${Math.random().toString(36).slice(2,7).toUpperCase()}`;
+    const { data: order, error: createError } = await supabase.from("product_orders").insert({order_code:orderCode,ordered_by:profile.id,notes:orderNotes.trim()||null}).select("id,order_code").single();
+    if (createError || !order) { setOrderError(createError?.message ?? "Order gagal dibuat."); setOrderSubmitting(false); return; }
+    const price = Number(product.sale_price);
+    const { error: itemError } = await supabase.from("product_order_items").insert({order_id:order.id,product_id:product.id,quantity,unit_price:price,line_total:quantity*price});
+    if (itemError) { setOrderError("Nomor order dibuat, tetapi detail produk gagal disimpan. Hubungi Admin dan sampaikan nomor "+order.order_code+"."); setOrderSubmitting(false); return; }
+    setOrderNotice(`Order ${order.order_code} berhasil dikirim untuk ditinjau Admin.`);
+    setOrderNotes(""); setOrderQuantity("1"); setBusinessRefresh((v)=>v+1); setOrderSubmitting(false);
+  }
+
+  async function submitRefund(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!profile || !refundOrderId || !refundItemId || !refundReason.trim()) { setRefundError("Pilih order, produk, dan tulis alasan refund."); return; }
+    const order = orderRows.find((item)=>item.id===refundOrderId);
+    const item = order?.product_order_items.find((candidate)=>candidate.id===refundItemId);
+    const quantity = Number(refundQuantity);
+    if (!item || !Number.isFinite(quantity) || quantity<=0 || quantity>Number(item.quantity)) { setRefundError("Jumlah refund tidak valid atau melebihi jumlah order."); return; }
+    setRefundSubmitting(true); setRefundError(""); setRefundNotice("");
+    const refundCode = `REF-${new Date().toISOString().slice(0,10).replaceAll("-","")}-${Math.random().toString(36).slice(2,7).toUpperCase()}`;
+    const { error: insertError } = await supabase.from("product_refunds").insert({refund_code:refundCode,order_id:order.id,order_item_id:item.id,requested_by:profile.id,quantity,amount:quantity*Number(item.unit_price),reason:refundReason.trim()});
+    if (insertError) setRefundError("Refund gagal dikirim: "+insertError.message);
+    else { setRefundNotice(`Permintaan refund ${refundCode} berhasil dikirim untuk ditinjau.`); setRefundReason(""); setRefundQuantity("1"); setBusinessRefresh((v)=>v+1); }
+    setRefundSubmitting(false);
+  }
+
+  async function submitFinanceReport(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!profile || !financeReportDescription.trim() || !Number.isFinite(Number(financeReportAmount)) || Number(financeReportAmount)<=0) { setFinanceReportError("Isi nominal lebih dari nol dan keterangan transaksi."); return; }
+    setFinanceReportSubmitting(true); setFinanceReportError(""); setFinanceReportNotice("");
+    const reportCode = `LAP-${new Date().toISOString().slice(0,10).replaceAll("-","")}-${Math.random().toString(36).slice(2,7).toUpperCase()}`;
+    const { error: insertError } = await supabase.from("financial_reports").insert({report_code:reportCode,report_type:financeReportType,amount:Number(financeReportAmount),description:financeReportDescription.trim(),payment_method:financeReportPayment,reference_code:financeReportReference.trim()||null,submitted_by:profile.id});
+    if (insertError) setFinanceReportError("Laporan gagal dikirim: "+insertError.message);
+    else { setFinanceReportNotice(`Laporan ${reportCode} terkirim untuk diperiksa.`); setFinanceReportAmount(""); setFinanceReportDescription(""); setFinanceReportReference(""); setBusinessRefresh((v)=>v+1); }
+    setFinanceReportSubmitting(false);
+  }
+
+  async function reviewBusinessItem(table:"product_orders"|"product_refunds"|"financial_reports", id:string, status:string) {
+    if (!profile || !["owner","admin"].includes(profile.role)) return;
+    const { error: updateError } = await supabase.from(table).update({status,reviewed_by:profile.id,reviewed_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq("id",id);
+    if (updateError) { setError("Status gagal diperbarui: "+updateError.message); return; }
+    setBusinessRefresh((v)=>v+1);
+  }
+
   const displayName = profile?.full_name || profile?.email || session.user.email || "Pengguna";
   const isActive = Boolean(profile?.is_active);
   const moduleTitle = navItems.find((item) => item.key === activePage)?.label ?? "Ringkasan";
@@ -446,11 +567,11 @@ export default function HomePage() {
     <main className={`app-shell role-${profile?.role ?? "employee"}`}>
       <aside className="sidebar">
         <div className="brand"><div className="brand-mark">SB</div><div><div className="brand-title">SMART BUSINESS</div><div className="brand-sub">MANAGEMENT SYSTEM</div></div></div>
-        {["UTAMA", "OPERASIONAL", "MANAJEMEN"].filter((group) => navItems.some((item) => item.group === group && (profile?.role === "owner" || (profile?.role === "admin" ? item.key !== "finance" : ["dashboard", "attendance"].includes(item.key))) && item.label.toLowerCase().includes(menuSearch.trim().toLowerCase()))).map((group) => (
+        {["UTAMA", "OPERASIONAL", "TRANSAKSI", "MANAJEMEN"].filter((group) => navItems.some((item) => item.group === group && (profile?.role === "owner" || (profile?.role === "admin" ? item.key !== "finance" : ["dashboard", "attendance", "orders", "refunds", "finance-reports"].includes(item.key))) && item.label.toLowerCase().includes(menuSearch.trim().toLowerCase()))).map((group) => (
           <div key={group}>
             <div className="nav-label">{group}</div>
             <nav className="nav-list">
-              {navItems.filter((item) => item.group === group && (profile?.role === "owner" || (profile?.role === "admin" ? item.key !== "finance" : ["dashboard", "attendance"].includes(item.key))) && item.label.toLowerCase().includes(menuSearch.trim().toLowerCase())).map((item) => (
+              {navItems.filter((item) => item.group === group && (profile?.role === "owner" || (profile?.role === "admin" ? item.key !== "finance" : ["dashboard", "attendance", "orders", "refunds", "finance-reports"].includes(item.key))) && item.label.toLowerCase().includes(menuSearch.trim().toLowerCase())).map((item) => (
                 <button key={item.key} className={`nav-item ${activePage === item.key ? "active" : ""}`} onClick={() => setActivePage(item.key)}>
                   <span className="nav-icon">{item.icon}</span>{item.label}
                 </button>
@@ -549,6 +670,50 @@ export default function HomePage() {
             </table>
           </div>}
           <div className="info-box" style={{marginTop:16}}>Pengaturan role dan penghapusan akun login tersedia langsung di daftar karyawan. Role “Employee” ditampilkan sebagai “KARYAWAN”. Menghapus akun login tidak menghapus data karyawan atau riwayat absensi.</div>
+        </section> : activePage === "orders" ? <section className="business-page">
+          <div className="business-hero"><div><div className="eyebrow">TRANSAKSI OPERASIONAL</div><h1>Order Produk</h1><p>Ajukan kebutuhan produk untuk aktivitas kerja dan pantau prosesnya dari satu tempat.</p></div><div className="business-hero-icon">🛒</div></div>
+          {orderNotice && <div className="info-box" role="status">{orderNotice}</div>}{orderError && <div className="error-box" role="alert">{orderError}</div>}
+          <div className="business-columns">
+            <form className="panel business-form" onSubmit={submitProductOrder}>
+              <div className="eyebrow">BUAT ORDER BARU</div><h2>Pilih produk</h2>
+              <div className="field"><label htmlFor="order-product">Produk tersedia</label><select id="order-product" value={selectedOrderProductId} onChange={e=>setSelectedOrderProductId(e.target.value)} required><option value="">Pilih produk…</option>{orderProducts.map(p=><option key={p.id} value={p.id}>{p.name} · stok {p.current_stock} {p.unit} · {new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(p.sale_price)}</option>)}</select></div>
+              {selectedOrderProductId && (()=>{const p=orderProducts.find(x=>x.id===selectedOrderProductId);return p?<div className="order-product-preview"><strong>{p.name}</strong><span>SKU {p.sku}</span><span>Stok tersedia: {p.current_stock} {p.unit}</span><strong>{new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(p.sale_price)} / {p.unit}</strong></div>:null})()}
+              <div className="field"><label htmlFor="order-qty">Jumlah</label><input id="order-qty" type="number" min="0.01" step="0.01" max={orderProducts.find(p=>p.id===selectedOrderProductId)?.current_stock ?? undefined} value={orderQuantity} onChange={e=>setOrderQuantity(e.target.value)} required /></div>
+              <div className="field"><label htmlFor="order-notes">Catatan kebutuhan (opsional)</label><textarea id="order-notes" value={orderNotes} onChange={e=>setOrderNotes(e.target.value)} rows={3} placeholder="Contoh: untuk order pelanggan / kebutuhan shift sore" /></div>
+              <button className="btn btn-primary" type="submit" disabled={orderSubmitting||!orderProducts.length}>{orderSubmitting?"Mengirim order…":"Kirim order ke Admin →"}</button>
+              {!orderProducts.length && <p className="subtle">Belum ada produk aktif dengan stok tersedia.</p>}
+            </form>
+            <div className="panel business-history"><div className="eyebrow">AKTIVITAS TERKINI</div><h2>Riwayat order</h2>
+              {orderRows.length===0?<p className="subtle">Belum ada order yang tercatat.</p>:orderRows.map(o=><article className="business-record" key={o.id}><div className="business-record-head"><div><strong>{o.order_code}</strong><small>{new Date(o.created_at).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</small></div><span className={`status-pill status-${o.status}`}>{o.status==="pending"?"Menunggu":o.status==="approved"?"Disetujui":o.status==="fulfilled"?"Dipenuhi":o.status==="rejected"?"Ditolak":"Dibatalkan"}</span></div>{o.product_order_items?.map(it=><div className="business-line" key={it.id}><span>{it.products?.name ?? "Produk"} × {it.quantity}</span><strong>{new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(it.line_total)}</strong></div>)}{o.notes&&<p className="subtle">{o.notes}</p>}{["owner","admin"].includes(profile?.role??"")&&o.status==="pending"&&<div className="business-actions"><button className="btn btn-primary" onClick={()=>void reviewBusinessItem("product_orders",o.id,"approved")}>Setujui</button><button className="btn" onClick={()=>void reviewBusinessItem("product_orders",o.id,"rejected")}>Tolak</button></div>}{["owner","admin"].includes(profile?.role??"")&&o.status==="approved"&&<div className="business-actions"><button className="btn btn-primary" onClick={()=>void reviewBusinessItem("product_orders",o.id,"fulfilled")}>Tandai dipenuhi</button></div>}</article>)}
+            </div>
+          </div>
+        </section> : activePage === "refunds" ? <section className="business-page">
+          <div className="business-hero"><div><div className="eyebrow">PENGEMBALIAN PRODUK</div><h1>Refund Produk</h1><p>Ajukan refund dari order yang disetujui atau sudah dipenuhi. Semua permintaan tercatat untuk ditinjau.</p></div><div className="business-hero-icon">↩</div></div>
+          {refundNotice && <div className="info-box" role="status">{refundNotice}</div>}{refundError && <div className="error-box" role="alert">{refundError}</div>}
+          <div className="business-columns">
+            <form className="panel business-form" onSubmit={submitRefund}><div className="eyebrow">AJUKAN REFUND</div><h2>Detail pengembalian</h2>
+              <div className="field"><label htmlFor="refund-order">Order terkait</label><select id="refund-order" value={refundOrderId} onChange={e=>{setRefundOrderId(e.target.value);setRefundItemId("");}} required><option value="">Pilih order…</option>{orderRows.filter(o=>["approved","fulfilled"].includes(o.status)).map(o=><option key={o.id} value={o.id}>{o.order_code} · {o.status}</option>)}</select></div>
+              <div className="field"><label htmlFor="refund-item">Produk</label><select id="refund-item" value={refundItemId} onChange={e=>setRefundItemId(e.target.value)} required><option value="">Pilih produk…</option>{orderRows.find(o=>o.id===refundOrderId)?.product_order_items.map(it=><option key={it.id} value={it.id}>{it.products?.name??"Produk"} · dipesan {it.quantity} {it.products?.unit??""}</option>)}</select></div>
+              <div className="field"><label htmlFor="refund-qty">Jumlah yang direfund</label><input id="refund-qty" type="number" min="0.01" step="0.01" max={orderRows.find(o=>o.id===refundOrderId)?.product_order_items.find(it=>it.id===refundItemId)?.quantity??undefined} value={refundQuantity} onChange={e=>setRefundQuantity(e.target.value)} required /></div>
+              <div className="field"><label htmlFor="refund-reason">Alasan refund</label><textarea id="refund-reason" value={refundReason} onChange={e=>setRefundReason(e.target.value)} rows={3} placeholder="Jelaskan kondisi atau alasan pengembalian" required /></div>
+              <button className="btn btn-primary" type="submit" disabled={refundSubmitting}>{refundSubmitting?"Mengirim…":"Kirim permintaan refund →"}</button>
+            </form>
+            <div className="panel business-history"><div className="eyebrow">PEMANTAUAN</div><h2>Riwayat refund</h2>{refundRows.length===0?<p className="subtle">Belum ada permintaan refund.</p>:refundRows.map(r=><article className="business-record" key={r.id}><div className="business-record-head"><div><strong>{r.refund_code}</strong><small>Order {r.product_orders?.order_code??"—"} · {new Date(r.created_at).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</small></div><span className={`status-pill status-${r.status}`}>{r.status==="pending"?"Menunggu":r.status==="approved"?"Disetujui":"Ditolak"}</span></div><p>{r.reason}</p><div className="business-line"><span>{r.quantity} unit</span><strong>{new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(r.amount)}</strong></div>{["owner","admin"].includes(profile?.role??"")&&r.status==="pending"&&<div className="business-actions"><button className="btn btn-primary" onClick={()=>void reviewBusinessItem("product_refunds",r.id,"approved")}>Setujui</button><button className="btn" onClick={()=>void reviewBusinessItem("product_refunds",r.id,"rejected")}>Tolak</button></div>}</article>)}</div>
+          </div>
+        </section> : activePage === "finance-reports" ? <section className="business-page">
+          <div className="business-hero"><div><div className="eyebrow">LAPORAN KEUANGAN HARIAN</div><h1>Laporan Uang Masuk / Keluar</h1><p>Catat transaksi selama shift. Laporan masuk ke antrean pemeriksaan Admin/Owner dan tidak langsung mengubah buku keuangan resmi.</p></div><div className="business-hero-icon">↗</div></div>
+          {financeReportNotice && <div className="info-box" role="status">{financeReportNotice}</div>}{financeReportError && <div className="error-box" role="alert">{financeReportError}</div>}
+          <div className="business-columns">
+            <form className="panel business-form" onSubmit={submitFinanceReport}><div className="eyebrow">BUAT LAPORAN</div><h2>Detail transaksi</h2>
+              <div className="field"><label htmlFor="finance-report-type">Jenis transaksi</label><select id="finance-report-type" value={financeReportType} onChange={e=>setFinanceReportType(e.target.value as "income"|"expense")}><option value="income">Uang masuk</option><option value="expense">Uang keluar</option></select></div>
+              <div className="field"><label htmlFor="finance-report-amount">Nominal (Rp)</label><input id="finance-report-amount" type="number" min="1" step="1" value={financeReportAmount} onChange={e=>setFinanceReportAmount(e.target.value)} placeholder="Contoh: 150000" required /></div>
+              <div className="field"><label htmlFor="finance-report-desc">Keterangan</label><textarea id="finance-report-desc" value={financeReportDescription} onChange={e=>setFinanceReportDescription(e.target.value)} rows={3} placeholder="Apa transaksi yang terjadi?" required /></div>
+              <div className="field"><label htmlFor="finance-report-payment">Metode pembayaran</label><select id="finance-report-payment" value={financeReportPayment} onChange={e=>setFinanceReportPayment(e.target.value)}><option value="cash">Tunai</option><option value="bank_transfer">Transfer bank</option><option value="e_wallet">E-wallet</option><option value="card">Kartu</option><option value="other">Lainnya</option></select></div>
+              <div className="field"><label htmlFor="finance-report-ref">Referensi / bukti (opsional)</label><input id="finance-report-ref" value={financeReportReference} onChange={e=>setFinanceReportReference(e.target.value)} placeholder="Nomor transaksi / referensi" /></div>
+              <button className="btn btn-primary" type="submit" disabled={financeReportSubmitting}>{financeReportSubmitting?"Mengirim laporan…":"Kirim laporan →"}</button>
+            </form>
+            <div className="panel business-history"><div className="eyebrow">AUDIT HARIAN</div><h2>Riwayat laporan</h2>{financeReportRows.length===0?<p className="subtle">Belum ada laporan uang.</p>:financeReportRows.map(r=><article className="business-record" key={r.id}><div className="business-record-head"><div><strong>{r.report_code}</strong><small>{new Date(r.created_at).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</small></div><span className={`status-pill status-${r.status}`}>{r.status==="pending"?"Menunggu":r.status==="approved"?"Disetujui":"Ditolak"}</span></div><div className="business-line"><span>{r.report_type==="income"?"Uang masuk":"Uang keluar"} · {r.description}</span><strong>{new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(r.amount)}</strong></div><small className="subtle">Metode: {r.payment_method??"—"}</small>{["owner","admin"].includes(profile?.role??"")&&r.status==="pending"&&<div className="business-actions"><button className="btn btn-primary" onClick={()=>void reviewBusinessItem("financial_reports",r.id,"approved")}>Setujui</button><button className="btn" onClick={()=>void reviewBusinessItem("financial_reports",r.id,"rejected")}>Tolak</button></div>}</article>)}</div>
+          </div>
         </section> : <section className="panel" style={{ maxWidth: 900 }}>
           <div className="eyebrow">MODUL / {activePage.toUpperCase()}</div><h1 style={{ marginTop: 12 }}>{moduleTitle}</h1><p className="subtle">{descriptions[activePage]}</p>
           {activePage === "settings" ? <><div className="info-box">Pilih aturan absensi yang akan berlaku untuk semua akun karyawan. Mode tersimpan di database dan tetap aktif sampai diubah lagi.</div><div className="panel" style={{marginTop:16,background:"rgba(10,20,38,.45)"}}><h2>Aturan Check-in / Check-out</h2><p className="subtle">Owner dan Admin dapat mengubah pilihan ini. Perubahan tidak menghapus riwayat absensi yang sudah tersimpan.</p><div className="field"><label htmlFor="attendance-mode">Mode absensi</label><select id="attendance-mode" value={attendanceMode} disabled={attendanceModeLoading||attendanceModeSaving} onChange={e=>void saveAttendanceMode(e.target.value as AttendanceMode)}><option value="once_daily">Sekali sehari — 1 Check-in dan 1 Check-out</option><option value="multiple_sessions">Berulang — boleh Check-in lagi setelah Check-out</option></select></div><div className="subtle">{attendanceMode==="once_daily"?"Karyawan tidak bisa memulai sesi kedua pada tanggal yang sama.":"Karyawan boleh memulai sesi baru setelah sesi sebelumnya selesai Check-out."}</div>{attendanceModeLoading&&<p className="subtle">Memuat pengaturan…</p>}{attendanceModeSaving&&<p className="subtle">Menyimpan mode…</p>}{attendanceModeNotice&&<div className="info-box" role="status" style={{marginTop:12}}>{attendanceModeNotice}</div>}{attendanceModeError&&<div className="error-box" role="alert" style={{marginTop:12}}>{attendanceModeError}</div>}</div><div className="info-box" style={{marginTop:16}}>Owner dapat mengatur role dan status akun lain. Akun Owner yang sedang digunakan dilindungi dari perubahan diri sendiri.</div></> : <div className="info-box">Modul ini masih dalam tahap fondasi. Kami tidak akan menampilkan data contoh seolah-olah merupakan data bisnis asli.</div>}
@@ -559,7 +724,7 @@ export default function HomePage() {
             {activePage === "settings" && <div className="stat-card"><div className="stat-top">Role akun</div><div className="stat-value" style={{ fontSize: 20 }}>{profile?.role?.toUpperCase() ?? "—"}</div><div className="stat-note">Status: {profile?.is_active ? "Aktif" : "Tidak aktif"}</div></div>}
           </div>
         </section>}
-        <div className="footer">SMART BUSINESS MANAGEMENT · Fondasi aplikasi · Data mengikuti akses Supabase RLS</div>
+        <div className="footer">SMART BUSINESS MANAGEMENT · Ruang kerja transaksi & operasional · Data dibatasi sesuai role</div>
       </section>
     </main>
   );
