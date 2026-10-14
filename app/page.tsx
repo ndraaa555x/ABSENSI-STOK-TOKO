@@ -545,7 +545,7 @@ export default function HomePage() {
         }
         setSession(null);
         setProfile(null);
-        setCounts({ employees: 0, attendance: 0, products: 0, finances: 0 });
+        setCounts({ employees: 0, attendance: 0, products: 0, finances: 0, orders: 0, refunds: 0, reports: 0 });
         setMessage("Anda telah keluar dari sesi lokal. Koneksi autentikasi sedang bermasalah; jika akun masih terbuka di perangkat lain, keluarkan sesi perangkat tersebut juga.");
         setError("");
       }
