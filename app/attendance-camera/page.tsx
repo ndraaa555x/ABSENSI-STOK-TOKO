@@ -58,7 +58,7 @@ export default function AttendanceCameraPage() {
         const { data: ownEmployee, error: ownError } = await supabase.from("employees").select("id,employee_code,full_name,employment_status,profile_id").eq("profile_id", data.session.user.id).eq("employment_status", "active").maybeSingle();
         if (!alive) return;
         if (ownError || !ownEmployee) setError("Akun ini belum ditautkan ke data karyawan aktif. Minta Owner/Admin menghubungkan akun Anda di menu Karyawan.");
-        else setEmployees([ownEmployee as Employee]);
+        else { setEmployees([ownEmployee as Employee]); setEmployeeId(ownEmployee.id); }
       }
     });
     return () => { alive = false; streamRef.current?.getTracks().forEach(track => track.stop()); };
@@ -144,7 +144,7 @@ export default function AttendanceCameraPage() {
   }, [cameraReady]);
 
   async function enrollFace() {
-    if (!employeeId) { setError("Pilih karyawan terlebih dahulu."); return; }
+    if (!employeeId) { setError(isManager ? "Pilih karyawan terlebih dahulu." : "Akun Anda belum terhubung ke data karyawan. Hubungi Owner/Admin."); return; }
     if (!consent) { setError("Persetujuan karyawan wajib dicentang sebelum pendaftaran wajah."); return; }
     if (!modelReady) { setError("Model verifikasi wajah masih dimuat."); return; }
     setBusy(true); setError(""); setNotice("");
