@@ -6,6 +6,7 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type Profile = { id: string; email: string; full_name: string | null; role: "owner" | "admin" | "employee"; is_active: boolean };
 type Counts = { employees: number; attendance: number; products: number; finances: number };
+type AttendanceRow = { id: string; work_date: string; check_in_at: string | null; check_out_at: string | null; status: string; check_in_method: string | null; check_out_method: string | null; evidence_path: string | null; employees: { full_name: string; employee_code: string } | null; evidence_url?: string | null };
 type ModuleKey = "dashboard" | "employees" | "attendance" | "inventory" | "finance" | "barcode" | "settings";
 const navItems: { key: ModuleKey; icon: string; label: string; group: string }[] = [
   { key: "dashboard", icon: "▦", label: "Ringkasan", group: "UTAMA" },
@@ -39,6 +40,9 @@ export default function HomePage() {
   const [busy, setBusy] = useState(false);
   const [resetMode, setResetMode] = useState(false);
   const [activePage, setActivePage] = useState<ModuleKey>("dashboard");
+  const [attendanceRows, setAttendanceRows] = useState<AttendanceRow[]>([]);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [attendanceError, setAttendanceError] = useState("");
 
   const loadProfileAndCounts = useCallback(async (currentSession: Session) => {
     setDataLoading(true);
@@ -99,6 +103,37 @@ export default function HomePage() {
     });
     return () => { alive = false; subscription.unsubscribe(); };
   }, [loadProfileAndCounts]);
+
+  useEffect(() => {
+    if (activePage !== "attendance" || !session || !profile?.is_active) return;
+    let alive = true;
+    async function loadAttendanceHistory() {
+      setAttendanceLoading(true);
+      setAttendanceError("");
+      const { data, error: queryError } = await supabase
+        .from("attendance_records")
+        .select("id,work_date,check_in_at,check_out_at,status,check_in_method,check_out_method,evidence_path,employees(full_name,employee_code)")
+        .order("work_date", { ascending: false })
+        .limit(100);
+      if (queryError) {
+        if (alive) setAttendanceError("Riwayat absensi tidak dapat dibaca. Periksa izin akses database.");
+        if (alive) setAttendanceLoading(false);
+        return;
+      }
+      const rows = (data ?? []) as unknown as AttendanceRow[];
+      const withUrls = await Promise.all(rows.map(async (row) => {
+        if (!row.evidence_path) return { ...row, evidence_url: null };
+        const { data: signed, error: signedError } = await supabase.storage
+          .from("attendance-evidence")
+          .createSignedUrl(row.evidence_path, 60);
+        return { ...row, evidence_url: signedError ? null : signed?.signedUrl ?? null };
+      }));
+      if (alive) setAttendanceRows(withUrls);
+      if (alive) setAttendanceLoading(false);
+    }
+    void loadAttendanceHistory();
+    return () => { alive = false; };
+  }, [activePage, session, profile]);
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -214,7 +249,29 @@ export default function HomePage() {
               {[{key:"employees" as ModuleKey,icon:"♙",label:"Karyawan",desc:"Data tim"},{key:"attendance" as ModuleKey,icon:"◷",label:"Absensi",desc:"Kehadiran"},{key:"inventory" as ModuleKey,icon:"▤",label:"Inventaris",desc:"Stok & produk"},{key:"finance" as ModuleKey,icon:"◈",label:"Keuangan",desc:"Arus transaksi"}].map((item) => <button className="quick-card" key={item.key} onClick={() => setActivePage(item.key)}><span>{item.icon}</span><strong>{item.label}</strong><small>{item.desc}</small></button>)}
             </div><div className="info-box" style={{ marginTop: 15 }}>Fondasi login dan ringkasan data sudah disiapkan. Form transaksi dan alur operasional akan dikembangkan serta diuji per modul.</div></section>
           </div>
-        </> : <section className="panel" style={{ maxWidth: 900 }}>
+        </> : activePage === "attendance" ? <section className="panel" style={{ maxWidth: 1200 }}>
+          <div className="eyebrow">MODUL / ABSENSI</div>
+          <div className="section-head" style={{ marginTop: 12 }}>
+            <div><h1>Riwayat absensi</h1><p className="subtle">Maksimal 100 catatan terbaru. Foto bukti hanya tersedia selama 7 hari sejak diunggah.</p></div>
+            <button className="btn" onClick={() => setActivePage("dashboard")}>← Kembali</button>
+          </div>
+          {attendanceError && <div className="error-box" role="alert">{attendanceError}</div>}
+          {attendanceLoading ? <p className="subtle">Memuat riwayat absensi…</p> : attendanceRows.length === 0 ? <div className="info-box">Belum ada riwayat absensi yang dapat ditampilkan.</div> : <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 760 }}>
+              <thead><tr style={{ textAlign: "left", color: "#91a1b8" }}>
+                <th style={{ padding: 10 }}>Karyawan</th><th style={{ padding: 10 }}>Tanggal</th><th style={{ padding: 10 }}>Masuk</th><th style={{ padding: 10 }}>Pulang</th><th style={{ padding: 10 }}>Status</th><th style={{ padding: 10 }}>Bukti wajah</th>
+              </tr></thead>
+              <tbody>{attendanceRows.map((row) => <tr key={row.id} style={{ borderTop: "1px solid #25334a" }}>
+                <td style={{ padding: 10 }}><strong>{row.employees?.full_name ?? "Karyawan"}</strong><div className="subtle">{row.employees?.employee_code ?? "—"}</div></td>
+                <td style={{ padding: 10 }}>{row.work_date}</td>
+                <td style={{ padding: 10 }}>{row.check_in_at ? new Date(row.check_in_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "—"}</td>
+                <td style={{ padding: 10 }}>{row.check_out_at ? new Date(row.check_out_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "—"}</td>
+                <td style={{ padding: 10 }}>{row.status}</td>
+                <td style={{ padding: 10 }}>{row.evidence_url ? <a href={row.evidence_url} target="_blank" rel="noreferrer" style={{ color: "#67e8f9", textDecoration: "underline" }}>Lihat foto ↗</a> : <span className="subtle">Tidak tersedia / kedaluwarsa</span>}</td>
+              </tr>)}</tbody>
+            </table>
+          </div>
+        </section> : <section className="panel" style={{ maxWidth: 900 }}>
           <div className="eyebrow">MODUL / {activePage.toUpperCase()}</div><h1 style={{ marginTop: 12 }}>{moduleTitle}</h1><p className="subtle">{descriptions[activePage]}</p>
           <div className="info-box">Modul ini masih dalam tahap fondasi. Kami tidak akan menampilkan data contoh seolah-olah merupakan data bisnis asli.</div>
           <div className="section-head"><div><h2>Ringkasan terkait</h2><div className="subtle">Angka dibaca dari database sesuai hak akses akun.</div></div><button className="btn" onClick={() => setActivePage("dashboard")}>← Kembali ke ringkasan</button></div>
