@@ -21,8 +21,9 @@ Deno.serve(async(req:Request)=>{
   const {data,error}=await admin.from("profiles").select("id,email,full_name,role,is_active,created_at").order("created_at",{ascending:false});
   if(error) return reply(500,{error:"Daftar akun gagal dimuat."});
   const {data:links}=await admin.from("employees").select("profile_id,employee_code,employment_status,full_name").not("profile_id","is",null);
-  const linked=new Map((links??[]).map((e:any)=>[e.profile_id,e]));
-  return reply(200,{accounts:(data??[]).map((p:any)=>({...p,employee:linked.get(p.id)??null}))});
+  type EmployeeLink = {profile_id:string;employee_code:string|null;employment_status:string|null;full_name:string|null};
+  const linked=new Map<string,EmployeeLink>((links??[]).map((e)=>[e.profile_id,e]));
+  return reply(200,{accounts:(data??[]).map((p)=>({...p,employee:linked.get(p.id)??null}))});
  }
  if(body.action==="create_employee_account"){
   if(!["owner","admin"].includes(actor.role)) return reply(403,{error:"Hanya Owner/Admin yang dapat membuat akun karyawan."});
