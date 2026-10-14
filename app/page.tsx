@@ -567,7 +567,7 @@ export default function HomePage() {
       }
       setSession(null);
       setProfile(null);
-      setCounts({ employees: 0, attendance: 0, products: 0, finances: 0 });
+      setCounts({ employees: 0, attendance: 0, products: 0, finances: 0, orders: 0, refunds: 0, reports: 0 });
       setMessage("Sesi lokal di perangkat ini sudah dibersihkan. Koneksi autentikasi perlu diperiksa.");
       setError("");
     } finally {
