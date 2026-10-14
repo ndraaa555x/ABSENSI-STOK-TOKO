@@ -256,6 +256,17 @@ export default function HomePage() {
   }, [activePage, session, profile, businessRefresh]);
 
   useEffect(() => {
+    if (!session || !profile?.is_active) return;
+    const refresh = () => setBusinessRefresh(v => v + 1);
+    let channel = supabase.channel("business-live-sync-" + profile.id);
+    for (const table of ["products","product_orders","product_order_items","product_refunds","financial_reports","financial_transactions","stock_movements","notifications","leave_requests","attendance_records","employees"]) {
+      channel = channel.on("postgres_changes", { event: "*", schema: "public", table }, refresh);
+    }
+    channel.subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [session, profile?.id, profile?.is_active]);
+
+  useEffect(() => {
     if (!businessRefresh || !session || !profile?.is_active) return;
     void loadProfileAndCounts(session);
   }, [businessRefresh, session, profile?.is_active, loadProfileAndCounts]);
