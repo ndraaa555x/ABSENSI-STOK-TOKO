@@ -155,7 +155,7 @@ export default function AttendanceCameraPage() {
         employee_id: employeeId, embedding: descriptor, consent_at: new Date().toISOString(),
         enrolled_at: new Date().toISOString(), updated_at: new Date().toISOString(), created_by: session?.user.id
       });
-      if (saveError) throw new Error("Template wajah tidak tersimpan. Pastikan akun Anda Owner/Admin dan kebijakan RLS mengizinkan.");
+      if (saveError) throw new Error("Template wajah tidak tersimpan. Pastikan akun aktif, wajah belum terdaftar, dan kebijakan database mengizinkan pendaftaran wajah milik sendiri.");
       setFaceRegistered(true);
       setMode("checkin");
       setNotice("Pendaftaran wajah berhasil. Pendaftaran awal selesai; absensi berikutnya hanya menyediakan Check-in dan Check-out.");
