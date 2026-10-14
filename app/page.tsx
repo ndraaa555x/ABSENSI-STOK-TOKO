@@ -10,10 +10,11 @@ type Counts = { employees: number; attendance: number; products: number; finance
 type AttendanceRow = { id: string; work_date: string; check_in_at: string | null; check_out_at: string | null; status: string; check_in_method: string | null; check_out_method: string | null; evidence_path: string | null; employees: { full_name: string; employee_code: string } | null; evidence_url?: string | null };
 type DailyAttendanceRow = { employee_id: string; check_out_at: string | null; employees: { full_name: string; employee_code: string } | null };
 type AttendanceMode = "once_daily" | "multiple_sessions";
-type ModuleKey = "dashboard" | "employees" | "attendance" | "orders" | "refunds" | "finance-reports" | "inventory" | "finance" | "barcode" | "leave" | "notifications" | "settings";
+type ModuleKey = "dashboard" | "employees" | "attendance" | "orders" | "refunds" | "finance-reports" | "customers" | "inventory" | "finance" | "barcode" | "leave" | "notifications" | "settings";
 type OrderProduct = { id:string; name:string; sku:string; unit:string; sale_price:number; current_stock:number; is_active:boolean };
 type OrderItem = { id:string; quantity:number; unit_price:number; line_total:number; product_id:string; products:{name:string;sku:string;unit:string}|null };
-type OrderRow = { id:string; order_code:string; status:string; notes:string|null; created_at:string; ordered_by:string; product_order_items:OrderItem[] };
+type OrderRow = { id:string; order_code:string; status:string; notes:string|null; created_at:string; ordered_by:string; customer_id:string|null; business_customers:{store_name:string;customer_code:string}|null; product_order_items:OrderItem[] };
+type CustomerRow = {id:string;customer_code:string;store_name:string;owner_name:string|null;phone:string|null;email:string|null;address:string|null;notes:string|null;created_by:string;is_active:boolean;created_at:string;order_count:number;last_order_at:string|null};
 type RefundRow = { id:string; refund_code:string; order_id:string; order_item_id:string; requested_by:string; quantity:number; amount:number; reason:string; status:string; created_at:string; product_orders:{order_code:string}|null };
 type FinanceReportRow = { id:string; report_code:string; report_type:string; amount:number; description:string; payment_method:string|null; status:string; created_at:string; submitted_by:string };
 type ProductRow = {id:string;sku:string;barcode_value:string;name:string;category_id:string|null;unit:string;description:string|null;sale_price:number;current_stock:number;minimum_stock:number;storage_location:string|null;is_active:boolean;product_categories:{name:string}|null};
@@ -33,6 +34,7 @@ const navItems: { key: ModuleKey; icon: string; label: string; group: string }[]
   { key: "orders", icon: "🛒", label: "Order Produk", group: "TRANSAKSI" },
   { key: "refunds", icon: "↩", label: "Refund Produk", group: "TRANSAKSI" },
   { key: "finance-reports", icon: "↗", label: "Laporan Uang", group: "TRANSAKSI" },
+  { key: "customers", icon: "🏪", label: "Data Toko / Member", group: "TRANSAKSI" },
   { key: "leave", icon: "▣", label: "Izin / Cuti", group: "OPERASIONAL" },
   { key: "notifications", icon: "♢", label: "Notifikasi", group: "UTAMA" },
   { key: "inventory", icon: "▤", label: "Inventaris & Stok", group: "OPERASIONAL" },
@@ -47,6 +49,7 @@ const descriptions: Record<ModuleKey, string> = {
   orders: "Ajukan order produk untuk kebutuhan operasional kerja dan pantau status persetujuannya.",
   refunds: "Ajukan pengembalian produk dari order yang sudah disetujui atau dipenuhi.",
   "finance-reports": "Catat uang masuk atau pengeluaran harian untuk diperiksa Admin/Owner.",
+  customers: "Daftarkan toko/pembeli sebagai member dan pantau aktivitas order.",
   leave: "Ajukan izin/cuti dan pantau statusnya; Admin/Owner meninjau permohonan karyawan.",
   notifications: "Pusat notifikasi dan pembaruan aktivitas akun.",
   inventory: "Pantau produk dan ketersediaan stok untuk mendukung order kerja.",
@@ -74,6 +77,17 @@ export default function HomePage() {
   const [accountSearch, setAccountSearch] = useState("");
   const [businessRefresh, setBusinessRefresh] = useState(0);
   const [orderProducts, setOrderProducts] = useState<OrderProduct[]>([]);
+  const [customerRows, setCustomerRows] = useState<CustomerRow[]>([]);
+  const [customerStoreName, setCustomerStoreName] = useState("");
+  const [customerOwnerName, setCustomerOwnerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [customerAddress, setCustomerAddress] = useState("");
+  const [customerNotes, setCustomerNotes] = useState("");
+  const [customerSubmitting, setCustomerSubmitting] = useState(false);
+  const [customerNotice, setCustomerNotice] = useState("");
+  const [customerError, setCustomerError] = useState("");
+  const [selectedOrderCustomerId, setSelectedOrderCustomerId] = useState("");
   const [orderRows, setOrderRows] = useState<OrderRow[]>([]);
   const [refundRows, setRefundRows] = useState<RefundRow[]>([]);
   const [financeReportRows, setFinanceReportRows] = useState<FinanceReportRow[]>([]);
@@ -222,19 +236,41 @@ export default function HomePage() {
   }, [loadProfileAndCounts]);
 
   useEffect(() => {
-    if (!session || !profile?.is_active || !["orders","refunds","finance-reports"].includes(activePage)) return;
+    if (!session || !profile?.is_active || !["orders","refunds","finance-reports","customers"].includes(activePage)) return;
     let alive = true;
     async function loadBusinessWorkflows() {
       if (activePage === "orders") {
-        const [productsResult, ordersResult] = await Promise.all([
-          supabase.from("products").select("id,name,sku,unit,sale_price,current_stock,is_active").eq("is_active", true).gt("current_stock", 0).order("name"),
-          supabase.from("product_orders").select("id,order_code,status,notes,created_at,ordered_by,product_order_items(id,product_id,quantity,unit_price,line_total,products(name,sku,unit))").order("created_at", {ascending:false}).limit(100)
+        const [productsResult, ordersResult, customersResult] = await Promise.all([
+          supabase.from("products").select("id,name,sku,unit,sale_price,current_stock,is_active").eq("is_active", true).order("name"),
+          supabase.from("product_orders").select("id,order_code,status,notes,created_at,ordered_by,customer_id,business_customers(store_name,customer_code),product_order_items(id,product_id,quantity,unit_price,line_total,products(name,sku,unit))").order("created_at", {ascending:false}).limit(100),
+          supabase.from("business_customers").select("id,customer_code,store_name,owner_name,phone,email,address,notes,created_by,is_active,created_at").eq("is_active",true).order("store_name").limit(500)
         ]);
         if (!alive) return;
-        if (productsResult.error) setOrderError("Daftar produk belum dapat dimuat. Pastikan migrasi order dan izin produk sudah aktif.");
+        if (productsResult.error) setOrderError("Daftar produk belum dapat dimuat. Periksa izin inventaris.");
         else { setOrderProducts((productsResult.data ?? []) as unknown as OrderProduct[]); setOrderError(""); }
         if (ordersResult.error) setOrderError("Riwayat order belum dapat dimuat. Periksa izin database.");
         else setOrderRows((ordersResult.data ?? []) as unknown as OrderRow[]);
+        if (!customersResult.error) setCustomerRows((customersResult.data??[]).map(c=>({...c,order_count:0,last_order_at:null})) as CustomerRow[]);
+      } else if (activePage === "customers") {
+        const [customersResult, customerOrdersResult] = await Promise.all([
+          supabase.from("business_customers").select("id,customer_code,store_name,owner_name,phone,email,address,notes,created_by,is_active,created_at").order("created_at",{ascending:false}).limit(500),
+          supabase.from("product_orders").select("customer_id,created_at").not("customer_id","is",null).order("created_at",{ascending:false}).limit(2000)
+        ]);
+        if (!alive) return;
+        if (customersResult.error) setCustomerError("Data toko belum dapat dimuat: "+customersResult.error.message);
+        else {
+          const orderData = customerOrdersResult.error ? [] : (customerOrdersResult.data??[]);
+          const activity = new Map<string,{count:number;last:string|null}>();
+          for (const order of orderData) {
+            if (!order.customer_id) continue;
+            const old = activity.get(order.customer_id)??{count:0,last:null};
+            old.count += 1;
+            if (!old.last || order.created_at > old.last) old.last = order.created_at;
+            activity.set(order.customer_id,old);
+          }
+          setCustomerRows((customersResult.data??[]).map(c=>({...c,order_count:activity.get(c.id)?.count??0,last_order_at:activity.get(c.id)?.last??null})) as CustomerRow[]);
+          setCustomerError(customerOrdersResult.error?"Daftar toko tampil, tetapi ringkasan aktivitas order belum dapat dibaca.": "");
+        }
       } else if (activePage === "refunds") {
         const [ordersResult, refundsResult] = await Promise.all([
           supabase.from("product_orders").select("id,order_code,status,notes,created_at,ordered_by,product_order_items(id,product_id,quantity,unit_price,line_total,products(name,sku,unit))").in("status", ["approved","fulfilled"]).order("created_at", {ascending:false}).limit(100),
@@ -259,7 +295,7 @@ export default function HomePage() {
     if (!session || !profile?.is_active) return;
     const refresh = () => setBusinessRefresh(v => v + 1);
     let channel = supabase.channel("business-live-sync-" + profile.id);
-    for (const table of ["products","product_orders","product_order_items","product_refunds","financial_reports","financial_transactions","stock_movements","notifications","leave_requests","attendance_records","employees"]) {
+    for (const table of ["products","product_orders","product_order_items","product_refunds","financial_reports","financial_transactions","stock_movements","notifications","leave_requests","attendance_records","employees","business_customers"]) {
       channel = channel.on("postgres_changes", { event: "*", schema: "public", table }, refresh);
     }
     channel.subscribe();
@@ -622,14 +658,38 @@ export default function HomePage() {
     </main>
   );
 
+  async function submitCustomer(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!profile || !customerStoreName.trim()) { setCustomerError("Nama toko wajib diisi."); return; }
+    setCustomerSubmitting(true); setCustomerError(""); setCustomerNotice("");
+    const customerCode = "TOK-" + new Date().toISOString().slice(0,10).replaceAll("-","") + "-" + Math.random().toString(36).slice(2,7).toUpperCase();
+    const { data, error: insertError } = await supabase.from("business_customers").insert({
+      customer_code: customerCode, store_name: customerStoreName.trim(), owner_name: customerOwnerName.trim()||null,
+      phone: customerPhone.trim()||null, email: customerEmail.trim()||null, address: customerAddress.trim()||null,
+      notes: customerNotes.trim()||null, created_by: profile.id
+    }).select("id,customer_code,store_name,owner_name,phone,email,address,notes,created_by,is_active,created_at").single();
+    if (insertError || !data) setCustomerError("Pendaftaran toko gagal: "+(insertError?.message??"Data tidak tersimpan."));
+    else {
+      setCustomerNotice("Toko "+data.store_name+" berhasil didaftarkan sebagai member dengan kode "+data.customer_code+".");
+      setCustomerStoreName(""); setCustomerOwnerName(""); setCustomerPhone(""); setCustomerEmail(""); setCustomerAddress(""); setCustomerNotes("");
+      setCustomerRows(rows=>[{...data,order_count:0,last_order_at:null} as CustomerRow,...rows.filter(row=>row.id!==data.id)]);
+      setSelectedOrderCustomerId(data.id); setBusinessRefresh(v=>v+1);
+    }
+    setCustomerSubmitting(false);
+  }
+
   async function submitProductOrder(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!profile || !selectedOrderProductId) { setOrderError("Pilih produk terlebih dahulu."); return; }
     const product = orderProducts.find((item) => item.id === selectedOrderProductId);
     const quantity = Number(orderQuantity);
-    if (!product || !Number.isFinite(quantity) || quantity <= 0 || quantity > Number(product.current_stock)) { setOrderError("Jumlah order tidak valid atau melebihi stok tersedia."); return; }
+    if (!product || !Number.isFinite(quantity) || quantity <= 0) { setOrderError("Pilih produk dan jumlah yang valid."); return; }
     setOrderSubmitting(true); setOrderError(""); setOrderNotice("");
-    const { data: orderResult, error: createError } = await supabase.rpc("submit_product_order",{p_product_id:product.id,p_quantity:quantity,p_notes:orderNotes.trim()||null});
+    const { data: latestProduct, error: stockReadError } = await supabase.from("products").select("id,name,current_stock,unit,is_active").eq("id",product.id).maybeSingle();
+    if (stockReadError || !latestProduct || !latestProduct.is_active) { setOrderError("Produk tidak ditemukan atau tidak dapat dibaca. Muat ulang halaman atau hubungi Admin."); setOrderSubmitting(false); return; }
+    if (Number(latestProduct.current_stock) <= 0) { setOrderError("Stok "+latestProduct.name+" sedang kosong. Minta Admin memperbarui stok inventaris."); setBusinessRefresh(v=>v+1); setOrderSubmitting(false); return; }
+    if (quantity > Number(latestProduct.current_stock)) { setOrderError("Stok "+latestProduct.name+" saat ini "+latestProduct.current_stock+" "+latestProduct.unit+". Kurangi jumlah order."); setBusinessRefresh(v=>v+1); setOrderSubmitting(false); return; }
+    const { data: orderResult, error: createError } = await supabase.rpc("submit_product_order",{p_product_id:product.id,p_quantity:quantity,p_notes:orderNotes.trim()||null,p_customer_id:selectedOrderCustomerId||null});
     const order = Array.isArray(orderResult) ? orderResult[0] : orderResult;
     if (createError || !order) { setOrderError(createError?.message ?? "Order gagal dibuat."); setOrderSubmitting(false); return; }
     setOrderNotice(`Order ${order.order_code} berhasil dikirim untuk ditinjau Admin.`);
@@ -863,13 +923,34 @@ export default function HomePage() {
               <div className="eyebrow">BUAT ORDER BARU</div><h2>Pilih produk</h2>
               <div className="field"><label htmlFor="order-product">Produk tersedia</label><select id="order-product" value={selectedOrderProductId} onChange={e=>setSelectedOrderProductId(e.target.value)} required><option value="">Pilih produk…</option>{orderProducts.map(p=><option key={p.id} value={p.id}>{p.name} · stok {p.current_stock} {p.unit} · {new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(p.sale_price)}</option>)}</select></div>
               {selectedOrderProductId && (()=>{const p=orderProducts.find(x=>x.id===selectedOrderProductId);return p?<div className="order-product-preview"><strong>{p.name}</strong><span>SKU {p.sku}</span><span>Stok tersedia: {p.current_stock} {p.unit}</span><strong>{new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(p.sale_price)} / {p.unit}</strong></div>:null})()}
+              <div className="field"><label htmlFor="order-customer">Toko / pembeli (opsional)</label><select id="order-customer" value={selectedOrderCustomerId} onChange={e=>setSelectedOrderCustomerId(e.target.value)}><option value="">Tanpa member / order internal</option>{customerRows.filter(c=>c.is_active).map(c=><option key={c.id} value={c.id}>{c.store_name} · {c.customer_code}</option>)}</select><small className="subtle">Belum terdaftar? Tambahkan melalui menu Data Toko / Member terlebih dahulu.</small></div>
               <div className="field"><label htmlFor="order-qty">Jumlah</label><input id="order-qty" type="number" min="0.01" step="0.01" max={orderProducts.find(p=>p.id===selectedOrderProductId)?.current_stock ?? undefined} value={orderQuantity} onChange={e=>setOrderQuantity(e.target.value)} required /></div>
               <div className="field"><label htmlFor="order-notes">Catatan kebutuhan (opsional)</label><textarea id="order-notes" value={orderNotes} onChange={e=>setOrderNotes(e.target.value)} rows={3} placeholder="Contoh: untuk order pelanggan / kebutuhan shift sore" /></div>
               <button className="btn btn-primary" type="submit" disabled={orderSubmitting||!orderProducts.length}>{orderSubmitting?"Mengirim order…":"Kirim order ke Admin →"}</button>
               {!orderProducts.length && <p className="subtle">Belum ada produk aktif dengan stok tersedia.</p>}
             </form>
             <div className="panel business-history"><div className="eyebrow">AKTIVITAS TERKINI</div><h2>Riwayat order</h2>
-              {orderRows.length===0?<p className="subtle">Belum ada order yang tercatat.</p>:orderRows.map(o=><article className="business-record" key={o.id}><div className="business-record-head"><div><strong>{o.order_code}</strong><small>{new Date(o.created_at).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</small></div><span className={`status-pill status-${o.status}`}>{o.status==="pending"?"Menunggu":o.status==="approved"?"Disetujui":o.status==="fulfilled"?"Dipenuhi":o.status==="rejected"?"Ditolak":"Dibatalkan"}</span></div>{o.product_order_items?.map(it=><div className="business-line" key={it.id}><span>{it.products?.name ?? "Produk"} × {it.quantity}</span><strong>{new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(it.line_total)}</strong></div>)}{o.notes&&<p className="subtle">{o.notes}</p>}{["owner","admin"].includes(profile?.role??"")&&o.status==="pending"&&<div className="business-actions"><button className="btn btn-primary" onClick={()=>void reviewBusinessItem("product_orders",o.id,"approved")}>Setujui</button><button className="btn" onClick={()=>void reviewBusinessItem("product_orders",o.id,"rejected")}>Tolak</button></div>}{["owner","admin"].includes(profile?.role??"")&&o.status==="approved"&&<div className="business-actions"><button className="btn btn-primary" onClick={()=>void reviewBusinessItem("product_orders",o.id,"fulfilled")}>Tandai dipenuhi</button></div>}</article>)}
+              {orderRows.length===0?<p className="subtle">Belum ada order yang tercatat.</p>:orderRows.map(o=><article className="business-record" key={o.id}><div className="business-record-head"><div><strong>{o.order_code}</strong><small>{new Date(o.created_at).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</small></div><span className={`status-pill status-${o.status}`}>{o.status==="pending"?"Menunggu":o.status==="approved"?"Disetujui":o.status==="fulfilled"?"Dipenuhi":o.status==="rejected"?"Ditolak":"Dibatalkan"}</span></div>{o.business_customers&&<p className="subtle">Member toko: {o.business_customers.store_name} · {o.business_customers.customer_code}</p>}{o.product_order_items?.map(it=><div className="business-line" key={it.id}><span>{it.products?.name ?? "Produk"} × {it.quantity}</span><strong>{new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(it.line_total)}</strong></div>)}{o.notes&&<p className="subtle">{o.notes}</p>}{["owner","admin"].includes(profile?.role??"")&&o.status==="pending"&&<div className="business-actions"><button className="btn btn-primary" onClick={()=>void reviewBusinessItem("product_orders",o.id,"approved")}>Setujui</button><button className="btn" onClick={()=>void reviewBusinessItem("product_orders",o.id,"rejected")}>Tolak</button></div>}{["owner","admin"].includes(profile?.role??"")&&o.status==="approved"&&<div className="business-actions"><button className="btn btn-primary" onClick={()=>void reviewBusinessItem("product_orders",o.id,"fulfilled")}>Tandai dipenuhi</button></div>}</article>)}
+            </div>
+          </div>
+        </section> : activePage === "customers" ? <section className="business-page">
+          <div className="business-hero"><div><div className="eyebrow">CRM & MEMBER TOKO</div><h1>Data Toko / Member</h1><p>Daftarkan pembeli/toko agar terhubung dengan order produk dan pantau aktivitas pembeliannya.</p></div><div className="business-hero-icon">🏪</div></div>
+          {customerNotice&&<div className="info-box" role="status">{customerNotice}</div>}{customerError&&<div className="error-box" role="alert">{customerError}</div>}
+          <div className="business-columns">
+            <form className="panel business-form" onSubmit={submitCustomer}><div className="eyebrow">REGISTRASI MEMBER BARU</div><h2>Data toko / pembeli</h2>
+              <div className="field"><label htmlFor="customer-store">Nama toko / pembeli *</label><input id="customer-store" value={customerStoreName} onChange={e=>setCustomerStoreName(e.target.value)} placeholder="Contoh: Toko Sumber Rejeki" required maxLength={160}/></div>
+              <div className="field"><label htmlFor="customer-owner">Nama pemilik / PIC</label><input id="customer-owner" value={customerOwnerName} onChange={e=>setCustomerOwnerName(e.target.value)} placeholder="Nama penanggung jawab" maxLength={120}/></div>
+              <div className="field"><label htmlFor="customer-phone">Nomor telepon / WhatsApp</label><input id="customer-phone" type="tel" value={customerPhone} onChange={e=>setCustomerPhone(e.target.value)} placeholder="08xxxxxxxxxx" maxLength={40}/></div>
+              <div className="field"><label htmlFor="customer-email">Email</label><input id="customer-email" type="email" value={customerEmail} onChange={e=>setCustomerEmail(e.target.value)} placeholder="toko@email.com" maxLength={254}/></div>
+              <div className="field"><label htmlFor="customer-address">Alamat toko</label><textarea id="customer-address" value={customerAddress} onChange={e=>setCustomerAddress(e.target.value)} rows={2} maxLength={500}/></div>
+              <div className="field"><label htmlFor="customer-notes">Catatan</label><textarea id="customer-notes" value={customerNotes} onChange={e=>setCustomerNotes(e.target.value)} rows={2} placeholder="Preferensi order atau catatan penting" maxLength={1000}/></div>
+              <button className="btn btn-primary" type="submit" disabled={customerSubmitting}>{customerSubmitting?"Mendaftarkan…":"Daftarkan toko sebagai member →"}</button>
+            </form>
+            <div className="panel business-history"><div className="section-head"><div><div className="eyebrow">DATABASE PELANGGAN</div><h2>Aktivitas toko</h2><p className="subtle">Status aktivitas dihitung dari order yang benar-benar tercatat.</p></div><button className="btn" type="button" onClick={()=>setBusinessRefresh(v=>v+1)}>↻ Muat ulang</button></div>
+              {customerRows.length===0?<p className="subtle">Belum ada member toko. Daftarkan toko pertama melalui formulir.</p>:customerRows.map(c=><article className="business-record" key={c.id}><div className="business-record-head"><div><strong>{c.store_name}</strong><small>{c.customer_code} · Terdaftar {new Date(c.created_at).toLocaleDateString("id-ID")}</small></div><span className={c.order_count>0&&c.last_order_at&&Date.now()-new Date(c.last_order_at).getTime()<=30*86400000?"status-pill status-approved":"status-pill status-pending"}>{c.order_count===0?"Belum pernah order":c.last_order_at&&Date.now()-new Date(c.last_order_at).getTime()<=30*86400000?"Aktif order 30 hari":"Tidak aktif 30 hari"}</span></div>
+                {c.owner_name&&<p className="subtle">PIC: {c.owner_name}</p>}{c.phone&&<p className="subtle">Telepon: {c.phone}</p>}{c.email&&<p className="subtle">Email: {c.email}</p>}{c.address&&<p className="subtle">Alamat: {c.address}</p>}
+                <div className="business-line"><span>Total order</span><strong>{c.order_count}</strong></div><div className="business-line"><span>Order terakhir</span><strong>{c.last_order_at?new Date(c.last_order_at).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"}):"Belum ada"}</strong></div>
+              </article>)}
             </div>
           </div>
         </section> : activePage === "refunds" ? <section className="business-page">
