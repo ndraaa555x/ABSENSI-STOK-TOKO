@@ -269,3 +269,5 @@ input:focus,select:focus,textarea:focus{outline:3px solid #2f80ed20;border-color
 .role-employee .eyebrow{color:#0c8c68}
 @media(max-width:900px){.app-shell{display:block}.sidebar{position:relative;width:100%;height:auto;max-height:none;border-radius:0 0 20px 20px}.nav-list{display:flex;flex-wrap:wrap;gap:5px}.nav-item{width:auto;flex:1 1 140px}.sidebar-bottom{position:relative;margin-top:14px}.main{padding:14px}.topbar{align-items:flex-start;gap:12px;flex-wrap:wrap}.welcome,.business-hero{gap:14px;padding:20px}.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.main{padding:10px}.topbar{padding:14px}.user-menu{max-width:100%}.stats-grid,.content-grid,.business-columns{grid-template-columns:1fr}.panel{padding:15px}.stat-card{padding:15px}.welcome h1,.business-hero h1{font-size:25px}.nav-item{flex:1 1 calc(50% - 5px);font-size:12px}}
+
+.btn-danger{background:#fff1f2!important;color:#a51d3d!important;border-color:#fecdd3!important}.btn-danger:hover{background:#ffe4e6!important}
