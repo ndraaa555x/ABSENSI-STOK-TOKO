@@ -8,6 +8,8 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 type Profile = { id: string; email: string; full_name: string | null; role: "owner" | "admin" | "employee"; is_active: boolean };
 type Counts = { employees: number; attendance: number; products: number; finances: number };
 type AttendanceRow = { id: string; work_date: string; check_in_at: string | null; check_out_at: string | null; status: string; check_in_method: string | null; check_out_method: string | null; evidence_path: string | null; employees: { full_name: string; employee_code: string } | null; evidence_url?: string | null };
+type DailyAttendanceRow = { employee_id: string; check_out_at: string | null; employees: { full_name: string; employee_code: string } | null };
+type AttendanceMode = "once_daily" | "multiple_sessions";
 type ModuleKey = "dashboard" | "employees" | "attendance" | "inventory" | "finance" | "barcode" | "settings";
 type EmployeeRow = { id:string; employee_code:string; full_name:string; email:string|null; phone:string|null; job_title:string|null; employment_status:"active"|"inactive"; joined_on:string|null; notes:string|null; profile_id?:string|null };
 type AccountRow = { id:string; email:string; full_name:string|null; role:"owner"|"admin"|"employee"; is_active:boolean; employee?:{employee_code:string;employment_status:string;full_name:string}|null };
@@ -50,6 +52,12 @@ export default function HomePage() {
   const [attendanceRows, setAttendanceRows] = useState<AttendanceRow[]>([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [attendanceError, setAttendanceError] = useState("");
+  const [dailyAttendanceRows, setDailyAttendanceRows] = useState<DailyAttendanceRow[]>([]);
+  const [attendanceMode, setAttendanceMode] = useState<AttendanceMode>("once_daily");
+  const [attendanceModeLoading, setAttendanceModeLoading] = useState(false);
+  const [attendanceModeSaving, setAttendanceModeSaving] = useState(false);
+  const [attendanceModeNotice, setAttendanceModeNotice] = useState("");
+  const [attendanceModeError, setAttendanceModeError] = useState("");
   const [employeeRows, setEmployeeRows] = useState<EmployeeRow[]>([]);
   const [employeeLoading, setEmployeeLoading] = useState(false);
   const [employeeSaving, setEmployeeSaving] = useState(false);
@@ -144,6 +152,10 @@ export default function HomePage() {
         return;
       }
       const rows = (data ?? []) as unknown as AttendanceRow[];
+      const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+      const { data: todayRows, error: todayError } = await supabase.from("attendance_records").select("employee_id,check_out_at,employees(full_name,employee_code)").eq("work_date", today).order("check_in_at", { ascending: false });
+      if (todayError && alive) setAttendanceError("Rekap absensi hari ini tidak dapat dibaca.");
+      if (alive) setDailyAttendanceRows((todayRows ?? []) as unknown as DailyAttendanceRow[]);
       const withUrls = await Promise.all(rows.map(async (row) => {
         if (!row.evidence_path) return { ...row, evidence_url: null };
         const { data: signed, error: signedError } = await supabase.storage
@@ -174,6 +186,33 @@ export default function HomePage() {
     void loadEmployees();
     return () => { alive = false; };
   }, [activePage, session, profile]);
+
+  useEffect(() => {
+    if (activePage !== "settings" || !session || !profile?.is_active || !["owner", "admin"].includes(profile.role)) return;
+    let alive = true;
+    async function loadAttendanceMode() {
+      setAttendanceModeLoading(true); setAttendanceModeError("");
+      const { data, error: queryError } = await supabase.from("app_settings").select("setting_value").eq("setting_key", "attendance_mode").maybeSingle();
+      if (!alive) return;
+      if (queryError) setAttendanceModeError("Pengaturan mode absensi gagal dibaca. Periksa kebijakan database.");
+      else {
+        const value = (data?.setting_value as { mode?: string } | null)?.mode;
+        setAttendanceMode(value === "multiple_sessions" ? "multiple_sessions" : "once_daily");
+      }
+      setAttendanceModeLoading(false);
+    }
+    void loadAttendanceMode();
+    return () => { alive = false; };
+  }, [activePage, session, profile]);
+
+  async function saveAttendanceMode(nextMode: AttendanceMode) {
+    if (!session || !profile || !["owner", "admin"].includes(profile.role)) return;
+    setAttendanceModeSaving(true); setAttendanceModeError(""); setAttendanceModeNotice("");
+    const { error: saveError } = await supabase.from("app_settings").upsert({ setting_key: "attendance_mode", setting_value: { mode: nextMode }, description: "Aturan check-in/check-out harian", updated_by: session.user.id, updated_at: new Date().toISOString() }, { onConflict: "setting_key" });
+    if (saveError) setAttendanceModeError("Mode absensi gagal disimpan. Pengaturan sebelumnya tetap berlaku.");
+    else { setAttendanceMode(nextMode); setAttendanceModeNotice(nextMode === "once_daily" ? "Mode Sekali Sehari berhasil diaktifkan." : "Mode Check-in/Check-out Berulang berhasil diaktifkan."); }
+    setAttendanceModeSaving(false);
+  }
 
   useEffect(() => {
     if (!["settings", "employees"].includes(activePage) || !session || !profile?.is_active || !["owner", "admin"].includes(profile.role)) return;
@@ -455,6 +494,7 @@ export default function HomePage() {
             <button className="btn" onClick={() => setActivePage("dashboard")}>← Kembali</button>
           </div>
           {attendanceError && <div className="error-box" role="alert">{attendanceError}</div>}
+          <div className="panel" style={{marginTop:16,marginBottom:20,background:"rgba(10,20,38,.45)"}}><div className="panel-head"><div><h2>Rekap absensi hari ini</h2><p className="subtle">Jumlah sesi absensi per akun karyawan pada tanggal {new Intl.DateTimeFormat("id-ID",{timeZone:"Asia/Jakarta",dateStyle:"full"}).format(new Date())}.</p></div><span className="status">{dailyAttendanceRows.length} sesi</span></div>{dailyAttendanceRows.length===0 ? <div className="info-box">Belum ada sesi absensi hari ini.</div> : <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:13,minWidth:520}}><thead><tr style={{textAlign:"left",color:"#91a1b8"}}><th style={{padding:10}}>Karyawan</th><th style={{padding:10}}>Jumlah sesi</th><th style={{padding:10}}>Status hari ini</th></tr></thead><tbody>{Array.from(dailyAttendanceRows.reduce((map,row)=>{const key=row.employee_id;const prev=map.get(key)||{employee_id:key,employees:row.employees,count:0,open:0};prev.count+=1;if(!row.check_out_at)prev.open+=1;map.set(key,prev);return map;},new Map<string,{employee_id:string;employees:DailyAttendanceRow["employees"];count:number;open:number}>()).values()).map(row=><tr key={row.employee_id} style={{borderTop:"1px solid #25334a"}}><td style={{padding:10}}><strong>{row.employees?.full_name??"Karyawan"}</strong><div className="subtle">{row.employees?.employee_code??"—"}</div></td><td style={{padding:10}}>{row.count} sesi</td><td style={{padding:10}}>{row.open>0?`Masih bekerja (${row.open} sesi aktif)`:"Semua sesi sudah Check-out"}</td></tr>)}</tbody></table></div>}</div>
           {attendanceLoading ? <p className="subtle">Memuat riwayat absensi…</p> : attendanceRows.length === 0 ? <div className="info-box">Belum ada riwayat absensi yang dapat ditampilkan.</div> : <><div className="field" style={{maxWidth:480,marginBottom:14}}><label htmlFor="attendance-search">Cari absensi</label><input id="attendance-search" type="search" value={attendanceSearch} onChange={e=>setAttendanceSearch(e.target.value)} placeholder="Nama, kode karyawan, tanggal, status..." /></div><p className="subtle">{attendanceRows.filter(row=>([row.employees?.full_name,row.employees?.employee_code,row.work_date,row.status,row.check_in_method,row.check_out_method].join(" ")).toLowerCase().includes(attendanceSearch.trim().toLowerCase())).length} catatan cocok</p><div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 760 }}>
               <thead><tr style={{ textAlign: "left", color: "#91a1b8" }}>
@@ -511,7 +551,7 @@ export default function HomePage() {
           <div className="info-box" style={{marginTop:16}}>Pengaturan role dan penghapusan akun login tersedia langsung di daftar karyawan. Role “Employee” ditampilkan sebagai “KARYAWAN”. Menghapus akun login tidak menghapus data karyawan atau riwayat absensi.</div>
         </section> : <section className="panel" style={{ maxWidth: 900 }}>
           <div className="eyebrow">MODUL / {activePage.toUpperCase()}</div><h1 style={{ marginTop: 12 }}>{moduleTitle}</h1><p className="subtle">{descriptions[activePage]}</p>
-          <div className="info-box">{activePage === "settings" ? "Owner dapat mengatur role dan status akun lain. Akun Owner yang sedang digunakan dilindungi dari perubahan diri sendiri." : "Modul ini masih dalam tahap fondasi. Kami tidak akan menampilkan data contoh seolah-olah merupakan data bisnis asli."}</div>
+          {activePage === "settings" ? <><div className="info-box">Pilih aturan absensi yang akan berlaku untuk semua akun karyawan. Mode tersimpan di database dan tetap aktif sampai diubah lagi.</div><div className="panel" style={{marginTop:16,background:"rgba(10,20,38,.45)"}}><h2>Aturan Check-in / Check-out</h2><p className="subtle">Owner dan Admin dapat mengubah pilihan ini. Perubahan tidak menghapus riwayat absensi yang sudah tersimpan.</p><div className="field"><label htmlFor="attendance-mode">Mode absensi</label><select id="attendance-mode" value={attendanceMode} disabled={attendanceModeLoading||attendanceModeSaving} onChange={e=>void saveAttendanceMode(e.target.value as AttendanceMode)}><option value="once_daily">Sekali sehari — 1 Check-in dan 1 Check-out</option><option value="multiple_sessions">Berulang — boleh Check-in lagi setelah Check-out</option></select></div><div className="subtle">{attendanceMode==="once_daily"?"Karyawan tidak bisa memulai sesi kedua pada tanggal yang sama.":"Karyawan boleh memulai sesi baru setelah sesi sebelumnya selesai Check-out."}</div>{attendanceModeLoading&&<p className="subtle">Memuat pengaturan…</p>}{attendanceModeSaving&&<p className="subtle">Menyimpan mode…</p>}{attendanceModeNotice&&<div className="info-box" role="status" style={{marginTop:12}}>{attendanceModeNotice}</div>}{attendanceModeError&&<div className="error-box" role="alert" style={{marginTop:12}}>{attendanceModeError}</div>}</div><div className="info-box" style={{marginTop:16}}>Owner dapat mengatur role dan status akun lain. Akun Owner yang sedang digunakan dilindungi dari perubahan diri sendiri.</div></> : <div className="info-box">Modul ini masih dalam tahap fondasi. Kami tidak akan menampilkan data contoh seolah-olah merupakan data bisnis asli.</div>}
           <div className="section-head"><div><h2>Ringkasan terkait</h2><div className="subtle">Angka dibaca dari database sesuai hak akses akun.</div></div><button className="btn" onClick={() => setActivePage("dashboard")}>← Kembali ke ringkasan</button></div>
           <div className="stats-grid">
             {(activePage === "inventory" || activePage === "barcode") && <div className="stat-card"><div className="stat-top">Produk</div><div className="stat-value">{counts.products}</div></div>}
