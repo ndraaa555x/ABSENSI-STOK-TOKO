@@ -144,6 +144,61 @@ export default function HomePage() {
     return () => { alive = false; };
   }, [activePage, session, profile]);
 
+  useEffect(() => {
+    if (activePage !== "employees" || !session || !profile?.is_active || !["owner", "admin"].includes(profile.role)) return;
+    let alive = true;
+    async function loadEmployees() {
+      setEmployeeLoading(true); setEmployeeError("");
+      const { data, error: queryError } = await supabase.from("employees")
+        .select("id,employee_code,full_name,email,phone,job_title,employment_status,joined_on,notes")
+        .order("created_at", { ascending: false });
+      if (!alive) return;
+      if (queryError) { setEmployeeError("Daftar karyawan gagal dibaca. Pastikan Anda login sebagai Owner/Admin."); setEmployeeRows([]); }
+      else setEmployeeRows((data ?? []) as EmployeeRow[]);
+      setEmployeeLoading(false);
+    }
+    void loadEmployees();
+    return () => { alive = false; };
+  }, [activePage, session, profile]);
+
+  function resetEmployeeForm() {
+    setEditingEmployeeId(null);
+    setEmployeeForm({employee_code:"",full_name:"",email:"",phone:"",job_title:"",joined_on:new Date().toISOString().slice(0,10),notes:""});
+  }
+
+  async function saveEmployee(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!profile || !["owner", "admin"].includes(profile.role)) { setEmployeeError("Hanya Owner/Admin yang dapat mengelola karyawan."); return; }
+    const code = employeeForm.employee_code.trim(), name = employeeForm.full_name.trim();
+    if (!code || !name) { setEmployeeError("Kode dan nama karyawan wajib diisi."); return; }
+    setEmployeeSaving(true); setEmployeeError(""); setEmployeeNotice("");
+    const payload = { employee_code:code, full_name:name, email:employeeForm.email.trim()||null, phone:employeeForm.phone.trim()||null, job_title:employeeForm.job_title.trim()||null, joined_on:employeeForm.joined_on||null, notes:employeeForm.notes.trim()||null, updated_at:new Date().toISOString() };
+    const result = editingEmployeeId
+      ? await supabase.from("employees").update(payload).eq("id", editingEmployeeId)
+      : await supabase.from("employees").insert({...payload, employment_status:"active", created_by:session?.user.id});
+    if (result.error) setEmployeeError(result.error.code === "23505" ? "Kode karyawan sudah dipakai. Gunakan kode lain." : "Data gagal disimpan. Periksa izin database.");
+    else {
+      setEmployeeNotice(editingEmployeeId ? "Data karyawan diperbarui." : "Karyawan berhasil ditambahkan dan berstatus aktif.");
+      resetEmployeeForm();
+      const { data } = await supabase.from("employees").select("id,employee_code,full_name,email,phone,job_title,employment_status,joined_on,notes").order("created_at", { ascending:false });
+      setEmployeeRows((data ?? []) as EmployeeRow[]);
+      if (session) void loadProfileAndCounts(session);
+    }
+    setEmployeeSaving(false);
+  }
+
+  async function toggleEmployeeStatus(emp: EmployeeRow) {
+    const status = emp.employment_status === "active" ? "inactive" : "active";
+    setEmployeeError(""); setEmployeeNotice("");
+    const { error: updateError } = await supabase.from("employees").update({employment_status:status,updated_at:new Date().toISOString()}).eq("id", emp.id);
+    if (updateError) setEmployeeError("Status karyawan gagal diubah. Periksa izin database.");
+    else {
+      setEmployeeRows(rows => rows.map(row => row.id === emp.id ? {...row, employment_status:status} : row));
+      setEmployeeNotice("Status karyawan berhasil diperbarui.");
+      if (session) void loadProfileAndCounts(session);
+    }
+  }
+
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true); setError(""); setMessage("");
