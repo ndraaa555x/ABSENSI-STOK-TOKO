@@ -445,7 +445,7 @@ export default function HomePage() {
               </div>
             </section>
             <section className="panel"><div className="panel-head"><div><h2>Akses cepat</h2><div className="subtle">Pintasan modul</div></div></div><div className="quick-grid">
-              {[{key:"employees" as ModuleKey,icon:"♙",label:"Karyawan",desc:"Data tim"},{key:"attendance" as ModuleKey,icon:"◷",label:"Absensi",desc:"Kehadiran"},{key:"inventory" as ModuleKey,icon:"▤",label:"Inventaris",desc:"Stok & produk"},{key:"finance" as ModuleKey,icon:"◈",label:"Keuangan",desc:"Arus transaksi"}].map((item) => <button className="quick-card" key={item.key} onClick={() => setActivePage(item.key)}><span>{item.icon}</span><strong>{item.label}</strong><small>{item.desc}</small></button>)}
+              {[{key:"employees" as ModuleKey,icon:"♙",label:"Karyawan",desc:"Data tim"},{key:"attendance" as ModuleKey,icon:"◷",label:"Absensi",desc:"Kehadiran"},{key:"inventory" as ModuleKey,icon:"▤",label:"Inventaris",desc:"Stok & produk"},{key:"finance" as ModuleKey,icon:"◈",label:"Keuangan",desc:"Arus transaksi"}].filter((item) => profile?.role === "owner" || (profile?.role === "admin" && item.key !== "finance")).map((item) => <button className="quick-card" key={item.key} onClick={() => setActivePage(item.key)}><span>{item.icon}</span><strong>{item.label}</strong><small>{item.desc}</small></button>)}
             </div><div className="info-box" style={{ marginTop: 15 }}>Fondasi login dan ringkasan data sudah disiapkan. Form transaksi dan alur operasional akan dikembangkan serta diuji per modul.</div></section>
           </div>
         </> : activePage === "attendance" ? <section className="panel" style={{ maxWidth: 1200 }}>
