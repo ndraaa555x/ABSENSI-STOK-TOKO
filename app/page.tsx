@@ -54,6 +54,7 @@ export default function HomePage() {
   const [editingEmployeeId, setEditingEmployeeId] = useState<string|null>(null);
   const [employeeForm, setEmployeeForm] = useState({employee_code:"",full_name:"",email:"",phone:"",job_title:"",joined_on:new Date().toISOString().slice(0,10),notes:""});
   const [createLoginAccount, setCreateLoginAccount] = useState(false);
+  const [newAccountRole, setNewAccountRole] = useState<"employee"|"admin">("employee");
   const [employeePassword, setEmployeePassword] = useState("");
   const [accountRows, setAccountRows] = useState<AccountRow[]>([]);
   const [accountLoading, setAccountLoading] = useState(false);
@@ -201,7 +202,7 @@ export default function HomePage() {
   function resetEmployeeForm() {
     setEditingEmployeeId(null);
     setEmployeeForm({employee_code:"",full_name:"",email:"",phone:"",job_title:"",joined_on:new Date().toISOString().slice(0,10),notes:""});
-    setCreateLoginAccount(false); setEmployeePassword("");
+    setCreateLoginAccount(false); setNewAccountRole("employee"); setEmployeePassword("");
   }
 
   async function saveEmployee(event: FormEvent<HTMLFormElement>) {
@@ -234,13 +235,13 @@ export default function HomePage() {
         setEmployeeError(insertError?.code === "23505" ? "Kode karyawan sudah dipakai. Gunakan kode lain." : "Data gagal disimpan. Periksa izin database.");
       } else if (createLoginAccount) {
         const { data: accountData, error: accountInvokeError } = await supabase.functions.invoke("manage-employee-accounts", {
-          body: { action: "create_employee_account", employee_id: newEmployee.id, email: payload.email, password: employeePassword, full_name: name }
+          body: { action: "create_employee_account", employee_id: newEmployee.id, email: payload.email, password: employeePassword, full_name: name, role: newAccountRole }
         });
         if (accountInvokeError || accountData?.error) {
           setEmployeeError("Data karyawan tersimpan, tetapi akun login belum berhasil dibuat: " + (accountData?.error || accountInvokeError?.message || "kesalahan server"));
           setEmployeeNotice("Karyawan dibuat tanpa akun login. Perbaiki kendala akun lalu coba lagi.");
         } else {
-          setEmployeeNotice("Karyawan dan akun login berhasil dibuat. Berikan email dan kata sandi awal kepada karyawan secara aman.");
+          setEmployeeNotice("Akun berhasil dibuat dengan role " + (newAccountRole === "admin" ? "Admin" : "Karyawan") + ". Berikan email dan kata sandi awal secara aman.");
           resetEmployeeForm();
         }
       } else {
@@ -273,9 +274,17 @@ export default function HomePage() {
     const credentials = identifier.includes("@")
       ? { email: identifier, password }
       : { phone: identifier, password };
-    const { error: authError } = await supabase.auth.signInWithPassword(credentials);
-    if (authError) setError("Login gagal. Periksa email, kata sandi, dan status akun Anda.");
-    setBusy(false);
+    try {
+      const { error: authError } = await supabase.auth.signInWithPassword(credentials);
+      if (authError) {
+        const msg = authError.message.toLowerCase();
+        if (msg.includes("email not confirmed")) setError("Email akun belum dikonfirmasi. Minta Owner memeriksa status akun atau konfirmasi email di Supabase.");
+        else if (msg.includes("invalid login credentials")) setError("Email atau kata sandi salah, atau akun belum berhasil dibuat. Pastikan memakai email yang tepat.");
+        else setError("Login gagal: " + authError.message);
+      }
+    } catch {
+      setError("Layanan login tidak dapat dihubungi. Periksa koneksi dan konfigurasi Supabase, lalu coba lagi.");
+    } finally { setBusy(false); }
   }
 
   async function handleReset(event: FormEvent<HTMLFormElement>) {
@@ -459,7 +468,7 @@ export default function HomePage() {
             </div>
             {!editingEmployeeId && <div className="panel" style={{marginTop:14,background:"rgba(10,20,38,.35)"}}>
               <label style={{display:"flex",gap:10,alignItems:"center",cursor:"pointer"}}><input type="checkbox" checked={createLoginAccount} onChange={e=>setCreateLoginAccount(e.target.checked)} /> Buat akun login untuk karyawan ini</label>
-              {createLoginAccount && <div style={{marginTop:12}}><p className="subtle">Karyawan akan login menggunakan email di atas. Role awal otomatis Employee.</p><div className="field"><label htmlFor="employee-initial-password">Kata sandi awal (minimal 8 karakter) *</label><input id="employee-initial-password" type="password" minLength={8} autoComplete="new-password" required value={employeePassword} onChange={e=>setEmployeePassword(e.target.value)} placeholder="Buat kata sandi sementara"/></div></div>}
+              {createLoginAccount && <div style={{marginTop:12}}><p className="subtle">Akun akan login menggunakan email di atas. Pilih role sesuai kewenangan Anda.</p><div className="field"><label htmlFor="new-account-role">Role akun *</label><select id="new-account-role" value={newAccountRole} onChange={e=>setNewAccountRole(e.target.value as "employee"|"admin")}><option value="employee">Karyawan (akses operasional terbatas)</option>{profile?.role==="owner" && <option value="admin">Admin (akses operasional)</option>}</select></div><div className="field"><label htmlFor="employee-initial-password">Kata sandi awal (minimal 8 karakter) *</label><input id="employee-initial-password" type="password" minLength={8} autoComplete="new-password" required value={employeePassword} onChange={e=>setEmployeePassword(e.target.value)} placeholder="Buat kata sandi sementara"/></div></div>}
             </div>}
             <div className="field"><label htmlFor="employee-notes">Catatan (opsional)</label><textarea id="employee-notes" rows={2} value={employeeForm.notes} onChange={e=>setEmployeeForm(f=>({...f,notes:e.target.value}))} placeholder="Catatan internal"/></div>
             <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button className="btn btn-primary" type="submit" disabled={employeeSaving}>{employeeSaving?"Menyimpan…":editingEmployeeId?"Simpan perubahan":"Tambah karyawan"}</button>{editingEmployeeId && <button className="btn" type="button" onClick={resetEmployeeForm}>Batal edit</button>}</div>
