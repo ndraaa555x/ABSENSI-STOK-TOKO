@@ -257,7 +257,7 @@ export default function HomePage() {
     if (!session || !profile?.is_active || !["inventory","barcode","finance","leave","notifications"].includes(activePage)) return;
     let alive=true;
     async function loadAdditionalModules(){
-      if(activePage==="inventory"||activePage==="barcode"){
+      if(activePage==="inventory"){
         const [p,c,m]=await Promise.all([
           supabase.from("products").select("id,sku,barcode_value,name,category_id,unit,description,sale_price,current_stock,minimum_stock,storage_location,is_active,product_categories(name)").order("name").limit(500),
           supabase.from("product_categories").select("id,name").order("name"),
@@ -267,6 +267,10 @@ export default function HomePage() {
         if(p.error)setInventoryError("Produk belum dapat dimuat. Periksa izin inventaris.");else setProductRows((p.data??[]) as unknown as ProductRow[]);
         if(!c.error)setProductCategories((c.data??[]) as ProductCategory[]);
         if(!m.error)setStockMovementRows((m.data??[]) as unknown as StockMovementRow[]);
+      } else if(activePage==="barcode"){
+        const {data:p,error:productError}=await supabase.from("products").select("id,sku,barcode_value,name,category_id,unit,description,sale_price,current_stock,minimum_stock,storage_location,is_active").eq("is_active",true).order("name").limit(500);
+        if(!alive)return;
+        if(productError)setInventoryError("Daftar produk belum dapat dimuat.");else setProductRows((p??[]) as unknown as ProductRow[]);
       }
       if(activePage==="finance"&&profile.role==="owner"){
         const [tx,cats]=await Promise.all([
@@ -606,12 +610,9 @@ export default function HomePage() {
     const quantity = Number(orderQuantity);
     if (!product || !Number.isFinite(quantity) || quantity <= 0 || quantity > Number(product.current_stock)) { setOrderError("Jumlah order tidak valid atau melebihi stok tersedia."); return; }
     setOrderSubmitting(true); setOrderError(""); setOrderNotice("");
-    const orderCode = `ORD-${new Date().toISOString().slice(0,10).replaceAll("-","")}-${Math.random().toString(36).slice(2,7).toUpperCase()}`;
-    const { data: order, error: createError } = await supabase.from("product_orders").insert({order_code:orderCode,ordered_by:profile.id,notes:orderNotes.trim()||null}).select("id,order_code").single();
+    const { data: orderResult, error: createError } = await supabase.rpc("submit_product_order",{p_product_id:product.id,p_quantity:quantity,p_notes:orderNotes.trim()||null});
+    const order = Array.isArray(orderResult) ? orderResult[0] : orderResult;
     if (createError || !order) { setOrderError(createError?.message ?? "Order gagal dibuat."); setOrderSubmitting(false); return; }
-    const price = Number(product.sale_price);
-    const { error: itemError } = await supabase.from("product_order_items").insert({order_id:order.id,product_id:product.id,quantity,unit_price:price,line_total:quantity*price});
-    if (itemError) { setOrderError("Nomor order dibuat, tetapi detail produk gagal disimpan. Hubungi Admin dan sampaikan nomor "+order.order_code+"."); setOrderSubmitting(false); return; }
     setOrderNotice(`Order ${order.order_code} berhasil dikirim untuk ditinjau Admin.`);
     setOrderNotes(""); setOrderQuantity("1"); setBusinessRefresh((v)=>v+1); setOrderSubmitting(false);
   }
