@@ -291,9 +291,46 @@ export default function HomePage() {
 
   async function handleLogout() {
     setBusy(true);
-    const { error: logoutError } = await supabase.auth.signOut();
-    if (logoutError) setError("Logout gagal. Silakan coba lagi.");
-    setBusy(false);
+    setError("");
+    try {
+      const { error: logoutError } = await supabase.auth.signOut({ scope: "local" });
+      if (logoutError) {
+        // If the Auth endpoint is unreachable, still end this browser's local session.
+        try {
+          if (typeof window !== "undefined") {
+            const keys = Object.keys(window.localStorage);
+            for (const key of keys) {
+              if (key.startsWith("sb-") && key.endsWith("-auth-token")) window.localStorage.removeItem(key);
+            }
+          }
+        } catch {
+          // Storage can be unavailable in privacy-restricted browser contexts.
+        }
+        setSession(null);
+        setProfile(null);
+        setCounts({ employees: 0, attendance: 0, products: 0, finances: 0 });
+        setMessage("Anda telah keluar dari sesi lokal. Koneksi autentikasi sedang bermasalah; jika akun masih terbuka di perangkat lain, keluarkan sesi perangkat tersebut juga.");
+        setError("");
+      }
+    } catch {
+      try {
+        if (typeof window !== "undefined") {
+          const keys = Object.keys(window.localStorage);
+          for (const key of keys) {
+            if (key.startsWith("sb-") && key.endsWith("-auth-token")) window.localStorage.removeItem(key);
+          }
+        }
+      } catch {
+        // Storage can be unavailable in privacy-restricted browser contexts.
+      }
+      setSession(null);
+      setProfile(null);
+      setCounts({ employees: 0, attendance: 0, products: 0, finances: 0 });
+      setMessage("Sesi lokal di perangkat ini sudah dibersihkan. Koneksi autentikasi perlu diperiksa.");
+      setError("");
+    } finally {
+      setBusy(false);
+    }
   }
 
   if (pageLoading) return <main className="login-side"><div className="subtle">Memeriksa sesi aman…</div></main>;
