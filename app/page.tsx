@@ -362,7 +362,7 @@ export default function HomePage() {
         if(!alive)return;
         if(tx.error)setFinancialError("Buku keuangan belum dapat dimuat.");else setFinancialRows((tx.data??[]) as unknown as FinancialTransactionRow[]);
         if(!cats.error)setFinancialCategories((cats.data??[]) as FinancialCategory[]);
-        if(!ordersForProfit.error){const gross=(ordersForProfit.data??[]).reduce((sum:any,order:any)=>sum+(order.product_order_items??[]).reduce((lineSum:number,line:any)=>lineSum+Number(line.line_total||0)-Number(line.quantity||0)*Number(line.products?.product_costs?.cost_price??0),0),0);setGrossProfit(gross);}
+        if(!ordersForProfit.error){const profitOrders=(ordersForProfit.data??[]) as Array<{product_order_items?:Array<{line_total:number|string;quantity:number|string;products?:{product_costs?:{cost_price:number|string}|Array<{cost_price:number|string}>|null}|null}>|null}>;const gross=profitOrders.reduce((sum,order)=>sum+(order.product_order_items??[]).reduce((lineSum,line)=>{const costs=line.products?.product_costs;const cost=Array.isArray(costs)?costs[0]?.cost_price:costs?.cost_price;return lineSum+Number(line.line_total||0)-Number(line.quantity||0)*Number(cost??0);},0),0);setGrossProfit(gross);}
       }
       if(activePage==="leave"){
         const {data,error:queryError}=await supabase.from("leave_requests").select("id,employee_id,leave_type,start_date,end_date,reason,status,created_at,employees(full_name,employee_code,profile_id)").order("created_at",{ascending:false}).limit(200);
