@@ -218,7 +218,7 @@ export default function AttendanceCameraPage() {
   if (!profile || !profile.is_active) return <main className="login-side"><div className="login-card"><h1>Akses terbatas</h1><p>Akun belum aktif atau profil tidak dapat dibaca. Hubungi Owner/Admin.</p><Link href="/">Kembali ke dashboard</Link></div></main>;
   if (employees.length === 0 && !isManager) return <main className="login-side"><div className="login-card"><h1>Akun belum terhubung</h1><p>{error || "Akun login Anda belum terhubung ke data karyawan aktif. Minta Owner/Admin menghubungkannya di menu Karyawan."}</p><Link href="/">Kembali ke dashboard</Link></div></main>;
 
-  return <main className="login-side" style={{ alignItems: "flex-start", paddingTop: 28 }}>
+  return <main className={`login-side attendance-workspace ${isManager ? "attendance-manager" : "attendance-employee"}`} style={{ alignItems: "flex-start", paddingTop: 28 }}>
     <section className="login-card" style={{ width: "min(100%, 980px)" }}>
       <div className="eyebrow">SMART BUSINESS / ABSENSI WAJAH</div>
       <h1 style={{ marginTop: 10 }}>Absensi karyawan</h1>
