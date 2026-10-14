@@ -162,12 +162,12 @@ export default function AttendanceCameraPage() {
       if (mode === "checkin") {
         const { error: insertError } = await supabase.from("attendance_records").insert({
           employee_id: employeeId, work_date: workDate, check_in_at: now.toISOString(),
-          check_in_method: "face_camera", status: "present", recorded_by: session?.user.id, evidence_path: path
+          check_in_method: "face_match", status: "present", recorded_by: session?.user.id, evidence_path: path
         });
         if (insertError) throw new Error("Foto tersimpan, tetapi catatan check-in gagal. Minta Owner/Admin memeriksa izin database.");
       } else {
         const { error: updateError } = await supabase.from("attendance_records").update({
-          check_out_at: now.toISOString(), check_out_method: "face_camera", evidence_path: path
+          check_out_at: now.toISOString(), check_out_method: "face_match", evidence_path: path
         }).eq("id", existing!.id);
         if (updateError) throw new Error("Foto tersimpan, tetapi catatan check-out gagal. Minta Owner/Admin memeriksa izin database.");
       }
