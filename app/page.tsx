@@ -9,6 +9,7 @@ type Profile = { id: string; email: string; full_name: string | null; role: "own
 type Counts = { employees: number; attendance: number; products: number; finances: number };
 type AttendanceRow = { id: string; work_date: string; check_in_at: string | null; check_out_at: string | null; status: string; check_in_method: string | null; check_out_method: string | null; evidence_path: string | null; employees: { full_name: string; employee_code: string } | null; evidence_url?: string | null };
 type ModuleKey = "dashboard" | "employees" | "attendance" | "inventory" | "finance" | "barcode" | "settings";
+type EmployeeRow = { id:string; employee_code:string; full_name:string; email:string|null; phone:string|null; job_title:string|null; employment_status:"active"|"inactive"; joined_on:string|null; notes:string|null };
 const navItems: { key: ModuleKey; icon: string; label: string; group: string }[] = [
   { key: "dashboard", icon: "▦", label: "Ringkasan", group: "UTAMA" },
   { key: "employees", icon: "♙", label: "Karyawan", group: "OPERASIONAL" },
@@ -44,6 +45,13 @@ export default function HomePage() {
   const [attendanceRows, setAttendanceRows] = useState<AttendanceRow[]>([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [attendanceError, setAttendanceError] = useState("");
+  const [employeeRows, setEmployeeRows] = useState<EmployeeRow[]>([]);
+  const [employeeLoading, setEmployeeLoading] = useState(false);
+  const [employeeSaving, setEmployeeSaving] = useState(false);
+  const [employeeError, setEmployeeError] = useState("");
+  const [employeeNotice, setEmployeeNotice] = useState("");
+  const [editingEmployeeId, setEditingEmployeeId] = useState<string|null>(null);
+  const [employeeForm, setEmployeeForm] = useState({employee_code:"",full_name:"",email:"",phone:"",job_title:"",joined_on:new Date().toISOString().slice(0,10),notes:""});
 
   const loadProfileAndCounts = useCallback(async (currentSession: Session) => {
     setDataLoading(true);
