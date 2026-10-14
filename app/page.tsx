@@ -283,8 +283,9 @@ export default function HomePage() {
         const {data,error:queryError}=await supabase.from("leave_requests").select("id,employee_id,leave_type,start_date,end_date,reason,status,created_at,employees(full_name,employee_code,profile_id)").order("created_at",{ascending:false}).limit(200);
         if(!alive)return;
         if(queryError)setLeaveError("Permohonan izin belum dapat dimuat. Periksa hubungan akun karyawan.");else setLeaveRows((data??[]) as unknown as LeaveRow[]);
-        if(profile.role==="employee"){
-          const {data:emp}=await supabase.from("employees").select("id").eq("profile_id",profile.id).maybeSingle();
+        if(profile?.role==="employee"){
+          const employeeProfileId=profile.id;
+          const {data:emp}=await supabase.from("employees").select("id").eq("profile_id",employeeProfileId).maybeSingle();
           if(alive&&emp)setLeaveEmployeeId(emp.id);
         }
       }
