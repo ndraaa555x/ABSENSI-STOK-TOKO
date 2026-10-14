@@ -810,7 +810,7 @@ export default function HomePage() {
   }
 
   async function reviewBusinessItem(table:"product_orders"|"product_refunds"|"financial_reports", id:string, status:string) {
-    if (!profile || !["owner","admin","hrd"].includes(profile.role)) return;
+    if (!profile || !["owner","admin"].includes(profile.role)) return;
     if(status==="fulfilled"&&table==="product_orders"){const {error:e}=await supabase.rpc("fulfill_product_order",{p_order_id:id});if(e){setError("Order tidak dapat dipenuhi: "+e.message);return;}}
     else if(status==="approved"&&table==="product_refunds"){const {error:e}=await supabase.rpc("approve_product_refund",{p_refund_id:id});if(e){setError("Refund tidak dapat disetujui: "+e.message);return;}}
     else if(status==="approved"&&table==="financial_reports"){const {error:e}=await supabase.rpc("approve_financial_report",{p_report_id:id});if(e){setError("Laporan tidak dapat diposting: "+e.message);return;}}
