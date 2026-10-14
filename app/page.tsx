@@ -256,6 +256,11 @@ export default function HomePage() {
   }, [activePage, session, profile, businessRefresh]);
 
   useEffect(() => {
+    if (!businessRefresh || !session || !profile?.is_active) return;
+    void loadProfileAndCounts(session);
+  }, [businessRefresh, session, profile?.is_active, loadProfileAndCounts]);
+
+  useEffect(() => {
     if (!session || !profile?.is_active || !["inventory","barcode","finance","leave","notifications"].includes(activePage)) return;
     let alive=true;
     async function loadAdditionalModules(){
