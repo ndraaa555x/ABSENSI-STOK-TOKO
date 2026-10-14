@@ -452,7 +452,7 @@ export default function HomePage() {
                 <td style={{ padding: 10 }}>{row.evidence_url ? <a href={row.evidence_url} target="_blank" rel="noreferrer" style={{ color: "#67e8f9", textDecoration: "underline" }}>Lihat foto ↗</a> : <span className="subtle">Tidak tersedia / kedaluwarsa</span>}</td>
               </tr>)}</tbody>
             </table>
-          </div>}
+          </div></>}
         </section> : activePage === "employees" ? <section className="panel" style={{ maxWidth: 1200 }}>
           <div className="eyebrow">MODUL / KARYAWAN</div>
           <div className="section-head" style={{marginTop:12}}>
@@ -506,7 +506,7 @@ export default function HomePage() {
                 <td style={{padding:10}}>{profile?.role==="owner" ? <select aria-label={"Role "+account.email} value={account.role} disabled={accountSavingId===account.id || account.id===profile?.id} onChange={e=>void updateAccount(account,e.target.value as "owner"|"admin"|"employee",account.is_active)}><option value="employee">Employee</option><option value="admin">Admin</option><option value="owner">Owner</option></select> : <span className="status">{account.role.toUpperCase()}</span>}</td>
                 <td style={{padding:10}}>{account.id===profile?.id ? <span className="status">AKTIF (akun Anda)</span> : profile?.role==="owner" ? <button className="btn" type="button" disabled={accountSavingId===account.id} onClick={()=>void updateAccount(account,account.role,!account.is_active)}>{accountSavingId===account.id?"Menyimpan…":account.is_active?"Nonaktifkan":"Aktifkan"}</button> : <span className="status">{account.is_active?"AKTIF":"NONAKTIF"}</span>}</td>
               </tr>)}</tbody>
-            </table></div>}
+            </table></div></>}
           </section>}
           <div className="section-head"><div><h2>Ringkasan terkait</h2><div className="subtle">Angka dibaca dari database sesuai hak akses akun.</div></div><button className="btn" onClick={() => setActivePage("dashboard")}>← Kembali ke ringkasan</button></div>
           <div className="stats-grid">
