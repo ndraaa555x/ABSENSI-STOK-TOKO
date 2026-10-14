@@ -60,6 +60,7 @@ Status: hanya-baca; tidak ada perubahan produksi.
 - Tidak menjalankan/menyetujui refund atau transaksi keuangan.
 - Tidak deploy, mengganti domain, membuat proyek baru, atau menggabungkan PR.
 - Tidak mengklaim backup lengkap sudah selesai.
+- Pemeriksaan Vercel deployment terbaru belum dapat diverifikasi: konektor ditolak dengan HTTP 403 untuk scope `ndraaa555x-5087`. Tidak ada perubahan pada proyek Vercel. Akses scope perlu dipulihkan oleh pemilik akun sebelum audit deployment dapat dilanjutkan.
 
 ## Status akhir audit
 - Backup SQL penuh: **belum terverifikasi**.
