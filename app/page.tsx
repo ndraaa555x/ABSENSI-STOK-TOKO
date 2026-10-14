@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { Session } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -252,7 +253,7 @@ export default function HomePage() {
         </> : activePage === "attendance" ? <section className="panel" style={{ maxWidth: 1200 }}>
           <div className="eyebrow">MODUL / ABSENSI</div>
           <div className="section-head" style={{ marginTop: 12 }}>
-            <div><h1>Riwayat absensi</h1><p className="subtle">Maksimal 100 catatan terbaru. Foto bukti hanya tersedia selama 7 hari sejak diunggah.</p><a className="btn" href="/attendance-camera" style={{ display: "inline-flex", marginTop: 10 }}>Buka kamera & pendaftaran wajah →</a></div>
+            <div><h1>Riwayat absensi</h1><p className="subtle">Maksimal 100 catatan terbaru. Foto bukti hanya tersedia selama 7 hari sejak diunggah.</p><Link className="btn" href="/attendance-camera" style={{ display: "inline-flex", marginTop: 10 }}>Buka kamera & pendaftaran wajah →</Link></div>
             <button className="btn" onClick={() => setActivePage("dashboard")}>← Kembali</button>
           </div>
           {attendanceError && <div className="error-box" role="alert">{attendanceError}</div>}
