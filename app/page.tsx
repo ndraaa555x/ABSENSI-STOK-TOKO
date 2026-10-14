@@ -446,7 +446,7 @@ export default function HomePage() {
     <main className={`app-shell role-${profile?.role ?? "employee"}`}>
       <aside className="sidebar">
         <div className="brand"><div className="brand-mark">SB</div><div><div className="brand-title">SMART BUSINESS</div><div className="brand-sub">MANAGEMENT SYSTEM</div></div></div>
-        {["UTAMA", "OPERASIONAL", "MANAJEMEN"].map((group) => (
+        {["UTAMA", "OPERASIONAL", "MANAJEMEN"].filter((group) => navItems.some((item) => item.group === group && (profile?.role === "owner" || (profile?.role === "admin" ? item.key !== "finance" : ["dashboard", "attendance"].includes(item.key))) && item.label.toLowerCase().includes(menuSearch.trim().toLowerCase()))).map((group) => (
           <div key={group}>
             <div className="nav-label">{group}</div>
             <nav className="nav-list">
