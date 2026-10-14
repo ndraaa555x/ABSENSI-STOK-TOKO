@@ -18,7 +18,7 @@ type FaceApi = {
 };
 declare global { interface Window { faceapi?: FaceApi } }
 
-const MODEL_URL = "https://cdn.jsdelivr.net/gh/vladmandic/face-api@1.7.15/model";
+const MODEL_URL = "https://cdn.jsdelivr.net/gh/vladmandic/face-api@master/model";
 const SCRIPT_URL = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/dist/face-api.js";
 const distance = (a: number[], b: number[]) => Math.sqrt(a.reduce((sum, value, i) => sum + (value - b[i]) ** 2, 0));
 
