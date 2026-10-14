@@ -205,3 +205,67 @@ h1,h2,h3,p{margin-top:0}h1{font:800 clamp(24px,3vw,34px) Manrope,sans-serif;lett
  .business-hero-icon{width:44px;height:44px;flex-basis:44px;border-radius:13px;font-size:20px}
  .business-record-head{flex-direction:column;align-items:flex-start}
 }
+
+
+/* SMART BUSINESS MANAGEMENT — role-based professional workspace refresh */
+:root{--bg:#f3f6fb;--panel:#fff;--panel2:#f8faff;--line:#e1e7f0;--muted:#64748b;--text:#152238;--blue:#2459d3;--cyan:#0891b2;--green:#0f9f75;--orange:#c77d11;--red:#d9485f}
+html,body{background:var(--bg);color:var(--text)}
+body{background:linear-gradient(180deg,#f8faff 0%,#eef3f9 100%)}
+.app-shell{min-height:100vh;background:transparent}
+.sidebar{background:#101c31;border-right:1px solid #263651;color:#edf4ff;box-shadow:8px 0 28px #10213b0b}
+.brand-mark{background:linear-gradient(135deg,#2c6bed,#12a6bb);box-shadow:0 8px 22px #2563eb40;border-radius:14px}
+.brand-title{letter-spacing:.08em;font-weight:800}
+.brand-sub{color:#9fb2cf;letter-spacing:.12em}
+.nav-label{color:#8fa3c1;font-size:10px;font-weight:800;letter-spacing:.15em}
+.nav-item{border:1px solid transparent;border-radius:12px;margin:3px 0;color:#c7d5e9;transition:background .18s ease,border-color .18s ease,transform .18s ease}
+.nav-item:hover{background:#1a2b46;color:#fff;transform:translateX(2px)}
+.nav-item.active{background:linear-gradient(100deg,#2459d3,#1d74a7);border-color:#5a9ce8;color:#fff;box-shadow:0 7px 18px #0d3b8340}
+.side-foot{background:#172740;border:1px solid #2b3d59;border-radius:15px;padding:14px}
+.logout-button{border:1px solid #344660;border-radius:12px;background:#13233b;color:#e6eefb}
+.main{min-width:0}
+.topbar{background:#ffffffdf;backdrop-filter:blur(14px);border:1px solid #e1e7f0;border-radius:18px;padding:18px 22px;box-shadow:0 8px 28px #10213b08;margin-bottom:22px}
+.eyebrow{color:#58708f;letter-spacing:.14em;font-size:10px;font-weight:800}
+.user-menu{background:#f5f8fd;border:1px solid #e1e8f2;border-radius:14px;padding:8px 12px}
+.avatar{background:linear-gradient(135deg,#1d4ed8,#0891b2);box-shadow:0 4px 12px #1d4ed830}
+.panel,.stat-card,.business-record,.quick-card,.welcome,.business-hero{background:#fff;border:1px solid #e0e7f1;border-radius:18px;box-shadow:0 8px 28px #14233a08}
+.panel{padding:22px}
+.stat-card{padding:18px 20px}
+.stat-value{letter-spacing:-.04em;font-weight:800}
+.stat-note,.subtle{color:#687b94}
+.welcome{padding:24px 26px}
+.welcome h1,.business-hero h1{letter-spacing:-.045em;color:#12223b}
+.date-pill,.status{background:#edf5ff;border:1px solid #d7e7fb;color:#2257a4;border-radius:999px}
+.btn{border:1px solid #d7e0ec;background:#fff;color:#1f3657;border-radius:11px;transition:transform .15s ease,box-shadow .15s ease}
+.btn:hover{transform:translateY(-1px);box-shadow:0 6px 16px #14233a12}
+.btn-primary{background:linear-gradient(135deg,#2459d3,#167fa7);border-color:#2459d3;color:#fff}
+input,select,textarea{background:#fff!important;color:#17263e!important;border:1px solid #d5dfeb!important;border-radius:10px!important}
+input:focus,select:focus,textarea:focus{outline:3px solid #2f80ed20;border-color:#3b82f6!important}
+.info-box{background:#eff8ff;border:1px solid #cfe8ff;color:#245078;border-radius:12px}
+.error-box{background:#fff1f2;border:1px solid #fecdd3;color:#9f1239;border-radius:12px}
+.status-pill{border-radius:999px;font-weight:750}
+.business-hero{padding:25px 28px;margin-bottom:18px}
+.business-hero-icon{border-radius:18px;background:#edf5ff;border:1px solid #dbeafe}
+.activity{border-radius:13px!important;padding:13px!important}
+.activity:hover{background:#f4f8fe!important}
+.quick-card{border-radius:15px;transition:transform .16s ease,box-shadow .16s ease}
+.quick-card:hover{transform:translateY(-3px);box-shadow:0 14px 28px #14233a12}
+.footer{color:#8090a6;border-top:1px solid #dfe7f1;padding-top:18px}
+.role-owner{--role-accent:#c18b2e;--role-soft:#fff6df}
+.role-owner .brand-mark{background:linear-gradient(135deg,#b88728,#e7bd65)}
+.role-owner .nav-item.active{background:linear-gradient(100deg,#8a641d,#bd8c34);border-color:#e4c27c}
+.role-owner .avatar{background:linear-gradient(135deg,#9a6a16,#d6a844)}
+.role-owner .eyebrow{color:#987027}
+.role-admin{--role-accent:#087f8c;--role-soft:#e5fbfb}
+.role-admin .nav-item.active{background:linear-gradient(100deg,#087f8c,#168eaf);border-color:#4fc3d0}
+.role-admin .avatar{background:linear-gradient(135deg,#087f8c,#168eaf)}
+.role-admin .eyebrow{color:#087f8c}
+.role-hrd{--role-accent:#7054c7;--role-soft:#f2edff}
+.role-hrd .nav-item.active{background:linear-gradient(100deg,#6044b5,#8a63db);border-color:#b6a2f3}
+.role-hrd .avatar{background:linear-gradient(135deg,#6044b5,#9a7be7)}
+.role-hrd .eyebrow{color:#7054c7}
+.role-employee{--role-accent:#0c8c68;--role-soft:#e8fbf3}
+.role-employee .nav-item.active{background:linear-gradient(100deg,#087e5d,#15a37b);border-color:#55d5ad}
+.role-employee .avatar{background:linear-gradient(135deg,#087e5d,#15a37b)}
+.role-employee .eyebrow{color:#0c8c68}
+@media(max-width:900px){.app-shell{display:block}.sidebar{position:relative;width:100%;height:auto;max-height:none;border-radius:0 0 20px 20px}.nav-list{display:flex;flex-wrap:wrap;gap:5px}.nav-item{width:auto;flex:1 1 140px}.sidebar-bottom{position:relative;margin-top:14px}.main{padding:14px}.topbar{align-items:flex-start;gap:12px;flex-wrap:wrap}.welcome,.business-hero{gap:14px;padding:20px}.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.main{padding:10px}.topbar{padding:14px}.user-menu{max-width:100%}.stats-grid,.content-grid,.business-columns{grid-template-columns:1fr}.panel{padding:15px}.stat-card{padding:15px}.welcome h1,.business-hero h1{font-size:25px}.nav-item{flex:1 1 calc(50% - 5px);font-size:12px}}
