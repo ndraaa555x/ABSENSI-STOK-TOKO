@@ -71,10 +71,10 @@ RETURNS TABLE(refund_id uuid,refund_code text)
 LANGUAGE plpgsql SECURITY INVOKER SET search_path TO 'public','private' AS $$
 DECLARE v_order public.product_orders%rowtype; v_item public.product_order_items%rowtype; v_used numeric; v_code text; v_refund_id uuid;
 BEGIN
- IF NOT private.is_active_user() THEN RAISE EXCEPTION 'Akun tidak aktif'; END IF;
+ IF auth.uid() IS NULL OR NOT private.is_active_user() THEN RAISE EXCEPTION 'Akun tidak aktif atau belum login'; END IF;
  IF p_quantity IS NULL OR p_quantity<=0 OR coalesce(trim(p_reason),'')='' THEN RAISE EXCEPTION 'Jumlah dan alasan refund wajib diisi'; END IF;
  SELECT * INTO v_order FROM public.product_orders WHERE id=p_order_id AND ordered_by=auth.uid() AND status IN ('approved','fulfilled') FOR UPDATE;
- IF NOT FOUND THEN RAISE EXCEPTION 'Refund hanya bisa diajukan untuk order milik akun Anda yang sudah disetujui atau dipenuhi. Periksa status order.'; END IF;
+ IF NOT FOUND THEN RAISE EXCEPTION 'Refund hanya bisa diajukan untuk order milik akun Anda yang sudah disetujui atau dipenuhi. Periksa pemilik dan status order.'; END IF;
  SELECT * INTO v_item FROM public.product_order_items WHERE id=p_order_item_id AND order_id=p_order_id FOR UPDATE;
  IF NOT FOUND THEN RAISE EXCEPTION 'Produk tidak cocok dengan order yang dipilih'; END IF;
  SELECT coalesce(sum(quantity),0) INTO v_used FROM public.product_refunds WHERE order_item_id=p_order_item_id AND status IN ('pending','approved');
@@ -84,4 +84,5 @@ BEGIN
  VALUES(v_code,p_order_id,p_order_item_id,auth.uid(),p_quantity,p_quantity*v_item.unit_price,trim(p_reason)) RETURNING id INTO v_refund_id;
  RETURN QUERY SELECT v_refund_id,v_code;
 END; $$;
+REVOKE ALL ON FUNCTION public.submit_product_refund(uuid,uuid,numeric,text) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.submit_product_refund(uuid,uuid,numeric,text) TO authenticated;
