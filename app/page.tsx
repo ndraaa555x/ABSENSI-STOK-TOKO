@@ -810,7 +810,7 @@ export default function HomePage() {
   }
 
   async function reviewBusinessItem(table:"product_orders"|"product_refunds"|"financial_reports", id:string, status:string) {
-    if (!profile || !["owner","admin"].includes(profile.role)) return;
+    if (!profile || !["owner","admin","hrd"].includes(profile.role)) return;
     if(status==="fulfilled"&&table==="product_orders"){const {error:e}=await supabase.rpc("fulfill_product_order",{p_order_id:id});if(e){setError("Order tidak dapat dipenuhi: "+e.message);return;}}
     else if(status==="approved"&&table==="product_refunds"){const {error:e}=await supabase.rpc("approve_product_refund",{p_refund_id:id});if(e){setError("Refund tidak dapat disetujui: "+e.message);return;}}
     else if(status==="approved"&&table==="financial_reports"){const {error:e}=await supabase.rpc("approve_financial_report",{p_report_id:id});if(e){setError("Laporan tidak dapat diposting: "+e.message);return;}}
@@ -1167,7 +1167,7 @@ export default function HomePage() {
                 <div className="business-record-head"><div><strong>{a.full_name||"Nama belum diatur"}</strong><small>{a.email}{a.id===profile?.id?" · Akun Anda":""}</small></div><span className={a.is_active?"status-pill status-approved":"status-pill status-rejected"}>{a.is_active?"Aktif":"Nonaktif"}</span></div>
                 {a.employee&&<p className="subtle">Karyawan: {a.employee.full_name} · {a.employee.employee_code} · {a.employee.employment_status==="active"?"Bekerja":"Nonaktif"}</p>}
                 <div className="business-actions"><label className="field" style={{margin:0,minWidth:150,flex:"1 1 160px"}}><span>Role</span><select aria-label={"Role "+a.email} value={a.role} disabled={accountSavingId===a.id||a.id===profile?.id||(profile?.role!=="owner"&&a.role==="owner")} onChange={e=>void updateAccount(a,e.target.value as Role,a.is_active)}><option value="employee">Karyawan</option><option value="hrd">HRD / SDM</option><option value="admin">Admin</option>{profile?.role==="owner"&&<option value="owner">Owner</option>}</select></label>
-                <button className={a.is_active?"btn":"btn btn-primary"} type="button" disabled={accountSavingId===a.id||a.id===profile?.id||(profile?.role!=="owner"&&a.role!=="employee")} onClick={()=>void updateAccount(a,a.role,!a.is_active)}>{accountSavingId===a.id?"Menyimpan…":a.is_active?"Nonaktifkan akun":"Aktifkan akun"}</button></div>
+                <button className={a.is_active?"btn":"btn btn-primary"} type="button" disabled={accountSavingId===a.id||a.id===profile?.id||(profile?.role!=="owner"&&a.role!=="employee")} onClick={()=>void updateAccount(a,a.role,!a.is_active)}>{accountSavingId===a.id?"Menyimpan…":a.is_active?"Nonaktifkan akun":"Aktifkan akun"}</button>{profile?.role==="owner"&&a.role!=="owner"&&<button className="btn btn-danger" type="button" disabled={accountSavingId===a.id} onClick={()=>void deleteAccount(a)}>{accountSavingId===a.id?"Memproses…":"Hapus akun"}</button>}</div>
               </article>)}
               <p className="subtle">Demi keamanan, akun Anda sendiri tidak dapat diubah dari daftar ini. Perubahan role hanya dilakukan melalui fungsi server yang memeriksa kewenangan.</p>
             </div>}
