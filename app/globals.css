@@ -208,7 +208,7 @@ h1,h2,h3,p{margin-top:0}h1{font:800 clamp(24px,3vw,34px) Manrope,sans-serif;lett
 
 
 /* SMART BUSINESS MANAGEMENT — role-based professional workspace refresh */
-:root{--bg:#f3f6fb;--panel:#fff;--panel2:#f8faff;--line:#e1e7f0;--muted:#64748b;--text:#152238;--blue:#2459d3;--cyan:#0891b2;--green:#0f9f75;--orange:#c77d11;--red:#d9485f}
+:root{color-scheme:light;--bg:#f3f6fb;--panel:#fff;--panel2:#f8faff;--line:#e1e7f0;--muted:#64748b;--text:#152238;--blue:#2459d3;--cyan:#0891b2;--green:#0f9f75;--orange:#c77d11;--red:#d9485f}
 html,body{background:var(--bg);color:var(--text)}
 body{background:linear-gradient(180deg,#f8faff 0%,#eef3f9 100%)}
 .app-shell{min-height:100vh;background:transparent}
