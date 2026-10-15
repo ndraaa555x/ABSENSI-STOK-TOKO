@@ -87,6 +87,7 @@ export default function HomePage() {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [storePlacementActive, setStorePlacementActive] = useState(false);
+  const [storePlacementInfo, setStorePlacementInfo] = useState<{store_code:string;name:string;store_role:string;job_title:string|null}|null>(null);
   const [myEmployeeProfile, setMyEmployeeProfile] = useState<EmployeeRow | null>(null);
   const [counts, setCounts] = useState<Counts>({ employees: 0, attendance: 0, products: 0, finances: 0, orders:0, refunds:0, reports:0 });
   const [pageLoading, setPageLoading] = useState(true);
@@ -248,9 +249,17 @@ export default function HomePage() {
     }
     const safeProfile = profileData as Profile;
     setProfile(safeProfile);
-    const { data: placementRows, error: placementError } = await supabase.from("offline_store_memberships").select("store_id").eq("user_id", safeProfile.id).eq("is_active", true).limit(1);
+    const { data: placementRows, error: placementError } = await supabase.from("offline_store_memberships").select("store_id,store_role,job_title,job_title_id").eq("user_id", safeProfile.id).eq("is_active", true).limit(1);
     const hasPlacement = !placementError && Boolean(placementRows?.length);
     setStorePlacementActive(hasPlacement);
+    if (hasPlacement && placementRows?.[0]) {
+      const placement = placementRows[0] as {store_id:string;store_role:string;job_title:string|null;job_title_id:string|null};
+      const [storeResult,titleResult] = await Promise.all([
+        supabase.from("offline_stores").select("store_code,name").eq("id",placement.store_id).maybeSingle(),
+        placement.job_title_id ? supabase.from("offline_store_job_titles").select("title").eq("id",placement.job_title_id).maybeSingle() : Promise.resolve({data:null,error:null})
+      ]);
+      setStorePlacementInfo(storeResult.data ? {store_code:storeResult.data.store_code,name:storeResult.data.name,store_role:placement.store_role,job_title:titleResult.data?.title||placement.job_title} : null);
+    } else setStorePlacementInfo(null);
     if (!safeProfile.is_active) {
       setError("Akun Anda belum aktif. Hubungi Owner untuk mengaktifkan akses.");
       setDataLoading(false);
@@ -1282,7 +1291,8 @@ export default function HomePage() {
           </div>
           <div className="profile-details-grid">
             <article className="panel profile-detail-card"><div className="eyebrow">INFORMASI AKUN</div><h2>Identitas akun</h2><dl><div><dt>Nama lengkap</dt><dd>{profile?.full_name || "Belum diatur"}</dd></div><div><dt>Email login</dt><dd>{profile?.email || session.user.email || "Tidak tersedia"}</dd></div><div><dt>Hak akses</dt><dd>{roleName(profile?.role)}</dd></div><div><dt>Status akun</dt><dd>{isActive ? "Aktif" : "Nonaktif"}</dd></div></dl></article>
-            <article className="panel profile-detail-card"><div className="eyebrow">INFORMASI PEKERJAAN</div><h2>Data karyawan</h2><dl><div><dt>Kode karyawan</dt><dd>{myEmployeeProfile?.employee_code || "Belum ditautkan"}</dd></div><div><dt>Jabatan</dt><dd>{myEmployeeProfile?.job_title || roleName(profile?.role)}</dd></div><div><dt>Status kerja</dt><dd>{myEmployeeProfile ? (myEmployeeProfile.employment_status === "active" ? "Aktif bekerja" : "Nonaktif") : "Data belum tersedia"}</dd></div><div><dt>Tanggal bergabung</dt><dd>{myEmployeeProfile?.joined_on || "Belum diatur"}</dd></div></dl><p className="subtle profile-note">Jika kode, jabatan, atau tanggal bergabung belum benar, hubungi administrator untuk memperbarui data karyawan.</p></article>
+            <article className="panel profile-detail-card"><div className="eyebrow">INFORMASI PEKERJAAN</div><h2>Data karyawan</h2><dl><div><dt>Kode karyawan</dt><dd>{myEmployeeProfile?.employee_code || "Belum ditautkan"}</dd></div><div><dt>Jabatan kantor</dt><dd>{myEmployeeProfile?.job_title || (storePlacementInfo?.job_title || (storePlacementInfo?.store_role === "manager" ? "Manajer Toko" : storePlacementInfo?.store_role === "store_admin" ? "Admin Toko" : storePlacementInfo?.store_role === "inventory" ? "Petugas Gudang" : storePlacementInfo?.store_role === "cashier" ? "Kasir" : roleName(profile?.role)))}</dd></div><div><dt>Status kerja</dt><dd>{myEmployeeProfile ? (myEmployeeProfile.employment_status === "active" ? "Aktif bekerja" : "Nonaktif") : "Data belum tersedia"}</dd></div><div><dt>Tanggal bergabung</dt><dd>{myEmployeeProfile?.joined_on || "Belum diatur"}</dd></div></dl><p className="subtle profile-note">Jika kode, jabatan, atau tanggal bergabung belum benar, hubungi administrator untuk memperbarui data karyawan.</p></article>
+            {storePlacementInfo && <article className="panel profile-detail-card"><div className="eyebrow">PENEMPATAN KERJA AKTIF</div><h2>{storePlacementInfo.store_code} — {storePlacementInfo.name}</h2><dl><div><dt>Jabatan toko</dt><dd>{storePlacementInfo.job_title || (storePlacementInfo.store_role === "manager" ? "Manajer Toko" : storePlacementInfo.store_role === "store_admin" ? "Admin Toko" : storePlacementInfo.store_role === "inventory" ? "Petugas Gudang" : "Kasir")}</dd></div><div><dt>Ruang lingkup akses</dt><dd>Data operasional toko yang ditugaskan</dd></div></dl></article>}
           </div>
           <div className="panel profile-security"><div><h2>Keamanan akun</h2><p className="subtle">Jaga kata sandi Anda dan keluar setelah menggunakan perangkat bersama.</p></div><button className="btn" type="button" onClick={() => void handleLogout()} disabled={busy}>{busy ? "Memproses…" : "Keluar dari akun"}</button></div>
         </section> : <section className="panel" style={{ maxWidth: 900 }}>
