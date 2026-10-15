@@ -11,7 +11,7 @@ type Counts = { employees: number; attendance: number; products: number; finance
 type AttendanceRow = { id: string; work_date: string; check_in_at: string | null; check_out_at: string | null; status: string; check_in_method: string | null; check_out_method: string | null; notes?: string|null; recorded_by?: string|null; recorded_by_profile?: AuditProfile; evidence_path: string | null; employees: { full_name: string; employee_code: string } | null; evidence_url?: string | null };
 type DailyAttendanceRow = { employee_id: string; check_out_at: string | null; employees: { full_name: string; employee_code: string } | null };
 type AttendanceMode = "once_daily" | "multiple_sessions";
-type ModuleKey = "dashboard" | "employees" | "attendance" | "orders" | "refunds" | "finance-reports" | "customers" | "inventory" | "finance" | "barcode" | "leave" | "notifications" | "settings";
+type ModuleKey = "dashboard" | "profile" | "employees" | "attendance" | "orders" | "refunds" | "finance-reports" | "customers" | "inventory" | "finance" | "barcode" | "leave" | "notifications" | "settings";
 type OrderProduct = { id:string; name:string; sku:string; unit:string; sale_price:number; current_stock:number; is_active:boolean };
 type OrderItem = { id:string; quantity:number; unit_price:number; line_total:number; product_id:string; products:{name:string;sku:string;unit:string}|null };
 type OrderCartLine = { product_id:string; quantity:string };
@@ -32,15 +32,16 @@ type NotificationRow = {id:string;title:string;message:string;notification_type:
 type EmployeeRow = { id:string; employee_code:string; full_name:string; email:string|null; phone:string|null; job_title:string|null; employment_status:"active"|"inactive"; joined_on:string|null; notes:string|null; profile_id?:string|null };
 type AccountRow = { id:string; email:string; full_name:string|null; role:Role; is_active:boolean; employee?:{employee_code:string;employment_status:string;full_name:string}|null };
 const roleModules: Record<Role, ModuleKey[]> = {
-  owner: ["dashboard","employees","attendance","orders","refunds","finance-reports","customers","inventory","finance","barcode","leave","notifications","settings"],
-  admin: ["dashboard","employees","attendance","orders","refunds","finance-reports","customers","inventory","barcode","leave","notifications","settings"],
-  hrd: ["dashboard","employees","attendance","leave","notifications"],
-  employee: ["dashboard","attendance","orders","refunds","finance-reports","customers","leave","notifications"]
+  owner: ["dashboard","profile","employees","attendance","orders","refunds","finance-reports","customers","inventory","finance","barcode","leave","notifications","settings"],
+  admin: ["dashboard","profile","employees","attendance","orders","refunds","finance-reports","customers","inventory","barcode","leave","notifications","settings"],
+  hrd: ["dashboard","profile","employees","attendance","leave","notifications"],
+  employee: ["dashboard","profile","attendance","orders","refunds","finance-reports","customers","leave","notifications"]
 };
 const canAccessModule = (role: Role | undefined, key: ModuleKey) => Boolean(role && roleModules[role]?.includes(key));
 const roleName = (role: Role | undefined) => role === "owner" ? "OWNER" : role === "admin" ? "ADMIN" : role === "hrd" ? "HRD / SDM" : "KARYAWAN";
 const navItems: { key: ModuleKey; icon: string; label: string; group: string }[] = [
-  { key: "dashboard", icon: "▦", label: "Ringkasan", group: "UTAMA" },
+  { key: "dashboard", icon: "▦", label: "Dashboard", group: "UTAMA" },
+  { key: "profile", icon: "◉", label: "Profil Saya", group: "AKUN" },
   { key: "employees", icon: "♙", label: "Karyawan", group: "OPERASIONAL" },
   { key: "attendance", icon: "◷", label: "Absensi", group: "OPERASIONAL" },
   { key: "orders", icon: "🛒", label: "Order Produk", group: "TRANSAKSI" },
@@ -56,6 +57,7 @@ const navItems: { key: ModuleKey; icon: string; label: string; group: string }[]
 ];
 const descriptions: Record<ModuleKey, string> = {
   dashboard: "Pantau ringkasan data bisnis Anda.",
+  profile: "Kelola informasi akun dan lihat data pekerjaan Anda.",
   employees: "Kelola data dan akun karyawan sesuai kewenangan.",
   attendance: "Pantau kehadiran dan riwayat kerja sesuai hak akses.",
   orders: "Ajukan order produk untuk kebutuhan operasional kerja dan pantau status persetujuannya.",
@@ -84,6 +86,7 @@ function jakartaDateInput(date = new Date()) {
 export default function HomePage() {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [myEmployeeProfile, setMyEmployeeProfile] = useState<EmployeeRow | null>(null);
   const [counts, setCounts] = useState<Counts>({ employees: 0, attendance: 0, products: 0, finances: 0, orders:0, refunds:0, reports:0 });
   const [pageLoading, setPageLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
@@ -260,6 +263,17 @@ export default function HomePage() {
     if (failed) setMessage("Sebagian ringkasan tidak dapat dibaca oleh role atau kebijakan akses saat ini.");
     setDataLoading(false);
   }, []);
+
+  useEffect(() => {
+    if (!profile?.id) { setMyEmployeeProfile(null); return; }
+    let alive = true;
+    void supabase.from("employees")
+      .select("id,employee_code,full_name,email,phone,job_title,employment_status,joined_on,notes,profile_id")
+      .eq("profile_id", profile.id)
+      .maybeSingle()
+      .then(({ data }) => { if (alive) setMyEmployeeProfile((data ?? null) as EmployeeRow | null); });
+    return () => { alive = false; };
+  }, [profile?.id]);
 
   useEffect(() => {
     let alive = true;
@@ -1021,7 +1035,7 @@ export default function HomePage() {
     <main className={`app-shell role-${profile?.role ?? "employee"}`}>
       <aside className="sidebar">
         <div className="brand"><div className="brand-mark">SB</div><div><div className="brand-title">SMART BUSINESS</div><div className="brand-sub">MANAGEMENT SYSTEM</div></div></div>
-        {["UTAMA", "OPERASIONAL", "TRANSAKSI", "MANAJEMEN"].filter((group) => navItems.some((item) => item.group === group && (canAccessModule(profile?.role, item.key)) && item.label.toLowerCase().includes(menuSearch.trim().toLowerCase()))).map((group) => (
+        {["UTAMA", "OPERASIONAL", "TRANSAKSI", "MANAJEMEN", "AKUN"].filter((group) => navItems.some((item) => item.group === group && (canAccessModule(profile?.role, item.key)) && item.label.toLowerCase().includes(menuSearch.trim().toLowerCase()))).map((group) => (
           <div key={group}>
             <div className="nav-label">{group}</div>
             <nav className="nav-list">
@@ -1040,7 +1054,7 @@ export default function HomePage() {
       <section className="main">
         <header className="topbar">
           <div><div className="eyebrow">{profile?.role === "owner" ? "OWNER CONTROL CENTER" : profile?.role === "admin" ? "ADMIN OPERATIONS" : profile?.role === "hrd" ? "HRD PEOPLE OPERATIONS" : "MY WORKSPACE"} / {moduleTitle.toUpperCase()}</div><div className="subtle workspace-caption" style={{ marginTop: 5 }}>{profile?.role === "owner" ? "Visibilitas menyeluruh dan pengaturan bisnis." : profile?.role === "admin" ? "Pusat kegiatan dan pengelolaan operasional." : profile?.role === "hrd" ? "Pusat data karyawan, absensi, dan cuti." : "Kelola order, laporan uang, refund, dan absensi pribadi."}</div></div>
-          <div className="user-menu"><div className="avatar">{displayName.slice(0,1).toUpperCase()}</div><div className="user-copy"><div className="user-email">{displayName}</div><div className="user-role">{roleName(profile?.role)}{isActive ? " · AKTIF" : " · NONAKTIF"}</div></div></div>
+          <button type="button" className="user-menu user-menu-button" onClick={() => setActivePage("profile")} aria-label="Buka profil saya"><div className="avatar">{displayName.slice(0,1).toUpperCase()}</div><div className="user-copy"><div className="user-email">{displayName}</div><div className="user-role">{roleName(profile?.role)}{isActive ? " · AKTIF" : " · NONAKTIF"}</div></div><span className="profile-shortcut">Profil ↗</span></button>
         </header>
         {activePage === "dashboard" ? <>
           <div className="welcome"><div><div className="eyebrow">DASHBOARD OVERVIEW</div><h1>Selamat datang, {displayName.split("@")[0]} 👋</h1><p className="subtle" style={{ marginBottom: 0 }}>Berikut ringkasan data yang tersedia pada workspace Anda.</p></div><div className="date-pill">● &nbsp; Database terhubung</div></div>
@@ -1248,6 +1262,17 @@ export default function HomePage() {
           <div className="business-hero"><div><div className="eyebrow">PUSAT INFORMASI</div><h1>Notifikasi</h1><p>Pembaruan dan pesan sistem yang ditujukan untuk akun Anda.</p></div><div className="business-hero-icon">♢</div></div>
           {notificationError&&<div className="error-box" role="alert">{notificationError}</div>}
           <div className="business-history">{notificationRows.length===0?<div className="panel subtle">Belum ada notifikasi.</div>:notificationRows.map(n=><article className="business-record" key={n.id} style={{opacity:n.read_at?0.72:1}}><div className="business-record-head"><div><strong>{n.title}</strong><small>{new Date(n.created_at).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</small></div><span className="status-pill">{n.read_at?"Sudah dibaca":"Baru"}</span></div><p>{n.message}</p>{!n.read_at&&<button className="btn" onClick={()=>void markNotificationRead(n.id)}>Tandai sudah dibaca</button>}</article>)}</div>
+        </section> : activePage === "profile" ? <section className="business-page profile-page">
+          <div className="business-hero"><div><div className="eyebrow">PENGATURAN AKUN</div><h1>Profil Saya</h1><p>Informasi akun dan pekerjaan Anda dalam satu tempat.</p></div><div className="business-hero-icon">◉</div></div>
+          <div className="profile-overview panel">
+            <div className="profile-avatar">{displayName.slice(0,1).toUpperCase()}</div>
+            <div className="profile-overview-copy"><h2>{displayName}</h2><p className="subtle">{profile?.email || session.user.email || "Email belum tersedia"}</p><div className="profile-tags"><span className="status-pill">{roleName(profile?.role)}</span><span className={`status-pill ${isActive ? "status-approved" : "status-rejected"}`}>{isActive ? "Akun aktif" : "Akun nonaktif"}</span></div></div>
+          </div>
+          <div className="profile-details-grid">
+            <article className="panel profile-detail-card"><div className="eyebrow">INFORMASI AKUN</div><h2>Identitas akun</h2><dl><div><dt>Nama lengkap</dt><dd>{profile?.full_name || "Belum diatur"}</dd></div><div><dt>Email login</dt><dd>{profile?.email || session.user.email || "Tidak tersedia"}</dd></div><div><dt>Hak akses</dt><dd>{roleName(profile?.role)}</dd></div><div><dt>Status akun</dt><dd>{isActive ? "Aktif" : "Nonaktif"}</dd></div></dl></article>
+            <article className="panel profile-detail-card"><div className="eyebrow">INFORMASI PEKERJAAN</div><h2>Data karyawan</h2><dl><div><dt>Kode karyawan</dt><dd>{myEmployeeProfile?.employee_code || "Belum ditautkan"}</dd></div><div><dt>Jabatan</dt><dd>{myEmployeeProfile?.job_title || roleName(profile?.role)}</dd></div><div><dt>Status kerja</dt><dd>{myEmployeeProfile ? (myEmployeeProfile.employment_status === "active" ? "Aktif bekerja" : "Nonaktif") : "Data belum tersedia"}</dd></div><div><dt>Tanggal bergabung</dt><dd>{myEmployeeProfile?.joined_on || "Belum diatur"}</dd></div></dl><p className="subtle profile-note">Jika kode, jabatan, atau tanggal bergabung belum benar, hubungi administrator untuk memperbarui data karyawan.</p></article>
+          </div>
+          <div className="panel profile-security"><div><h2>Keamanan akun</h2><p className="subtle">Jaga kata sandi Anda dan keluar setelah menggunakan perangkat bersama.</p></div><button className="btn" type="button" onClick={() => void handleLogout()} disabled={busy}>{busy ? "Memproses…" : "Keluar dari akun"}</button></div>
         </section> : <section className="panel" style={{ maxWidth: 900 }}>
           <div className="eyebrow">MODUL / {activePage.toUpperCase()}</div><h1 style={{ marginTop: 12 }}>{moduleTitle}</h1><p className="subtle">{descriptions[activePage]}</p>
           {activePage === "settings" ? <><div className="info-box">Pilih aturan absensi yang akan berlaku untuk semua akun karyawan. Mode tersimpan di database dan tetap aktif sampai diubah lagi.</div><div className="panel" style={{marginTop:16,background:"rgba(10,20,38,.45)"}}><h2>Aturan Check-in / Check-out</h2><p className="subtle">Owner dan Admin dapat mengubah pilihan ini. Perubahan tidak menghapus riwayat absensi yang sudah tersimpan.</p><div className="field"><label htmlFor="attendance-mode">Mode absensi</label><select id="attendance-mode" value={attendanceMode} disabled={attendanceModeLoading||attendanceModeSaving} onChange={e=>void saveAttendanceMode(e.target.value as AttendanceMode)}><option value="once_daily">Sekali sehari — 1 Check-in dan 1 Check-out</option><option value="multiple_sessions">Berulang — boleh Check-in lagi setelah Check-out</option></select></div><div className="subtle">{attendanceMode==="once_daily"?"Karyawan tidak bisa memulai sesi kedua pada tanggal yang sama.":"Karyawan boleh memulai sesi baru setelah sesi sebelumnya selesai Check-out."}</div>{attendanceModeLoading&&<p className="subtle">Memuat pengaturan…</p>}{attendanceModeSaving&&<p className="subtle">Menyimpan mode…</p>}{attendanceModeNotice&&<div className="info-box" role="status" style={{marginTop:12}}>{attendanceModeNotice}</div>}{attendanceModeError&&<div className="error-box" role="alert" style={{marginTop:12}}>{attendanceModeError}</div>}</div>
