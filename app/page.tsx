@@ -8,7 +8,7 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 type Role = "owner" | "admin" | "hrd" | "employee";
 type Profile = { id: string; email: string; full_name: string | null; role: Role; is_active: boolean };
 type Counts = { employees: number; attendance: number; products: number; finances: number; orders:number; refunds:number; reports:number };
-type AttendanceRow = { id: string; work_date: string; check_in_at: string | null; check_out_at: string | null; status: string; check_in_method: string | null; check_out_method: string | null; notes?: string|null; recorded_by?: string|null; recorded_by_profile?: AuditProfile; evidence_path: string | null; employees: { full_name: string; employee_code: string } | null; evidence_url?: string | null };
+type AttendanceRow = { id: string; employee_id: string; work_date: string; check_in_at: string | null; check_out_at: string | null; status: string; check_in_method: string | null; check_out_method: string | null; notes?: string|null; recorded_by?: string|null; recorded_by_profile?: AuditProfile; evidence_path: string | null; employees: { full_name: string; employee_code: string } | null; evidence_url?: string | null };
 type DailyAttendanceRow = { employee_id: string; check_out_at: string | null; employees: { full_name: string; employee_code: string } | null };
 type AttendanceMode = "once_daily" | "multiple_sessions";
 type ModuleKey = "dashboard" | "profile" | "employees" | "attendance" | "orders" | "refunds" | "finance-reports" | "customers" | "inventory" | "finance" | "barcode" | "leave" | "notifications" | "settings";
@@ -87,7 +87,8 @@ export default function HomePage() {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [storePlacementActive, setStorePlacementActive] = useState(false);
-  const [storePlacementInfo, setStorePlacementInfo] = useState<{store_code:string;name:string;store_role:string;job_title:string|null}|null>(null);
+  const [storePlacementInfo, setStorePlacementInfo] = useState<{store_id:string;store_code:string;name:string;store_role:string;job_title:string|null}|null>(null);
+  const isStoreManager = storePlacementInfo?.store_role === "manager";
   const [myEmployeeProfile, setMyEmployeeProfile] = useState<EmployeeRow | null>(null);
   const [counts, setCounts] = useState<Counts>({ employees: 0, attendance: 0, products: 0, finances: 0, orders:0, refunds:0, reports:0 });
   const [pageLoading, setPageLoading] = useState(true);
@@ -208,6 +209,8 @@ export default function HomePage() {
   const [attendanceRows, setAttendanceRows] = useState<AttendanceRow[]>([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [attendanceError, setAttendanceError] = useState("");
+  const [attendanceStatusDrafts, setAttendanceStatusDrafts] = useState<Record<string,string>>({});
+  const [attendanceSavingId, setAttendanceSavingId] = useState<string|null>(null);
   const [dailyAttendanceRows, setDailyAttendanceRows] = useState<DailyAttendanceRow[]>([]);
   const [attendanceMode, setAttendanceMode] = useState<AttendanceMode>("once_daily");
   const [attendanceModeLoading, setAttendanceModeLoading] = useState(false);
@@ -258,7 +261,7 @@ export default function HomePage() {
         supabase.from("offline_stores").select("store_code,name").eq("id",placement.store_id).maybeSingle(),
         placement.job_title_id ? supabase.from("offline_store_job_titles").select("title").eq("id",placement.job_title_id).maybeSingle() : Promise.resolve({data:null,error:null})
       ]);
-      setStorePlacementInfo(storeResult.data ? {store_code:storeResult.data.store_code,name:storeResult.data.name,store_role:placement.store_role,job_title:titleResult.data?.title||placement.job_title} : null);
+      setStorePlacementInfo(storeResult.data ? {store_id:placement.store_id,store_code:storeResult.data.store_code,name:storeResult.data.name,store_role:placement.store_role,job_title:titleResult.data?.title||placement.job_title} : null);
     } else setStorePlacementInfo(null);
     if (!safeProfile.is_active) {
       setError("Akun Anda belum aktif. Hubungi Owner untuk mengaktifkan akses.");
@@ -456,7 +459,7 @@ export default function HomePage() {
       setAttendanceError("");
       const { data, error: queryError } = await supabase
         .from("attendance_records")
-        .select("id,work_date,check_in_at,check_out_at,status,check_in_method,check_out_method,notes,recorded_by,evidence_path,employees(full_name,employee_code),recorded_by_profile:profiles!attendance_records_recorded_by_fkey(full_name,email)")
+        .select("id,employee_id,work_date,check_in_at,check_out_at,status,check_in_method,check_out_method,notes,recorded_by,evidence_path,employees(full_name,employee_code),recorded_by_profile:profiles!attendance_records_recorded_by_fkey(full_name,email)")
         .order("work_date", { ascending: false })
         .limit(100);
       if (queryError) {
@@ -724,6 +727,16 @@ export default function HomePage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function saveTeamAttendanceStatus(row: AttendanceRow) {
+    setAttendanceSavingId(row.id);
+    setAttendanceError("");
+    const nextStatus = attendanceStatusDrafts[row.id] || row.status;
+    const { error: saveError } = await supabase.rpc("update_offline_store_team_attendance", { p_attendance_id: row.id, p_status: nextStatus, p_notes: row.notes || null });
+    if (saveError) setAttendanceError(saveError.message || "Status absensi gagal diperbarui.");
+    else setAttendanceRows(prev => prev.map(item => item.id === row.id ? { ...item, status: nextStatus, recorded_by: profile?.id || item.recorded_by } : item));
+    setAttendanceSavingId(null);
   }
 
   if (pageLoading) return <main className="login-side"><div className="subtle">Memeriksa sesi aman…</div></main>;
@@ -1107,11 +1120,11 @@ export default function HomePage() {
             <button className="btn" onClick={() => setActivePage("dashboard")}>← Kembali</button>
           </div>
           {attendanceError && <div className="error-box" role="alert">{attendanceError}</div>}
-          {["owner","admin"].includes(profile?.role ?? "") && <div className="panel" style={{marginTop:16,marginBottom:20,background:"rgba(10,20,38,.45)"}}><div className="panel-head"><div><h2>Rekap absensi hari ini</h2><p className="subtle">Jumlah sesi absensi per akun karyawan pada tanggal {new Intl.DateTimeFormat("id-ID",{timeZone:"Asia/Jakarta",dateStyle:"full"}).format(new Date())}.</p></div><span className="status">{dailyAttendanceRows.length} sesi</span></div>{dailyAttendanceRows.length===0 ? <div className="info-box">Belum ada sesi absensi hari ini.</div> : <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:13,minWidth:520}}><thead><tr style={{textAlign:"left",color:"#91a1b8"}}><th style={{padding:10}}>Karyawan</th><th style={{padding:10}}>Jumlah sesi</th><th style={{padding:10}}>Status hari ini</th></tr></thead><tbody>{Array.from(dailyAttendanceRows.reduce((map,row)=>{const key=row.employee_id;const prev=map.get(key)||{employee_id:key,employees:row.employees,count:0,open:0};prev.count+=1;if(!row.check_out_at)prev.open+=1;map.set(key,prev);return map;},new Map<string,{employee_id:string;employees:DailyAttendanceRow["employees"];count:number;open:number}>()).values()).map(row=><tr key={row.employee_id} style={{borderTop:"1px solid #25334a"}}><td style={{padding:10}}><strong>{row.employees?.full_name??"Karyawan"}</strong><div className="subtle">{row.employees?.employee_code??"—"}</div></td><td style={{padding:10}}>{row.count} sesi</td><td style={{padding:10}}>{row.open>0?`Masih bekerja (${row.open} sesi aktif)`:"Semua sesi sudah Check-out"}</td></tr>)}</tbody></table></div>}</div>}
+          {(["owner","admin"].includes(profile?.role ?? "") || isStoreManager) && <div className="panel" style={{marginTop:16,marginBottom:20,background:"rgba(10,20,38,.45)"}}><div className="panel-head"><div><h2>Rekap absensi hari ini</h2><p className="subtle">{isStoreManager?"Jumlah sesi absensi tim toko Anda":"Jumlah sesi absensi per akun karyawan"} pada tanggal {new Intl.DateTimeFormat("id-ID",{timeZone:"Asia/Jakarta",dateStyle:"full"}).format(new Date())}.</p></div><span className="status">{dailyAttendanceRows.length} sesi</span></div>{dailyAttendanceRows.length===0 ? <div className="info-box">Belum ada sesi absensi hari ini.</div> : <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:13,minWidth:520}}><thead><tr style={{textAlign:"left",color:"#91a1b8"}}><th style={{padding:10}}>Karyawan</th><th style={{padding:10}}>Jumlah sesi</th><th style={{padding:10}}>Status hari ini</th></tr></thead><tbody>{Array.from(dailyAttendanceRows.reduce((map,row)=>{const key=row.employee_id;const prev=map.get(key)||{employee_id:key,employees:row.employees,count:0,open:0};prev.count+=1;if(!row.check_out_at)prev.open+=1;map.set(key,prev);return map;},new Map<string,{employee_id:string;employees:DailyAttendanceRow["employees"];count:number;open:number}>()).values()).map(row=><tr key={row.employee_id} style={{borderTop:"1px solid #25334a"}}><td style={{padding:10}}><strong>{row.employees?.full_name??"Karyawan"}</strong><div className="subtle">{row.employees?.employee_code??"—"}</div></td><td style={{padding:10}}>{row.count} sesi</td><td style={{padding:10}}>{row.open>0?`Masih bekerja (${row.open} sesi aktif)`:"Semua sesi sudah Check-out"}</td></tr>)}</tbody></table></div>}</div>}
           {attendanceLoading ? <p className="subtle">Memuat riwayat absensi…</p> : attendanceRows.length === 0 ? <div className="info-box">Belum ada riwayat absensi yang dapat ditampilkan.</div> : <><div className="field" style={{maxWidth:480,marginBottom:14}}><label htmlFor="attendance-search">Cari absensi</label><input id="attendance-search" type="search" value={attendanceSearch} onChange={e=>setAttendanceSearch(e.target.value)} placeholder="Nama, kode karyawan, tanggal, status..." /></div><p className="subtle">{attendanceRows.filter(row=>([row.employees?.full_name,row.employees?.employee_code,row.work_date,row.status,row.check_in_method,row.check_out_method].join(" ")).toLowerCase().includes(attendanceSearch.trim().toLowerCase())).length} catatan cocok</p><div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 760 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: isStoreManager ? 900 : 760 }}>
               <thead><tr style={{ textAlign: "left", color: "#91a1b8" }}>
-                <th style={{ padding: 10 }}>Karyawan</th><th style={{ padding: 10 }}>Tanggal</th><th style={{ padding: 10 }}>Masuk</th><th style={{ padding: 10 }}>Pulang</th><th style={{ padding: 10 }}>Status</th><th style={{ padding: 10 }}>Bukti wajah</th>
+                <th style={{ padding: 10 }}>Karyawan</th><th style={{ padding: 10 }}>Tanggal</th><th style={{ padding: 10 }}>Masuk</th><th style={{ padding: 10 }}>Pulang</th><th style={{ padding: 10 }}>Status</th><th style={{ padding: 10 }}>Bukti wajah</th>{isStoreManager&&<th style={{padding:10}}>Tindakan</th>}
               </tr></thead>
               <tbody>{attendanceRows.filter(row=>([row.employees?.full_name,row.employees?.employee_code,row.work_date,row.status,row.check_in_method,row.check_out_method].join(" ")).toLowerCase().includes(attendanceSearch.trim().toLowerCase())).map((row) => <tr key={row.id} style={{ borderTop: "1px solid #25334a" }}>
                 <td style={{ padding: 10 }}><strong>{row.employees?.full_name ?? "Karyawan"}</strong><div className="subtle">{row.employees?.employee_code ?? "—"}</div></td>
@@ -1120,6 +1133,7 @@ export default function HomePage() {
                 <td style={{ padding: 10 }}>{row.check_out_at ? new Date(row.check_out_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "—"}</td>
                 <td style={{ padding: 10 }}><strong>{row.status}</strong><div className="subtle">Masuk: {row.check_in_method??"Metode tidak tercatat"} · Pulang: {row.check_out_method??"Metode tidak tercatat"}</div>{row.notes&&<div className="subtle">Catatan: {row.notes}</div>}<div className="subtle">Dicatat oleh: {row.recorded_by_profile?.full_name||row.recorded_by_profile?.email||(row.recorded_by?"Akun "+row.recorded_by.slice(0,8):"Belum tercatat")}</div></td>
                 <td style={{ padding: 10 }}>{row.evidence_url ? <a href={row.evidence_url} target="_blank" rel="noreferrer" style={{ color: "#67e8f9", textDecoration: "underline" }}>Lihat foto ↗</a> : <span className="subtle">Tidak tersedia / kedaluwarsa</span>}</td>
+                {isStoreManager&&<td style={{padding:10,minWidth:170}}><select aria-label={"Status absensi "+(row.employees?.full_name||"karyawan")} value={attendanceStatusDrafts[row.id]||row.status} onChange={e=>setAttendanceStatusDrafts(prev=>({...prev,[row.id]:e.target.value}))}><option value="present">Hadir</option><option value="late">Terlambat</option><option value="leave">Izin</option><option value="sick">Sakit</option><option value="absent">Alpa</option><option value="holiday">Libur</option></select><button className="btn btn-primary" style={{marginTop:6}} disabled={attendanceSavingId===row.id||(attendanceStatusDrafts[row.id]||row.status)===row.status} onClick={()=>void saveTeamAttendanceStatus(row)}>{attendanceSavingId===row.id?"Menyimpan…":"Simpan status"}</button></td>}
               </tr>)}</tbody>
             </table>
           </div></>}
