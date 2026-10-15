@@ -120,7 +120,7 @@ begin
 
   select pg_get_functiondef('public.review_offline_product_submission(uuid,text,text,boolean)'::regprocedure) into v_def;
   if position('v.proposed_description,0,0,0,true,auth.uid()' in v_def)=0 then raise exception 'Catalog price assignment not found'; end if;
-  execute replace(v_def, 'v.proposed_description,0,0,0,true,auth.uid()', 'v.proposed_description,v.proposed_sale_price,0,0,0,true,auth.uid()');
+  execute replace(v_def, 'v.proposed_description,0,0,0,true,auth.uid()', 'v.proposed_description,v.proposed_sale_price,0,0,true,auth.uid()');
 
   select pg_get_functiondef('public.save_offline_discount_policy(uuid,numeric,numeric,boolean)'::regprocedure) into v_def;
   if position('if p_cashier_max_percent<0' in v_def)=0 then raise exception 'Discount policy validation not found'; end if;
