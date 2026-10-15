@@ -35,9 +35,9 @@ export default function OfflineStorePurchasesPage() {
   const [notice, setNotice] = useState("");
   const isAdmin = Boolean(profile && ["owner", "admin"].includes(profile.role));
   const member = memberships.find(m => m.store_id === storeId);
-  const canOrder = isAdmin || member?.store_role === "manager" || member?.store_role === "inventory";
+  const canOrder = isAdmin || member?.store_role === "manager" || member?.store_role === "store_admin" || member?.store_role === "inventory";
   const canReceive = canOrder;
-  const canFinance = isAdmin || member?.store_role === "manager";
+  const canFinance = isAdmin || member?.store_role === "manager" || member?.store_role === "store_admin";
   const selectedStore = stores.find(s => s.id === storeId);
   const selectedProduct = products.find(p => p.id === productId);
   const fmtStatus = (s: string) => statusLabel[s] || s;
