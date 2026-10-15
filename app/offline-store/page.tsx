@@ -11,7 +11,7 @@ type StoreProduct = { id:string; store_id:string; central_product_id:string|null
 type Submission = { id:string; store_id:string; proposed_name:string; proposed_sku:string; proposed_category_name:string|null; proposed_sale_price:number; status:string; review_note:string|null; requested_at:string; requested_by:string };
 type Receipt = { id:string; receipt_code:string; status:string; supplier_name:string|null; created_at:string };
 type Discount = { id:string; name:string; discount_type:string; discount_value:number; is_active:boolean; starts_at:string; ends_at:string|null };
-type Member = { id:string; user_id:string; store_role:string; is_active:boolean; profiles?:Profile|null };
+type Member = { id:string; store_id:string; user_id:string; store_role:string; is_active:boolean; profiles?:Profile|null };
 const money = (n:number) => new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(Number(n)||0);
 const canAdmin = (p:Profile|null) => Boolean(p && ["owner","admin"].includes(p.role));
 const submissionStatusLabel:Record<string,string>={pending:"Menunggu",approved:"Disetujui",rejected:"Ditolak",needs_revision:"Perlu perbaikan"};
