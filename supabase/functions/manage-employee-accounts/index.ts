@@ -82,10 +82,21 @@ Deno.serve(async(req:Request)=>{
   const {data:target,error:targetError}=await admin.from("profiles").select("id,role,email,full_name").eq("id",targetId).maybeSingle();
   if(targetError||!target) return reply(404,{error:"Akun tujuan tidak ditemukan."});
   if(target.role==="owner") return reply(403,{error:"Akun Owner dilindungi dan tidak dapat dihapus."});
-  const {error:unlinkError}=await admin.from("employees").update({profile_id:null,updated_at:new Date().toISOString()}).eq("profile_id",targetId);
-  if(unlinkError) return reply(500,{error:"Akun gagal dilepas dari data karyawan."});
+  const {data:linkedEmployees,error:linkedEmployeesError}=await admin.from("employees").select("id").eq("profile_id",targetId);
+  if(linkedEmployeesError) return reply(500,{error:"Tautan data karyawan gagal diperiksa."});
+  const linkedEmployeeIds=(linkedEmployees??[]).map((employee:{id:string})=>employee.id);
+  if(linkedEmployeeIds.length){
+   const {error:unlinkError}=await admin.from("employees").update({profile_id:null,updated_at:new Date().toISOString()}).in("id",linkedEmployeeIds).eq("profile_id",targetId);
+   if(unlinkError) return reply(500,{error:"Akun gagal dilepas dari data karyawan."});
+  }
   const {error:deleteError}=await admin.auth.admin.deleteUser(targetId);
-  if(deleteError) return reply(500,{error:"Akun login gagal dihapus."});
+  if(deleteError){
+   if(linkedEmployeeIds.length){
+    const {error:restoreError}=await admin.from("employees").update({profile_id:targetId,updated_at:new Date().toISOString()}).in("id",linkedEmployeeIds).is("profile_id",null);
+    if(restoreError) return reply(500,{error:"Akun gagal dihapus dan tautan karyawan perlu dipulihkan oleh Owner."});
+   }
+   return reply(500,{error:"Akun login gagal dihapus; tautan data karyawan telah dipulihkan."});
+  }
   const auditError=await writeAudit("delete_account",targetId,{target_email:target.email,target_role:target.role,target_full_name:target.full_name,result:"success",source:"access_security_settings"});
   if(auditError) return reply(200,{success:true,audit_warning:"Akun sudah dihapus, tetapi catatan audit gagal disimpan."});
   return reply(200,{success:true,message:"Akun login dan profil pengguna berhasil dihapus; data operasional bisnis tidak ikut dihapus."});
@@ -97,6 +108,7 @@ Deno.serve(async(req:Request)=>{
   if(targetId===actor.id&&(role!=="owner"||active!==true)) return reply(400,{error:"Owner tidak dapat menurunkan role atau menonaktifkan akunnya sendiri."});
   const {data:target,error:targetError}=await admin.from("profiles").select("id,role,is_active").eq("id",targetId).maybeSingle();
   if(targetError||!target) return reply(404,{error:"Akun tujuan tidak ditemukan."});
+  if(actor.role!=="owner" && target.role==="owner") return reply(403,{error:"Admin tidak dapat mengubah akun Owner."});
   if(target.role==="owner"&&role!=="owner"){
    const {count,error:countError}=await admin.from("profiles").select("id",{count:"exact",head:true}).eq("role","owner").eq("is_active",true);
    if(countError||(count??0)<=1) return reply(400,{error:"Minimal satu Owner aktif harus dipertahankan."});
