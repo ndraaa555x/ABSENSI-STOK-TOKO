@@ -158,7 +158,7 @@ export default function OfflineStorePurchasesPage() {
         </article>)}
         {orderItems.length === 0 && <p className="subtle">Belum ada pesanan pembelian.</p>}
       </section>
-      {canFinance && <section className="panel business-history"><h2>Keuangan toko · pembelian dari kantor</h2><p className="subtle">Catatan ini terpisah dari keuangan kantor dan hanya tersedia untuk Owner/Admin serta manager toko.</p>
+      {canFinance && <section className="panel business-history"><h2>Keuangan toko · pembelian dari kantor</h2><p className="subtle">Catatan ini terpisah dari keuangan kantor dan tersedia untuk Owner/Admin, Manajer Toko, serta Admin Toko.</p>
         {entries.map(e => <article className="business-record" key={e.id}><div className="business-record-head"><div><strong>{e.entry_type === "purchase_expense" ? "Beban pembelian stok" : "Pembayaran ke kantor"}</strong><small>{e.reference_code || "Tanpa referensi"} · {new Date(e.created_at).toLocaleString("id-ID")}</small></div><strong>{money(Number(e.amount))}</strong></div><p className="subtle">{e.description}{e.payment_method ? " · " + e.payment_method : ""}</p></article>)}
         {entries.length === 0 && <p className="subtle">Belum ada transaksi keuangan pembelian.</p>}
       </section>}
