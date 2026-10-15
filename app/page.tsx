@@ -832,22 +832,39 @@ export default function HomePage() {
   async function saveProduct(event:FormEvent<HTMLFormElement>){
     event.preventDefault();
     if(!profile||!["owner","admin"].includes(profile.role)){setInventoryError("Hanya Admin/Owner yang dapat mengelola produk.");return;}
+    const salePrice=Number(inventoryForm.sale_price);
+    const costPrice=Number(inventoryForm.cost_price);
+    const targetStock=Number(inventoryForm.initial_stock);
+    const minimumStock=Number(inventoryForm.minimum_stock);
+    if(!inventoryForm.sku.trim()||!inventoryForm.barcode_value.trim()||!inventoryForm.name.trim()||
+       ![salePrice,costPrice,targetStock,minimumStock].every(Number.isFinite)||
+       salePrice<0||costPrice<0||targetStock<0||minimumStock<0){
+      setInventoryError("SKU, barcode, nama, harga, dan stok wajib valid serta tidak boleh negatif.");return;
+    }
     setInventorySaving(true);setInventoryError("");setInventoryNotice("");
-    if(editingProductId){
-      const {error:saveError}=await supabase.from("products").update({sku:inventoryForm.sku.trim(),barcode_value:inventoryForm.barcode_value.trim(),name:inventoryForm.name.trim(),category_id:inventoryForm.category_id||null,unit:inventoryForm.unit.trim(),description:inventoryForm.description.trim()||null,sale_price:Number(inventoryForm.sale_price),minimum_stock:Number(inventoryForm.minimum_stock),storage_location:inventoryForm.storage_location.trim()||null,updated_at:new Date().toISOString()}).eq("id",editingProductId);
-      if(saveError)setInventoryError("Perubahan produk gagal disimpan: "+saveError.message);
-      else{
-        const {error:costError}=await supabase.from("product_costs").upsert({product_id:editingProductId,cost_price:Number(inventoryForm.cost_price),updated_by:profile.id,updated_at:new Date().toISOString()},{onConflict:"product_id"});
-        if(costError){setInventoryError("Informasi produk tersimpan, tetapi harga pokok gagal disimpan: "+costError.message);setInventorySaving(false);return;}
-        const {data:stockResult,error:stockError}=await supabase.rpc("set_product_stock",{p_product_id:editingProductId,p_target_stock:Number(inventoryForm.initial_stock),p_reason:"Penyesuaian stok melalui edit produk"});
-        if(stockError){setInventoryError("Informasi produk dan harga pokok tersimpan, tetapi stok gagal diperbarui: "+stockError.message+" Gunakan menu Catat pergerakan stok atau coba lagi.");setInventorySaving(false);setBusinessRefresh(v=>v+1);return;}
-        setInventoryNotice("Informasi produk, harga pokok, dan stok berhasil diperbarui. Stok terbaru: "+Number(stockResult??inventoryForm.initial_stock)+" "+inventoryForm.unit+". Riwayat penyesuaian stok tercatat.");
-        setEditingProductId(null);setInventoryForm({sku:"",barcode_value:"",name:"",category_id:"",unit:"pcs",description:"",sale_price:"0",cost_price:"0",initial_stock:"0",minimum_stock:"0",storage_location:""});setBusinessRefresh(v=>v+1);
-      }
+    const {data:productId,error:saveError}=await supabase.rpc("save_product_with_stock",{
+      p_product_id:editingProductId,
+      p_sku:inventoryForm.sku.trim(),
+      p_barcode_value:inventoryForm.barcode_value.trim(),
+      p_name:inventoryForm.name.trim(),
+      p_category_id:inventoryForm.category_id||null,
+      p_unit:inventoryForm.unit.trim()||"pcs",
+      p_description:inventoryForm.description.trim()||null,
+      p_sale_price:salePrice,
+      p_cost_price:costPrice,
+      p_target_stock:targetStock,
+      p_minimum_stock:minimumStock,
+      p_storage_location:inventoryForm.storage_location.trim()||null
+    });
+    if(saveError||!productId){
+      setInventoryError("Produk, harga pokok, dan stok tidak disimpan karena transaksi gagal: "+(saveError?.message??"Tidak ada ID produk yang dikembalikan."));
     }else{
-      const {error:saveError}=await supabase.rpc("create_product_with_stock",{p_sku:inventoryForm.sku.trim(),p_barcode_value:inventoryForm.barcode_value.trim(),p_name:inventoryForm.name.trim(),p_category_id:inventoryForm.category_id||null,p_unit:inventoryForm.unit.trim(),p_description:inventoryForm.description.trim(),p_sale_price:Number(inventoryForm.sale_price),p_initial_stock:Number(inventoryForm.initial_stock),p_minimum_stock:Number(inventoryForm.minimum_stock),p_storage_location:inventoryForm.storage_location.trim()});
-      if(saveError)setInventoryError("Produk gagal disimpan: "+saveError.message);
-      else{const {data:createdProduct}=await supabase.from("products").select("id").eq("sku",inventoryForm.sku.trim()).maybeSingle();if(createdProduct){const {error:costError}=await supabase.from("product_costs").upsert({product_id:createdProduct.id,cost_price:Number(inventoryForm.cost_price),updated_by:profile.id,updated_at:new Date().toISOString()},{onConflict:"product_id"});if(costError){setInventoryError("Produk dibuat, tetapi harga pokok gagal disimpan: "+costError.message);setInventorySaving(false);return;}}setInventoryNotice("Produk dan harga pokok berhasil disimpan; stok awal tercatat.");setInventoryForm({sku:"",barcode_value:"",name:"",category_id:"",unit:"pcs",description:"",sale_price:"0",cost_price:"0",initial_stock:"0",minimum_stock:"0",storage_location:""});setBusinessRefresh(v=>v+1);}
+      setInventoryNotice(editingProductId
+        ?"Perubahan produk, harga pokok, stok, dan riwayat penyesuaian tersimpan bersama."
+        :"Produk, harga pokok, stok awal, dan riwayat stok berhasil dicatat bersama.");
+      setEditingProductId(null);
+      setInventoryForm({sku:"",barcode_value:"",name:"",category_id:"",unit:"pcs",description:"",sale_price:"0",cost_price:"0",initial_stock:"0",minimum_stock:"0",storage_location:""});
+      setBusinessRefresh(v=>v+1);
     }
     setInventorySaving(false);
   }
