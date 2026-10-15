@@ -8,7 +8,7 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 type Role = "owner" | "admin" | "hrd" | "employee";
 type Profile = { id: string; email: string; full_name: string | null; role: Role; is_active: boolean };
 type Counts = { employees: number; attendance: number; products: number; finances: number; orders:number; refunds:number; reports:number };
-type AttendanceRow = { id: string; work_date: string; check_in_at: string | null; check_out_at: string | null; status: string; check_in_method: string | null; check_out_method: string | null; evidence_path: string | null; employees: { full_name: string; employee_code: string } | null; evidence_url?: string | null };
+type AttendanceRow = { id: string; work_date: string; check_in_at: string | null; check_out_at: string | null; status: string; check_in_method: string | null; check_out_method: string | null; notes?: string|null; recorded_by?: string|null; recorded_by_profile?: AuditProfile; evidence_path: string | null; employees: { full_name: string; employee_code: string } | null; evidence_url?: string | null };
 type DailyAttendanceRow = { employee_id: string; check_out_at: string | null; employees: { full_name: string; employee_code: string } | null };
 type AttendanceMode = "once_daily" | "multiple_sessions";
 type ModuleKey = "dashboard" | "employees" | "attendance" | "orders" | "refunds" | "finance-reports" | "customers" | "inventory" | "finance" | "barcode" | "leave" | "notifications" | "settings";
@@ -16,16 +16,17 @@ type OrderProduct = { id:string; name:string; sku:string; unit:string; sale_pric
 type OrderItem = { id:string; quantity:number; unit_price:number; line_total:number; product_id:string; products:{name:string;sku:string;unit:string}|null };
 type OrderCartLine = { product_id:string; quantity:string };
 type OrderCreator = {full_name:string|null;email:string}|null;
-type OrderRow = { id:string; order_code:string; status:string; notes:string|null; created_at:string; ordered_by:string; customer_id:string|null; payment_method?:string|null; payment_evidence_path?:string|null; stock_reserved?:boolean; business_customers:{store_name:string;customer_code:string}|null; ordered_by_profile?:OrderCreator; product_order_items:OrderItem[] };
+type AuditProfile = {full_name:string|null;email:string}|null;
+type OrderRow = { id:string; order_code:string; status:string; notes:string|null; created_at:string; ordered_by:string; reviewed_by?:string|null; reviewed_at?:string|null; customer_id:string|null; payment_method?:string|null; payment_evidence_path?:string|null; stock_reserved?:boolean; business_customers:{store_name:string;customer_code:string}|null; ordered_by_profile?:OrderCreator; reviewed_by_profile?:AuditProfile; product_order_items:OrderItem[] };
 type CustomerRow = {id:string;customer_code:string;store_name:string;owner_name:string|null;phone:string|null;email:string|null;address:string|null;notes:string|null;created_by:string;is_active:boolean;created_at:string;order_count:number;last_order_at:string|null};
-type RefundRow = { id:string; refund_code:string; order_id:string; order_item_id:string; requested_by:string; quantity:number; amount:number; reason:string; status:string; created_at:string; product_orders:{order_code:string;customer_id?:string|null;business_customers?:{store_name:string;customer_code:string}|null}|null };
-type FinanceReportRow = { id:string; report_code:string; report_type:string; amount:number; description:string; payment_method:string|null; status:string; created_at:string; submitted_by:string; related_order_id?:string|null; related_customer_id?:string|null; business_customers?:{store_name:string;customer_code:string}|null; product_orders?:{order_code:string;business_customers?:{store_name:string;customer_code:string}|null}|null };
+type RefundRow = { id:string; refund_code:string; order_id:string; order_item_id:string; requested_by:string; reviewed_by?:string|null; reviewed_at?:string|null; requested_by_profile?:AuditProfile; reviewed_by_profile?:AuditProfile; quantity:number; amount:number; reason:string; status:string; created_at:string; product_orders:{order_code:string;customer_id?:string|null;business_customers?:{store_name:string;customer_code:string}|null}|null };
+type FinanceReportRow = { id:string; report_code:string; report_type:string; amount:number; description:string; payment_method:string|null; status:string; created_at:string; submitted_by:string; reviewed_by?:string|null; reviewed_at?:string|null; submitted_by_profile?:AuditProfile; reviewed_by_profile?:AuditProfile; related_order_id?:string|null; related_customer_id?:string|null; business_customers?:{store_name:string;customer_code:string}|null; product_orders?:{order_code:string;business_customers?:{store_name:string;customer_code:string}|null}|null };
 type ProductRow = {id:string;sku:string;barcode_value:string;name:string;category_id:string|null;unit:string;description:string|null;sale_price:number;current_stock:number;minimum_stock:number;storage_location:string|null;is_active:boolean;product_categories:{name:string}|null;product_costs?:{cost_price:number}|null};
 type ProductCategory = {id:string;name:string};
 type StockMovementRow = {id:string;product_id:string;movement_type:string;quantity:number;unit_cost:number|null;reference_code:string|null;reason:string|null;movement_at:string;products:{name:string;sku:string}|null};
 type FinancialCategory = {id:string;name:string;transaction_type:"income"|"expense"};
 type FinancialTransactionRow = {id:string;transaction_code:string;transaction_type:"income"|"expense";amount:number;transaction_at:string;payment_method:string|null;description:string;reference_code:string|null;status:string;financial_categories:{name:string}|null};
-type LeaveRow = {id:string;employee_id:string;leave_type:string;start_date:string;end_date:string;reason:string;status:string;created_at:string;employees:{full_name:string;employee_code:string;profile_id:string|null}|null};
+type LeaveRow = {id:string;employee_id:string;leave_type:string;start_date:string;end_date:string;reason:string;status:string;created_at:string;reviewed_by?:string|null;reviewed_at?:string|null;reviewed_by_profile?:AuditProfile;employees:{full_name:string;employee_code:string;profile_id:string|null}|null};
 type NotificationRow = {id:string;title:string;message:string;notification_type:string;read_at:string|null;created_at:string};
 
 type EmployeeRow = { id:string; employee_code:string; full_name:string; email:string|null; phone:string|null; job_title:string|null; employment_status:"active"|"inactive"; joined_on:string|null; notes:string|null; profile_id?:string|null };
@@ -289,7 +290,7 @@ export default function HomePage() {
       if (activePage === "orders") {
         const [productsResult, ordersResult, customersResult] = await Promise.all([
           supabase.from("products").select("id,name,sku,unit,sale_price,current_stock,is_active").eq("is_active", true).order("name"),
-          supabase.from("product_orders").select("id,order_code,status,notes,created_at,ordered_by,customer_id,payment_method,payment_evidence_path,stock_reserved,business_customers(store_name,customer_code),ordered_by_profile:profiles!product_orders_ordered_by_fkey(full_name,email),product_order_items(id,product_id,quantity,unit_price,line_total,products(name,sku,unit))").order("created_at", {ascending:false}).limit(100),
+          supabase.from("product_orders").select("id,order_code,status,notes,created_at,ordered_by,reviewed_by,reviewed_at,customer_id,payment_method,payment_evidence_path,stock_reserved,business_customers(store_name,customer_code),ordered_by_profile:profiles!product_orders_ordered_by_fkey(full_name,email),reviewed_by_profile:profiles!product_orders_reviewed_by_fkey(full_name,email),product_order_items(id,product_id,quantity,unit_price,line_total,products(name,sku,unit))").order("created_at", {ascending:false}).limit(100),
           supabase.from("business_customers").select("id,customer_code,store_name,owner_name,phone,email,address,notes,created_by,is_active,created_at").eq("is_active",true).order("store_name").limit(500)
         ]);
         if (!alive) return;
@@ -321,7 +322,7 @@ export default function HomePage() {
       } else if (activePage === "refunds") {
         const [ordersResult, refundsResult, customersResult] = await Promise.all([
           supabase.from("product_orders").select("id,order_code,status,notes,created_at,ordered_by,customer_id,payment_method,payment_evidence_path,stock_reserved,business_customers(store_name,customer_code),product_order_items(id,product_id,quantity,unit_price,line_total,products(name,sku,unit))").in("status", ["approved","fulfilled"]).order("created_at", {ascending:false}).limit(100),
-          supabase.from("product_refunds").select("id,refund_code,order_id,order_item_id,requested_by,quantity,amount,reason,status,created_at,product_orders(order_code,customer_id,business_customers(store_name,customer_code))").order("created_at", {ascending:false}).limit(100),
+          supabase.from("product_refunds").select("id,refund_code,order_id,order_item_id,requested_by,reviewed_by,reviewed_at,requested_by_profile:profiles!product_refunds_requested_by_fkey(full_name,email),reviewed_by_profile:profiles!product_refunds_reviewed_by_fkey(full_name,email),quantity,amount,reason,status,created_at,product_orders(order_code,customer_id,business_customers(store_name,customer_code))").order("created_at", {ascending:false}).limit(100),
           supabase.from("business_customers").select("id,customer_code,store_name,owner_name,phone,email,address,notes,created_by,is_active,created_at").eq("is_active",true).order("store_name").limit(500)
         ]);
         if (!alive) return;
@@ -331,7 +332,7 @@ export default function HomePage() {
         else { setRefundRows((refundsResult.data ?? []) as unknown as RefundRow[]); setRefundError(""); }
       } else if (activePage === "finance-reports") {
         const [reportsResult, ordersResult, customersResult] = await Promise.all([
-          supabase.from("financial_reports").select("id,report_code,report_type,amount,description,payment_method,status,created_at,submitted_by,related_order_id,related_customer_id,business_customers!financial_reports_related_customer_id_fkey(store_name,customer_code),product_orders(order_code,business_customers(store_name,customer_code))").order("created_at", {ascending:false}).limit(100),
+          supabase.from("financial_reports").select("id,report_code,report_type,amount,description,payment_method,status,created_at,submitted_by,reviewed_by,reviewed_at,submitted_by_profile:profiles!financial_reports_submitted_by_fkey(full_name,email),reviewed_by_profile:profiles!financial_reports_reviewed_by_fkey(full_name,email),related_order_id,related_customer_id,business_customers!financial_reports_related_customer_id_fkey(store_name,customer_code),product_orders(order_code,business_customers(store_name,customer_code))").order("created_at", {ascending:false}).limit(100),
           supabase.from("product_orders").select("id,order_code,status,notes,created_at,ordered_by,customer_id,payment_method,payment_evidence_path,stock_reserved,business_customers(store_name,customer_code),product_order_items(id,product_id,quantity,unit_price,line_total,products(name,sku,unit))").order("created_at",{ascending:false}).limit(100),
           supabase.from("business_customers").select("id,customer_code,store_name,owner_name,phone,email,address,notes,created_by,is_active,created_at").eq("is_active",true).order("store_name").limit(500)
         ]);
@@ -395,7 +396,7 @@ export default function HomePage() {
         if(!ordersForProfit.error){const profitOrders=(ordersForProfit.data??[]) as Array<{product_order_items?:Array<{line_total:number|string;quantity:number|string;products?:{product_costs?:{cost_price:number|string}|Array<{cost_price:number|string}>|null}|null}>|null}>;const missing=profitOrders.reduce((sum,order)=>sum+(order.product_order_items??[]).filter(line=>{const costs=line.products?.product_costs;return Array.isArray(costs)?costs.length===0:!costs;}).length,0);const gross=profitOrders.reduce((sum,order)=>sum+(order.product_order_items??[]).reduce((lineSum,line)=>{const costs=line.products?.product_costs;const cost=Array.isArray(costs)?costs[0]?.cost_price:costs?.cost_price;return lineSum+Number(line.line_total||0)-Number(line.quantity||0)*Number(cost??0);},0),0);setGrossProfit(gross);setGrossProfitMissingCostCount(missing);}
       }
       if(activePage==="leave"){
-        const {data,error:queryError}=await supabase.from("leave_requests").select("id,employee_id,leave_type,start_date,end_date,reason,status,created_at,employees(full_name,employee_code,profile_id)").order("created_at",{ascending:false}).limit(200);
+        const {data,error:queryError}=await supabase.from("leave_requests").select("id,employee_id,leave_type,start_date,end_date,reason,status,created_at,reviewed_by,reviewed_at,reviewed_by_profile:profiles!leave_requests_reviewed_by_fkey(full_name,email),employees(full_name,employee_code,profile_id)").order("created_at",{ascending:false}).limit(200);
         if(!alive)return;
         if(queryError)setLeaveError("Permohonan izin belum dapat dimuat. Periksa hubungan akun karyawan.");else setLeaveRows((data??[]) as unknown as LeaveRow[]);
         if(profile?.role==="employee"){
@@ -422,7 +423,7 @@ export default function HomePage() {
       setAttendanceError("");
       const { data, error: queryError } = await supabase
         .from("attendance_records")
-        .select("id,work_date,check_in_at,check_out_at,status,check_in_method,check_out_method,evidence_path,employees(full_name,employee_code)")
+        .select("id,work_date,check_in_at,check_out_at,status,check_in_method,check_out_method,notes,recorded_by,evidence_path,employees(full_name,employee_code),recorded_by_profile:profiles!attendance_records_recorded_by_fkey(full_name,email)")
         .order("work_date", { ascending: false })
         .limit(100);
       if (queryError) {
