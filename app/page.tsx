@@ -86,6 +86,7 @@ function jakartaDateInput(date = new Date()) {
 export default function HomePage() {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [storePlacementActive, setStorePlacementActive] = useState(false);
   const [myEmployeeProfile, setMyEmployeeProfile] = useState<EmployeeRow | null>(null);
   const [counts, setCounts] = useState<Counts>({ employees: 0, attendance: 0, products: 0, finances: 0, orders:0, refunds:0, reports:0 });
   const [pageLoading, setPageLoading] = useState(true);
@@ -228,6 +229,8 @@ export default function HomePage() {
   const [accountRefresh, setAccountRefresh] = useState(0);
   const [accountError, setAccountError] = useState("");
   const [accountNotice, setAccountNotice] = useState("");
+  const storeScopedAccount = profile?.role === "employee" && storePlacementActive;
+  const canAccessCurrentModule = (key: ModuleKey) => canAccessModule(profile?.role, key) && (!storeScopedAccount || ["dashboard","profile","attendance","leave","notifications"].includes(key));
 
   const loadProfileAndCounts = useCallback(async (currentSession: Session) => {
     setDataLoading(true);
@@ -245,18 +248,24 @@ export default function HomePage() {
     }
     const safeProfile = profileData as Profile;
     setProfile(safeProfile);
+    const { data: placementRows, error: placementError } = await supabase.from("offline_store_memberships").select("store_id").eq("user_id", safeProfile.id).eq("is_active", true).limit(1);
+    const hasPlacement = !placementError && Boolean(placementRows?.length);
+    setStorePlacementActive(hasPlacement);
     if (!safeProfile.is_active) {
       setError("Akun Anda belum aktif. Hubungi Owner untuk mengaktifkan akses.");
       setDataLoading(false);
       return;
     }
+    const isScopedStoreUser = safeProfile.role === "employee" && hasPlacement;
     const [employees, attendance, products, orders, refunds, reports] = await Promise.all([
       supabase.from("employees").select("id", { count: "exact", head: true }),
       supabase.from("attendance_records").select("id", { count: "exact", head: true }),
-      supabase.from("products").select("id", { count: "exact", head: true }),
-      supabase.from("product_orders").select("id", { count: "exact", head: true }),
-      supabase.from("product_refunds").select("id", { count: "exact", head: true }),
-      supabase.from("financial_reports").select("id", { count: "exact", head: true })
+      isScopedStoreUser
+        ? supabase.from("offline_store_products").select("id", { count: "exact", head: true }).eq("store_id", placementRows?.[0]?.store_id || "")
+        : supabase.from("products").select("id", { count: "exact", head: true }),
+      isScopedStoreUser ? Promise.resolve({count:0,error:null}) : supabase.from("product_orders").select("id", { count: "exact", head: true }),
+      isScopedStoreUser ? Promise.resolve({count:0,error:null}) : supabase.from("product_refunds").select("id", { count: "exact", head: true }),
+      isScopedStoreUser ? Promise.resolve({count:0,error:null}) : supabase.from("financial_reports").select("id", { count: "exact", head: true })
     ]);
     const finances = safeProfile.role==="owner" ? await supabase.from("financial_transactions").select("id", { count: "exact", head: true }) : {count:0,error:null};
     setCounts({employees:employees.count??0,attendance:attendance.count??0,products:products.count??0,finances:finances.count??0,orders:orders.count??0,refunds:refunds.count??0,reports:reports.count??0});
@@ -1037,11 +1046,11 @@ export default function HomePage() {
       {mobileMenuOpen && <button type="button" className="mobile-menu-backdrop" aria-label="Tutup menu navigasi" onClick={() => setMobileMenuOpen(false)} />}
       <aside id="mobile-navigation" className="sidebar" aria-label="Navigasi utama">
         <div className="brand"><div className="brand-mark">SB</div><div><div className="brand-title">SMART BUSINESS</div><div className="brand-sub">MANAGEMENT SYSTEM</div></div></div>
-        {["UTAMA", "OPERASIONAL", "TRANSAKSI", "MANAJEMEN", "AKUN"].filter((group) => navItems.some((item) => item.group === group && (canAccessModule(profile?.role, item.key)) && item.label.toLowerCase().includes(menuSearch.trim().toLowerCase()))).map((group) => (
+        {["UTAMA", "OPERASIONAL", "TRANSAKSI", "MANAJEMEN", "AKUN"].filter((group) => navItems.some((item) => item.group === group && (canAccessCurrentModule(item.key)) && item.label.toLowerCase().includes(menuSearch.trim().toLowerCase()))).map((group) => (
           <div key={group}>
             <div className="nav-label">{group}</div>
             <nav className="nav-list">
-              {navItems.filter((item) => item.group === group && (canAccessModule(profile?.role, item.key)) && item.label.toLowerCase().includes(menuSearch.trim().toLowerCase())).map((item) => (
+              {navItems.filter((item) => item.group === group && (canAccessCurrentModule(item.key)) && item.label.toLowerCase().includes(menuSearch.trim().toLowerCase())).map((item) => (
                 <button key={item.key} className={`nav-item ${activePage === item.key ? "active" : ""}`} onClick={() => { setActivePage(item.key); setMobileMenuOpen(false); }}>
                   <span className="nav-icon">{item.icon}</span>{item.label}
                 </button>
@@ -1049,7 +1058,7 @@ export default function HomePage() {
             </nav>
           </div>
         ))}
-        <div><div className="nav-label">TOKO</div><nav className="nav-list"><Link href="/offline-store" className="nav-item" onClick={() => setMobileMenuOpen(false)}><span className="nav-icon">🏪</span>Toko Offline</Link></nav></div>
+        {(profile?.role === "owner" || profile?.role === "admin" || storePlacementActive) && <div><div className="nav-label">TOKO</div><nav className="nav-list"><Link href="/offline-store" className="nav-item" onClick={() => setMobileMenuOpen(false)}><span className="nav-icon">🏪</span>Toko Offline</Link></nav></div>}
         {profile?.role !== "employee" && <div className="field menu-search"><label htmlFor="menu-search">Cari menu</label><input id="menu-search" type="search" value={menuSearch} onChange={e=>setMenuSearch(e.target.value)} placeholder="Cari menu..." aria-label="Cari menu website"/></div>}
         <div className="sidebar-bottom"><div className="side-foot"><strong>{profile?.role === "owner" ? "✦ Owner workspace" : profile?.role === "admin" ? "◈ Admin workspace" : profile?.role === "hrd" ? "♙ HRD workspace" : "◷ Ruang kerja karyawan"}</strong><p>{profile?.role === "owner" ? "Kontrol penuh bisnis, pengguna, dan konfigurasi." : profile?.role === "admin" ? "Kelola kegiatan operasional sesuai kewenangan." : profile?.role === "hrd" ? "Kelola data pekerja, kehadiran, dan cuti." : "Order, laporan uang, refund, dan absensi pribadi."}</p></div><button className="logout-button" onClick={handleLogout} disabled={busy}><span className="logout-symbol">↪</span><span><strong>{busy ? "Memproses..." : "Keluar dari akun"}</strong><small>Akhiri sesi dengan aman</small></span></button></div>
       </aside>
@@ -1075,11 +1084,11 @@ export default function HomePage() {
           <div className="content-grid">
             <section className="panel"><div className="panel-head"><div><h2>Modul bisnis</h2><div className="subtle">Pilih area kerja yang ingin Anda buka</div></div><span className="status">ONLINE</span></div>
               <div className="activity-list">
-                {navItems.filter((item) => item.key !== "dashboard" && (canAccessModule(profile?.role, item.key)) && (item.label+" "+descriptions[item.key]).toLowerCase().includes(menuSearch.trim().toLowerCase())).map((item) => <button className="activity" key={item.key} onClick={() => setActivePage(item.key)} style={{ width: "100%", textAlign: "left", background: "transparent", color: "inherit", borderLeft: 0, borderRight: 0, borderBottom: 0, cursor: "pointer" }}><div className="activity-icon">{item.icon}</div><div className="activity-copy"><strong>{item.label}</strong><span>{descriptions[item.key]}</span></div><span className="activity-time">BUKA ↗</span></button>)}
+                {navItems.filter((item) => item.key !== "dashboard" && (canAccessCurrentModule(item.key)) && (item.label+" "+descriptions[item.key]).toLowerCase().includes(menuSearch.trim().toLowerCase())).map((item) => <button className="activity" key={item.key} onClick={() => setActivePage(item.key)} style={{ width: "100%", textAlign: "left", background: "transparent", color: "inherit", borderLeft: 0, borderRight: 0, borderBottom: 0, cursor: "pointer" }}><div className="activity-icon">{item.icon}</div><div className="activity-copy"><strong>{item.label}</strong><span>{descriptions[item.key]}</span></div><span className="activity-time">BUKA ↗</span></button>)}
               </div>
             </section>
             <section className="panel"><div className="panel-head"><div><h2>Akses cepat</h2><div className="subtle">Pintasan modul</div></div></div><div className="quick-grid">
-              {[{key:"orders" as ModuleKey,icon:"🛒",label:"Order produk",desc:"Ajukan kebutuhan kerja"},{key:"refunds" as ModuleKey,icon:"↩",label:"Refund produk",desc:"Pengembalian barang"},{key:"finance-reports" as ModuleKey,icon:"↗",label:"Laporan uang",desc:"Catat uang masuk/keluar"},{key:"customers" as ModuleKey,icon:"🏪",label:"Data Toko / Member",desc:"Daftarkan pembeli/toko"},{key:"attendance" as ModuleKey,icon:"◷",label:"Absensi",desc:"Check-in / Check-out"},{key:"leave" as ModuleKey,icon:"▣",label:"Izin / cuti",desc:"Permohonan hari kerja"},{key:"notifications" as ModuleKey,icon:"♢",label:"Notifikasi",desc:"Status dan pembaruan"},{key:"employees" as ModuleKey,icon:"♙",label:"Karyawan",desc:"Data tim"},{key:"inventory" as ModuleKey,icon:"▤",label:"Inventaris",desc:"Stok & produk"},{key:"finance" as ModuleKey,icon:"◈",label:"Keuangan",desc:"Buku besar resmi"},{key:"settings" as ModuleKey,icon:"⚙",label:"Pengaturan",desc:"Akses dan aturan"}].filter((item) => canAccessModule(profile?.role, item.key)).map((item) => <button className="quick-card" key={item.key} onClick={() => setActivePage(item.key)}><span>{item.icon}</span><strong>{item.label}</strong><small>{item.desc}</small></button>)}
+              {[{key:"orders" as ModuleKey,icon:"🛒",label:"Order produk",desc:"Ajukan kebutuhan kerja"},{key:"refunds" as ModuleKey,icon:"↩",label:"Refund produk",desc:"Pengembalian barang"},{key:"finance-reports" as ModuleKey,icon:"↗",label:"Laporan uang",desc:"Catat uang masuk/keluar"},{key:"customers" as ModuleKey,icon:"🏪",label:"Data Toko / Member",desc:"Daftarkan pembeli/toko"},{key:"attendance" as ModuleKey,icon:"◷",label:"Absensi",desc:"Check-in / Check-out"},{key:"leave" as ModuleKey,icon:"▣",label:"Izin / cuti",desc:"Permohonan hari kerja"},{key:"notifications" as ModuleKey,icon:"♢",label:"Notifikasi",desc:"Status dan pembaruan"},{key:"employees" as ModuleKey,icon:"♙",label:"Karyawan",desc:"Data tim"},{key:"inventory" as ModuleKey,icon:"▤",label:"Inventaris",desc:"Stok & produk"},{key:"finance" as ModuleKey,icon:"◈",label:"Keuangan",desc:"Buku besar resmi"},{key:"settings" as ModuleKey,icon:"⚙",label:"Pengaturan",desc:"Akses dan aturan"}].filter((item) => canAccessCurrentModule(item.key)).map((item) => <button className="quick-card" key={item.key} onClick={() => setActivePage(item.key)}><span>{item.icon}</span><strong>{item.label}</strong><small>{item.desc}</small></button>)}
             </div><div className="info-box" style={{ marginTop: 15 }}>{profile?.role==="employee"?"Catat aktivitas selama shift: order produk, refund, uang masuk/keluar, dan absensi. Status laporan akan diperbarui setelah Admin/Owner meninjau.":profile?.role==="admin"?"Tinjau order, refund, laporan harian, persediaan, dan kehadiran tim dari satu workspace.":"Pantau alur order, stok, refund, laporan karyawan, dan transaksi resmi dari satu pusat kendali."}</div></section>
           </div>
         </> : activePage === "attendance" ? <section className="panel" style={{ maxWidth: 1200 }}>
