@@ -93,7 +93,7 @@ export default function OfflineStorePage(){
   if(sub&&!isAdmin)setSubmissions(sub as Submission[]);
  },[storeId,profile,isAdmin]);
  useEffect(()=>{void loadStoreData();},[loadStoreData]);
- async function runAction(fn:()=>Promise<{error:{message:string}|null;data:unknown}>,success:string,after?:()=>void){
+ async function runAction(fn:()=>PromiseLike<{error:{message:string}|null;data:unknown}>,success:string,after?:()=>void){
   setBusy(true);setNotice("");setError("");
   try{const result=await fn();if(result?.error)throw result.error;setNotice(success);after?.();await loadAll();await loadStoreData();}
   catch(e:unknown){setError(e instanceof Error?e.message:"Operasi gagal.");}
