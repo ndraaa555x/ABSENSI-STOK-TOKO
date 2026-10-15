@@ -350,7 +350,7 @@ export default function HomePage() {
     if (!session || !profile?.is_active) return;
     const refresh = () => setBusinessRefresh(v => v + 1);
     let channel = supabase.channel("business-live-sync-" + profile.id);
-    for (const table of ["products","product_orders","product_order_items","product_refunds","financial_reports","financial_transactions","stock_movements","notifications","leave_requests","attendance_records","employees","business_customers"]) {
+    for (const table of ["products","product_categories","product_costs","product_orders","product_order_items","product_refunds","financial_reports","financial_transactions","financial_categories","stock_movements","notifications","leave_requests","attendance_records","employees","business_customers","profiles"]) {
       channel = channel.on("postgres_changes", { event: "*", schema: "public", table }, refresh);
     }
     channel.subscribe();
