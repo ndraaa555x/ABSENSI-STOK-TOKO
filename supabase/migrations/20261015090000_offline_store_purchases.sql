@@ -59,7 +59,7 @@ returns uuid language plpgsql security definer set search_path to ''
 as $function$
 declare v_order_id uuid; v_code text; v_item jsonb; v_product public.products%rowtype; v_cost numeric(14,2); v_qty numeric(14,3); v_total numeric(14,2):=0;
 begin
- if auth.uid() is null or not private.offline_store_member(p_store_id,array['manager','inventory']) then raise exception 'Hanya manager atau petugas stok toko yang dapat membuat permintaan pembelian'; end if;
+ if auth.uid() is null or (not private.is_admin_or_owner() and not private.offline_store_member(p_store_id,array['manager','inventory'])) then raise exception 'Hanya manager/petugas stok toko atau Owner/Admin yang dapat membuat permintaan pembelian'; end if;
  if jsonb_typeof(p_items)<>'array' or jsonb_array_length(p_items)=0 then raise exception 'Pilih minimal satu produk'; end if;
  v_code:='PO-'||upper(substr(replace(gen_random_uuid()::text,'-',''),1,10));
  insert into public.offline_store_purchase_orders(order_code,store_id,notes,requested_by) values(v_code,p_store_id,nullif(trim(p_notes),''),auth.uid()) returning id into v_order_id;
@@ -68,6 +68,7 @@ begin
   if not found then raise exception 'Produk kantor tidak ditemukan atau tidak aktif'; end if;
   v_qty:=coalesce((v_item->>'quantity')::numeric,0); if v_qty<=0 then raise exception 'Jumlah setiap produk harus lebih dari nol'; end if;
   select coalesce(pc.cost_price,0) into v_cost from public.products p left join public.product_costs pc on pc.product_id=p.id where p.id=v_product.id;
+  if v_cost<=0 then raise exception 'Harga modal kantor untuk produk % belum diatur. Lengkapi harga modal sebelum menerima pesanan.',v_product.name; end if;
   v_total:=v_total+(v_qty*v_cost);
   insert into public.offline_store_purchase_items(order_id,central_product_id,quantity_requested,unit_cost,line_total) values(v_order_id,v_product.id,v_qty,v_cost,v_qty*v_cost);
  end loop;
