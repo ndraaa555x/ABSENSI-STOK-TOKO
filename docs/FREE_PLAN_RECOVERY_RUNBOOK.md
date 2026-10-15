@@ -19,11 +19,11 @@ The Supabase Dashboard does not show a usable paid-plan backup for this project.
    $env:SUPABASE_DB_URL = Read-Host "Paste database connection string (input may be visible)"
    ```
    Safer alternative: use a password prompt/credential manager and a connection string without a literal password. If the connection string includes a password, clear the variable after the dump and do not share terminal output.
-4. Create a dated folder on an encrypted local drive with enough free space. Run a full custom-format database dump:
+4. Create a dated folder on an encrypted local drive with enough free space. Run a custom-format database dump **without excluding ACL/grant information**:
    ```powershell
-   pg_dump --format=custom --no-owner --no-privileges --file="smart-business-management-2026-10-15.dump" "$env:SUPABASE_DB_URL"
+   pg_dump --format=custom --file="smart-business-management-2026-10-15.dump" "$env:SUPABASE_DB_URL"
    ```
-   Then make a schema-only SQL dump for human review:
+   Keep the default ownership and ACL metadata in this archive. During restore to a disposable environment, use appropriate restore options for the destination roles; do not omit privileges from the only recovery copy. Then make a schema-only SQL dump for human review:
    ```powershell
    npx supabase db dump --db-url "$env:SUPABASE_DB_URL" --file "smart-business-management-schema-2026-10-15.sql"
    ```
@@ -53,8 +53,8 @@ Until then: **no production migration, bulk grant change, RLS rewrite, data back
 
 ## Audit findings that need a controlled fix
 
-- Security Advisor reports `public.post_order_finance_on_approval()` is `SECURITY DEFINER` and executable by `anon` and `authenticated` through RPC, although it is also a trigger function. Do not bulk revoke or change its security mode without verifying trigger dependencies and all call paths. Prepare a narrow migration and test it in an isolated restore first.
-- Security Advisor also flags authenticated execution of `set_product_stock`, `submit_product_order`, `submit_product_order_multi`, and `submit_product_refund` as SECURITY DEFINER RPCs. Verify authorization checks and intended caller roles function-by-function.
+- Live catalog check confirms `public.post_order_finance_on_approval()` is `SECURITY DEFINER`, has a trigger, and currently grants direct execution to `PUBLIC`, `anon`, and `authenticated`. A candidate revoke/grant script is in `docs/sql-candidates/restrict_trigger_function_direct_execution.sql` on the storage-hardening candidate branch. It is documentation only; test trigger posting and intended approval flows in an isolated restore before applying.
+- Authenticated execution of `set_product_stock`, `submit_product_order`, `submit_product_order_multi`, and `submit_product_refund` is allowed. Verify authorization checks and intended caller roles function-by-function before changing grants.
 - Leaked-password protection is disabled. Enable it through Auth settings after confirming the setting and its user-facing effect; it is not a reason to interrupt production.
 - Current public business tables do not have `organization_id`, `tenant_id`, `workspace_id`, or `company_id` columns. Existing policies are user/role based, not tenant-isolated. Do not claim SaaS multi-company readiness until ownership mapping and cross-tenant tests pass.
 - The repository migration files do not exactly match the live migration history. Compare actual SQL definitions and dependencies before replaying or renaming any migration.
