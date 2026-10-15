@@ -457,3 +457,65 @@ input:focus,select:focus,textarea:focus{outline:3px solid #2f80ed20;border-color
   .profile-detail-card dl>div{grid-template-columns:1fr;gap:5px}
   .profile-tags .status-pill{white-space:normal}
 }
+
+
+/* Mobile-first navigation and spacing override: replace the crowded menu strip with a drawer. */
+.mobile-menu-toggle{display:none;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:9px 12px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--text);font-size:13px;font-weight:700;white-space:nowrap}
+.mobile-menu-toggle-icon{font-size:18px;line-height:1}
+.topbar-heading{min-width:0;flex:1}
+.mobile-menu-backdrop{display:none}
+@media(max-width:720px){
+  .app-shell{display:block!important;min-height:100dvh;width:100%;overflow-x:clip}
+  .app-shell .sidebar{position:fixed!important;inset:0 auto 0 0!important;width:min(86vw,320px)!important;height:100dvh!important;max-height:100dvh!important;overflow-y:auto!important;overscroll-behavior:contain;padding:18px 14px calc(22px + env(safe-area-inset-bottom))!important;gap:18px!important;border:0!important;border-right:1px solid var(--line)!important;border-radius:0 18px 18px 0!important;box-shadow:18px 0 45px rgba(12,25,45,.24)!important;z-index:1002!important;background:var(--panel)!important;transform:translateX(-110%);visibility:hidden;transition:transform .22s ease,visibility .22s ease}
+  .app-shell.mobile-menu-open .sidebar{transform:translateX(0);visibility:visible}
+  .app-shell .sidebar .brand{padding:4px 4px 16px!important;border-bottom:1px solid var(--line);gap:10px}
+  .app-shell .sidebar .nav-label{display:block!important;margin:8px 8px 7px!important;font-size:10px}
+  .app-shell .sidebar .nav-list{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:4px!important;overflow:visible!important;padding:0!important}
+  .app-shell .sidebar .nav-item{display:flex!important;width:100%!important;min-width:0!important;min-height:44px;flex:initial!important;white-space:normal!important;padding:11px 12px!important;font-size:13px!important}
+  .app-shell .sidebar .nav-icon{flex:0 0 22px}
+  .app-shell .sidebar .side-foot{display:block!important}
+  .app-shell .sidebar-bottom{display:grid!important;grid-template-columns:1fr!important;position:static!important;margin-top:auto!important;gap:10px}
+  .app-shell .sidebar .logout-button{width:100%!important;min-height:48px!important}
+  .mobile-menu-backdrop{display:block;position:fixed;inset:0;width:100%;height:100%;padding:0;border:0;border-radius:0;background:rgba(7,15,28,.48);backdrop-filter:blur(2px);z-index:1001}
+  .app-shell .main{width:100%;min-width:0;padding:12px 12px calc(24px + env(safe-area-inset-bottom))!important}
+  .app-shell .topbar{display:grid!important;grid-template-columns:auto minmax(0,1fr);align-items:center!important;gap:12px!important;margin:0 0 16px!important;padding:0 0 14px!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
+  .mobile-menu-toggle{display:inline-flex;grid-column:1;grid-row:1;align-self:start}
+  .topbar-heading{grid-column:2;grid-row:1;min-width:0}
+  .app-shell .topbar-heading .eyebrow{font-size:9px;letter-spacing:.09em;line-height:1.45;overflow-wrap:anywhere}
+  .app-shell .workspace-caption{font-size:11px;line-height:1.45}
+  .app-shell .topbar .user-menu{grid-column:1/-1;width:100%;max-width:none;min-width:0;display:flex;justify-content:flex-start;padding:9px 11px!important}
+  .app-shell .user-copy{min-width:0;flex:1}
+  .app-shell .user-email{max-width:100%;overflow-wrap:anywhere;font-size:12px}
+  .app-shell .profile-shortcut{margin-left:auto}
+  .app-shell .welcome,.app-shell .business-hero{display:flex;flex-direction:column;align-items:flex-start;gap:12px;padding:17px!important;margin-bottom:14px;border-radius:15px}
+  .app-shell .welcome h1,.app-shell .business-hero h1{font-size:clamp(22px,6vw,27px)!important;line-height:1.2;overflow-wrap:anywhere}
+  .app-shell .welcome p,.app-shell .business-hero p{font-size:12px;line-height:1.55}
+  .app-shell .date-pill{max-width:100%;white-space:normal;font-size:11px}
+  .app-shell .stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+  .app-shell .stat-card{min-width:0;padding:13px!important;border-radius:14px!important}
+  .app-shell .stat-top{gap:6px;font-size:11px;line-height:1.4}
+  .app-shell .stat-value{font-size:clamp(21px,6vw,28px)!important;overflow-wrap:anywhere}
+  .app-shell .stat-note{font-size:10px;line-height:1.45}
+  .app-shell .content-grid,.app-shell .business-columns,.app-shell .profile-details-grid{grid-template-columns:minmax(0,1fr)!important;gap:12px!important}
+  .app-shell .panel,.app-shell .profile-overview{min-width:0;padding:14px!important;border-radius:14px!important}
+  .app-shell .module-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+  .app-shell .quick-card{min-width:0;padding:13px!important}
+  .app-shell .table-wrap{max-width:calc(100vw - 24px);overflow-x:auto!important}
+  .app-shell table{min-width:620px}
+  .app-shell .business-actions{grid-template-columns:minmax(0,1fr)!important;gap:9px!important}
+  .app-shell .business-actions>*{width:100%;min-width:0!important;max-width:100%!important}
+  .app-shell .business-record{min-width:0;padding:12px!important}
+  .app-shell .profile-detail-card dl>div{grid-template-columns:minmax(0,1fr)!important;gap:5px!important}
+  .app-shell .profile-security{flex-direction:column;align-items:stretch}
+  .app-shell input:not([type=checkbox]),.app-shell select,.app-shell textarea{width:100%;min-width:0;font-size:16px!important}
+  .app-shell button{max-width:100%}
+}
+@media(max-width:380px){
+  .app-shell .main{padding-left:10px!important;padding-right:10px!important}
+  .app-shell .stats-grid,.app-shell .module-grid{grid-template-columns:minmax(0,1fr)!important}
+  .app-shell .topbar{gap:9px!important}
+  .mobile-menu-toggle{padding:8px 10px;font-size:12px}
+  .app-shell .topbar .user-menu{gap:8px}
+  .app-shell .profile-shortcut{font-size:10px}
+}
+@media(prefers-reduced-motion:reduce){.app-shell .sidebar{transition:none!important}}
