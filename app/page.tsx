@@ -69,6 +69,17 @@ const descriptions: Record<ModuleKey, string> = {
   settings: "Kelola pengaturan bisnis dan kontrol akses sesuai role."
 };
 
+function jakartaDateInput(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(date);
+  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
 export default function HomePage() {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -178,8 +189,8 @@ export default function HomePage() {
   const [leaveRows,setLeaveRows]=useState<LeaveRow[]>([]);
   const [leaveEmployeeId,setLeaveEmployeeId]=useState("");
   const [leaveType,setLeaveType]=useState("leave");
-  const [leaveStart,setLeaveStart]=useState(new Date().toISOString().slice(0,10));
-  const [leaveEnd,setLeaveEnd]=useState(new Date().toISOString().slice(0,10));
+  const [leaveStart,setLeaveStart]=useState(jakartaDateInput());
+  const [leaveEnd,setLeaveEnd]=useState(jakartaDateInput());
   const [leaveReason,setLeaveReason]=useState("");
   const [leaveNotice,setLeaveNotice]=useState("");
   const [leaveError,setLeaveError]=useState("");
@@ -202,7 +213,7 @@ export default function HomePage() {
   const [employeeError, setEmployeeError] = useState("");
   const [employeeNotice, setEmployeeNotice] = useState("");
   const [editingEmployeeId, setEditingEmployeeId] = useState<string|null>(null);
-  const [employeeForm, setEmployeeForm] = useState({employee_code:"",full_name:"",email:"",phone:"",job_title:"",joined_on:new Date().toISOString().slice(0,10),notes:""});
+  const [employeeForm, setEmployeeForm] = useState({employee_code:"",full_name:"",email:"",phone:"",job_title:"",joined_on:jakartaDateInput(),notes:""});
   const [createLoginAccount, setCreateLoginAccount] = useState(false);
   const [newAccountRole, setNewAccountRole] = useState<"employee"|"hrd"|"admin">("employee");
   const [employeePassword, setEmployeePassword] = useState("");
@@ -538,7 +549,7 @@ export default function HomePage() {
 
   function resetEmployeeForm() {
     setEditingEmployeeId(null);
-    setEmployeeForm({employee_code:"",full_name:"",email:"",phone:"",job_title:"",joined_on:new Date().toISOString().slice(0,10),notes:""});
+    setEmployeeForm({employee_code:"",full_name:"",email:"",phone:"",job_title:"",joined_on:jakartaDateInput(),notes:""});
     setCreateLoginAccount(false); setNewAccountRole("employee"); setEmployeePassword("");
   }
 
@@ -719,7 +730,7 @@ export default function HomePage() {
     event.preventDefault();
     if (!profile || !customerStoreName.trim()) { setCustomerError("Nama toko wajib diisi."); return; }
     setCustomerSubmitting(true); setCustomerError(""); setCustomerNotice("");
-    const customerCode = "TOK-" + new Date().toISOString().slice(0,10).replaceAll("-","") + "-" + Math.random().toString(36).slice(2,7).toUpperCase();
+    const customerCode = "TOK-" + jakartaDateInput().replaceAll("-","") + "-" + Math.random().toString(36).slice(2,7).toUpperCase();
     const { data, error: insertError } = await supabase.from("business_customers").insert({
       customer_code: customerCode, store_name: customerStoreName.trim(), owner_name: customerOwnerName.trim()||null,
       phone: customerPhone.trim()||null, email: customerEmail.trim()||null, address: customerAddress.trim()||null,
@@ -802,7 +813,7 @@ export default function HomePage() {
     event.preventDefault();
     if (!profile || !financeReportDescription.trim() || !Number.isFinite(Number(financeReportAmount)) || Number(financeReportAmount)<=0) { setFinanceReportError("Isi nominal lebih dari nol dan keterangan transaksi."); return; }
     setFinanceReportSubmitting(true); setFinanceReportError(""); setFinanceReportNotice("");
-    const reportCode = `LAP-${new Date().toISOString().slice(0,10).replaceAll("-","")}-${Math.random().toString(36).slice(2,7).toUpperCase()}`;
+    const reportCode = `LAP-${jakartaDateInput().replaceAll("-","")}-${Math.random().toString(36).slice(2,7).toUpperCase()}`;
     const { error: insertError } = await supabase.from("financial_reports").insert({report_code:reportCode,report_type:financeReportType,amount:Number(financeReportAmount),description:financeReportDescription.trim(),payment_method:financeReportPayment,reference_code:financeReportReference.trim()||null,related_order_id:financeReportRelatedOrderId||null,related_customer_id:financeReportCustomerId||null,submitted_by:profile.id});
     if (insertError) setFinanceReportError("Laporan gagal dikirim: "+insertError.message);
     else { setFinanceReportNotice(`Laporan ${reportCode} terkirim untuk diperiksa.`); setFinanceReportAmount(""); setFinanceReportDescription(""); setFinanceReportReference(""); setFinanceReportRelatedOrderId(""); setFinanceReportCustomerId(""); setBusinessRefresh((v)=>v+1); }
@@ -866,7 +877,7 @@ export default function HomePage() {
     event.preventDefault();if(!profile||profile.role!=="owner")return;
     if(!financialDescription.trim()||!Number.isFinite(Number(financialAmount))||Number(financialAmount)<=0){setFinancialError("Nominal harus lebih dari nol dan keterangan wajib diisi.");return;}
     setFinancialSaving(true);setFinancialError("");setFinancialNotice("");
-    const code=`TRX-${new Date().toISOString().slice(0,10).replaceAll("-","")}-${Math.random().toString(36).slice(2,7).toUpperCase()}`;
+    const code=`TRX-${jakartaDateInput().replaceAll("-","")}-${Math.random().toString(36).slice(2,7).toUpperCase()}`;
     const {error:saveError}=await supabase.from("financial_transactions").insert({transaction_code:code,transaction_type:financialType,category_id:financialCategoryId||null,amount:Number(financialAmount),payment_method:financialPayment,description:financialDescription.trim(),reference_code:financialReference.trim()||null,created_by:profile.id});
     if(saveError)setFinancialError("Transaksi gagal dicatat: "+saveError.message);
     else{setFinancialNotice("Transaksi resmi berhasil dicatat.");setFinancialAmount("");setFinancialDescription("");setFinancialReference("");setBusinessRefresh(v=>v+1);}

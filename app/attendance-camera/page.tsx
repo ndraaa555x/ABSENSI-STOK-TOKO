@@ -193,18 +193,12 @@ export default function AttendanceCameraPage() {
       const { error: uploadError } = await supabase.storage.from("attendance-evidence").upload(path, blob, { contentType: "image/jpeg", upsert: false });
       if (uploadError) throw new Error("Foto bukti gagal diunggah ke penyimpanan privat. Periksa kebijakan Storage.");
       uploadedPath = path;
-      if (mode === "checkin") {
-        const { error: insertError } = await supabase.from("attendance_records").insert({
-          employee_id: employeeId, work_date: workDate, check_in_at: now.toISOString(),
-          check_in_method: "face_match", status: "present", recorded_by: session?.user.id, evidence_path: path
-        });
-        if (insertError) throw new Error("Foto tersimpan, tetapi catatan check-in gagal. Minta Owner/Admin memeriksa izin database.");
-      } else {
-        const { error: updateError } = await supabase.from("attendance_records").update({
-          check_out_at: now.toISOString(), check_out_method: "face_match", evidence_path: path
-        }).eq("id", existing!.id);
-        if (updateError) throw new Error("Foto tersimpan, tetapi catatan check-out gagal. Minta Owner/Admin memeriksa izin database.");
-      }
+      const { error: recordError } = await supabase.rpc("record_attendance", {
+        p_employee_id: employeeId,
+        p_action: mode,
+        p_evidence_path: path
+      });
+      if (recordError) throw new Error(recordError.message || "Catatan absensi gagal disimpan. Periksa aturan absensi atau hubungi Owner/Admin.");
       setNotice(mode === "checkin" ? "Check-in berhasil. Foto bukti disimpan privat dengan masa berlaku 7 hari." : "Check-out berhasil. Foto bukti disimpan privat dengan masa berlaku 7 hari.");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Absensi gagal.");
