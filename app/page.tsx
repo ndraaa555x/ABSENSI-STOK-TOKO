@@ -789,7 +789,18 @@ export default function HomePage() {
       p_payment_method:orderPaymentMethod,p_payment_evidence_path:evidencePath
     });
     const order = Array.isArray(orderResult) ? orderResult[0] : orderResult;
-    if (createError || !order) { setOrderError(createError?.message ?? "Order gagal dibuat."); setOrderSubmitting(false); return; }
+    if (createError || !order) {
+      let cleanupNote = "";
+      if (evidencePath) {
+        const {data:linkedOrder,error:lookupError}=await supabase.from("product_orders").select("id").eq("payment_evidence_path",evidencePath).maybeSingle();
+        if (!lookupError && !linkedOrder) {
+          const {error:cleanupError}=await supabase.storage.from("order-payment-evidence").remove([evidencePath]);
+          if (cleanupError) cleanupNote=" Bukti pembayaran belum tertaut dan perlu dibersihkan manual.";
+        }
+      }
+      setOrderError((createError?.message ?? "Order gagal dibuat.")+cleanupNote);
+      setOrderSubmitting(false); return;
+    }
     setOrderNotice(`Order ${order.order_code} dengan ${items.length} jenis produk berhasil dikirim. Stok dicadangkan dan menunggu persetujuan Admin/Owner.`);
     setOrderCart([]); setOrderNotes(""); setOrderQuantity("1"); setOrderEvidenceFile(null); setOrderPaymentMethod("cash"); setBusinessRefresh((v)=>v+1); setOrderSubmitting(false);
   }
