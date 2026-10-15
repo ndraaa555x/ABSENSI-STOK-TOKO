@@ -949,10 +949,10 @@ export default function HomePage() {
   async function deleteProductCategory(category:ProductCategory){
     if(!profile||!["owner","admin"].includes(profile.role))return;
     if(!window.confirm(`Hapus kategori “${category.name}”? Produk di kategori ini akan tetap ada dan dipindahkan menjadi tanpa kategori.`))return;
-    const {error:moveError}=await supabase.from("products").update({category_id:null}).eq("category_id",category.id);
-    if(moveError){setInventoryError("Produk dalam kategori tidak dapat dipindahkan: "+moveError.message);return;}
-    const {error:deleteError}=await supabase.from("product_categories").delete().eq("id",category.id);
-    if(deleteError)setInventoryError("Kategori gagal dihapus: "+deleteError.message);else{setInventoryNotice("Kategori dihapus; produk tetap tersimpan tanpa kategori.");setSelectedCategoryId(null);setBusinessRefresh(v=>v+1);}
+    setInventoryError("");setInventoryNotice("");
+    const {error:deleteError}=await supabase.rpc("delete_product_category",{p_category_id:category.id});
+    if(deleteError)setInventoryError("Kategori dan tautan produk tidak diubah karena penghapusan gagal: "+deleteError.message);
+    else{setInventoryNotice("Kategori dihapus dan produk dipindahkan menjadi tanpa kategori dalam satu transaksi.");setSelectedCategoryId(null);setBusinessRefresh(v=>v+1);}
   }
 
   async function toggleProductActive(product:ProductRow){
