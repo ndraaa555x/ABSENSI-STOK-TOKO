@@ -401,3 +401,59 @@ input:focus,select:focus,textarea:focus{outline:3px solid #2f80ed20;border-color
   .business-page .business-record .business-line { flex-direction:column; gap:3px; }
   .business-page .business-record .business-line>strong { text-align:left; }
 }
+
+
+/* Responsive workspace refinements for desktop, tablet and touch screens. */
+.user-menu-button{font:inherit;color:inherit;text-align:left;cursor:pointer;min-width:0;transition:border-color .18s ease,background .18s ease}
+.user-menu-button:hover{border-color:var(--role-accent);background:color-mix(in srgb,var(--role-accent) 7%,var(--role-panel))}
+.user-menu-button:focus-visible{outline:2px solid var(--role-accent);outline-offset:3px}
+.profile-shortcut{font-size:11px;font-weight:700;color:var(--role-accent);white-space:nowrap;margin-left:8px}
+.profile-overview{display:flex;align-items:center;gap:18px;padding:24px;min-width:0}
+.profile-avatar{width:64px;height:64px;flex:0 0 64px;display:grid;place-items:center;border-radius:20px;background:linear-gradient(135deg,var(--role-accent-2),var(--role-accent));color:#07111a;font:800 26px Manrope,sans-serif}
+.profile-overview-copy{min-width:0;overflow-wrap:anywhere}
+.profile-overview-copy h2{font-size:20px;margin:0 0 5px}
+.profile-overview-copy .subtle{margin-bottom:10px;overflow-wrap:anywhere}
+.profile-tags{display:flex;flex-wrap:wrap;gap:8px}
+.profile-details-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.profile-detail-card{min-width:0}
+.profile-detail-card dl{display:grid;gap:0;margin:18px 0 0}
+.profile-detail-card dl>div{display:grid;grid-template-columns:minmax(100px,.75fr) minmax(0,1.25fr);gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.profile-detail-card dt{font-size:12px;color:var(--muted)}
+.profile-detail-card dd{margin:0;font-size:12px;font-weight:700;overflow-wrap:anywhere}
+.profile-note{margin:16px 0 0}
+.profile-security{display:flex;align-items:center;justify-content:space-between;gap:18px}
+.profile-security h2{margin-bottom:5px}
+.profile-security p{margin-bottom:0}
+.app-shell .table-wrap{width:100%;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.app-shell table{min-width:640px}
+.app-shell button,.app-shell input,.app-shell select,.app-shell textarea{touch-action:manipulation}
+.app-shell button{min-height:40px}
+.app-shell input:not([type="checkbox"]),.app-shell select{min-height:42px}
+@media (min-width:721px) and (max-width:1000px){
+  .app-shell{grid-template-columns:198px minmax(0,1fr)}
+  .app-shell .sidebar{padding:18px 11px}
+  .app-shell .main{padding:22px 18px 32px}
+  .app-shell .stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .app-shell .content-grid{grid-template-columns:minmax(0,1fr)}
+  .app-shell .module-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .app-shell .user-menu{max-width:250px}
+}
+@media(max-width:720px){
+  .app-shell .topbar{align-items:stretch}
+  .app-shell .user-menu{width:100%;max-width:none}
+  .app-shell .profile-shortcut{margin-left:auto}
+  .profile-overview{align-items:flex-start;padding:18px;gap:13px}
+  .profile-avatar{width:52px;height:52px;flex-basis:52px;border-radius:16px;font-size:22px}
+  .profile-details-grid{grid-template-columns:minmax(0,1fr)}
+  .profile-security{align-items:stretch;flex-direction:column}
+  .profile-security .btn{width:100%}
+  .profile-detail-card dl>div{grid-template-columns:minmax(95px,.7fr) minmax(0,1.3fr)}
+  .app-shell .nav-item{min-height:44px}
+  .app-shell .business-actions>*{min-width:0;max-width:100%}
+}
+@media(max-width:390px){
+  .profile-overview{padding:14px}
+  .profile-detail-card{padding:14px}
+  .profile-detail-card dl>div{grid-template-columns:1fr;gap:5px}
+  .profile-tags .status-pill{white-space:normal}
+}
