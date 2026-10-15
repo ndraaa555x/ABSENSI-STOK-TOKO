@@ -97,6 +97,7 @@ export default function HomePage() {
   const [busy, setBusy] = useState(false);
   const [resetMode, setResetMode] = useState(false);
   const [activePage, setActivePage] = useState<ModuleKey>("dashboard");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [menuSearch, setMenuSearch] = useState("");
   const [employeeSearch, setEmployeeSearch] = useState("");
   const [attendanceSearch, setAttendanceSearch] = useState("");
@@ -1032,28 +1033,30 @@ export default function HomePage() {
   const moduleTitle = navItems.find((item) => item.key === activePage)?.label ?? "Ringkasan";
 
   return (
-    <main className={`app-shell role-${profile?.role ?? "employee"}`}>
-      <aside className="sidebar">
+    <main className={`app-shell role-${profile?.role ?? "employee"} ${mobileMenuOpen ? "mobile-menu-open" : ""}`}>
+      {mobileMenuOpen && <button type="button" className="mobile-menu-backdrop" aria-label="Tutup menu navigasi" onClick={() => setMobileMenuOpen(false)} />}
+      <aside id="mobile-navigation" className="sidebar" aria-label="Navigasi utama">
         <div className="brand"><div className="brand-mark">SB</div><div><div className="brand-title">SMART BUSINESS</div><div className="brand-sub">MANAGEMENT SYSTEM</div></div></div>
         {["UTAMA", "OPERASIONAL", "TRANSAKSI", "MANAJEMEN", "AKUN"].filter((group) => navItems.some((item) => item.group === group && (canAccessModule(profile?.role, item.key)) && item.label.toLowerCase().includes(menuSearch.trim().toLowerCase()))).map((group) => (
           <div key={group}>
             <div className="nav-label">{group}</div>
             <nav className="nav-list">
               {navItems.filter((item) => item.group === group && (canAccessModule(profile?.role, item.key)) && item.label.toLowerCase().includes(menuSearch.trim().toLowerCase())).map((item) => (
-                <button key={item.key} className={`nav-item ${activePage === item.key ? "active" : ""}`} onClick={() => setActivePage(item.key)}>
+                <button key={item.key} className={`nav-item ${activePage === item.key ? "active" : ""}`} onClick={() => { setActivePage(item.key); setMobileMenuOpen(false); }}>
                   <span className="nav-icon">{item.icon}</span>{item.label}
                 </button>
               ))}
             </nav>
           </div>
         ))}
-        <div><div className="nav-label">TOKO</div><nav className="nav-list"><Link href="/offline-store" className="nav-item"><span className="nav-icon">🏪</span>Toko Offline</Link></nav></div>
+        <div><div className="nav-label">TOKO</div><nav className="nav-list"><Link href="/offline-store" className="nav-item" onClick={() => setMobileMenuOpen(false)}><span className="nav-icon">🏪</span>Toko Offline</Link></nav></div>
         {profile?.role !== "employee" && <div className="field menu-search"><label htmlFor="menu-search">Cari menu</label><input id="menu-search" type="search" value={menuSearch} onChange={e=>setMenuSearch(e.target.value)} placeholder="Cari menu..." aria-label="Cari menu website"/></div>}
         <div className="sidebar-bottom"><div className="side-foot"><strong>{profile?.role === "owner" ? "✦ Owner workspace" : profile?.role === "admin" ? "◈ Admin workspace" : profile?.role === "hrd" ? "♙ HRD workspace" : "◷ Ruang kerja karyawan"}</strong><p>{profile?.role === "owner" ? "Kontrol penuh bisnis, pengguna, dan konfigurasi." : profile?.role === "admin" ? "Kelola kegiatan operasional sesuai kewenangan." : profile?.role === "hrd" ? "Kelola data pekerja, kehadiran, dan cuti." : "Order, laporan uang, refund, dan absensi pribadi."}</p></div><button className="logout-button" onClick={handleLogout} disabled={busy}><span className="logout-symbol">↪</span><span><strong>{busy ? "Memproses..." : "Keluar dari akun"}</strong><small>Akhiri sesi dengan aman</small></span></button></div>
       </aside>
       <section className="main">
         <header className="topbar">
-          <div><div className="eyebrow">{profile?.role === "owner" ? "OWNER CONTROL CENTER" : profile?.role === "admin" ? "ADMIN OPERATIONS" : profile?.role === "hrd" ? "HRD PEOPLE OPERATIONS" : "MY WORKSPACE"} / {moduleTitle.toUpperCase()}</div><div className="subtle workspace-caption" style={{ marginTop: 5 }}>{profile?.role === "owner" ? "Visibilitas menyeluruh dan pengaturan bisnis." : profile?.role === "admin" ? "Pusat kegiatan dan pengelolaan operasional." : profile?.role === "hrd" ? "Pusat data karyawan, absensi, dan cuti." : "Kelola order, laporan uang, refund, dan absensi pribadi."}</div></div>
+          <button type="button" className="mobile-menu-toggle" onClick={() => setMobileMenuOpen((open) => !open)} aria-expanded={mobileMenuOpen} aria-controls="mobile-navigation"><span className="mobile-menu-toggle-icon">{mobileMenuOpen ? "✕" : "☰"}</span><span>Menu</span></button>
+          <div className="topbar-heading"><div><div className="eyebrow">{profile?.role === "owner" ? "OWNER CONTROL CENTER" : profile?.role === "admin" ? "ADMIN OPERATIONS" : profile?.role === "hrd" ? "HRD PEOPLE OPERATIONS" : "MY WORKSPACE"} / {moduleTitle.toUpperCase()}</div><div className="subtle workspace-caption" style={{ marginTop: 5 }}>{profile?.role === "owner" ? "Visibilitas menyeluruh dan pengaturan bisnis." : profile?.role === "admin" ? "Pusat kegiatan dan pengelolaan operasional." : profile?.role === "hrd" ? "Pusat data karyawan, absensi, dan cuti." : "Kelola order, laporan uang, refund, dan absensi pribadi."}</div></div></div>
           <button type="button" className="user-menu user-menu-button" onClick={() => setActivePage("profile")} aria-label="Buka profil saya"><div className="avatar">{displayName.slice(0,1).toUpperCase()}</div><div className="user-copy"><div className="user-email">{displayName}</div><div className="user-role">{roleName(profile?.role)}{isActive ? " · AKTIF" : " · NONAKTIF"}</div></div><span className="profile-shortcut">Profil ↗</span></button>
         </header>
         {activePage === "dashboard" ? <>
