@@ -1,6 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS","Content-Type":"application/json"};
+type AccountEmployeeLink = { profile_id: string | null; employee_code: string; employment_status: string; full_name: string };
+type AccountProfile = { id: string; email: string; full_name: string | null; role: string; is_active: boolean; created_at: string };
 function reply(status:number,payload:Record<string,unknown>){return new Response(JSON.stringify(payload),{status,headers:corsHeaders});}
 Deno.serve(async(req:Request)=>{
  if(req.method==="OPTIONS") return new Response("ok",{headers:corsHeaders});
@@ -21,8 +23,8 @@ Deno.serve(async(req:Request)=>{
   const {data,error}=await admin.from("profiles").select("id,email,full_name,role,is_active,created_at").order("created_at",{ascending:false});
   if(error) return reply(500,{error:"Daftar akun gagal dimuat."});
   const {data:links}=await admin.from("employees").select("profile_id,employee_code,employment_status,full_name").not("profile_id","is",null);
-  const linked=new Map((links??[]).map((e:any)=>[e.profile_id,e]));
-  return reply(200,{accounts:(data??[]).map((p:any)=>({...p,employee:linked.get(p.id)??null}))});
+  const linked = new Map<string, AccountEmployeeLink>((links ?? []).filter((employee: AccountEmployeeLink) => Boolean(employee.profile_id)).map((employee: AccountEmployeeLink) => [employee.profile_id as string, employee]));
+  return reply(200,{accounts:(data??[]).map((profile: AccountProfile)=>({...profile,employee:linked.get(profile.id)??null}))});
  }
  if(body.action==="create_employee_account"){
   if(!["owner","admin"].includes(actor.role)) return reply(403,{error:"Hanya Owner/Admin yang dapat membuat akun karyawan."});
