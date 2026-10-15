@@ -271,3 +271,40 @@ input:focus,select:focus,textarea:focus{outline:3px solid #2f80ed20;border-color
 @media(max-width:560px){.main{padding:10px}.topbar{padding:14px}.user-menu{max-width:100%}.stats-grid,.content-grid,.business-columns{grid-template-columns:1fr}.panel{padding:15px}.stat-card{padding:15px}.welcome h1,.business-hero h1{font-size:25px}.nav-item{flex:1 1 calc(50% - 5px);font-size:12px}}
 
 .btn-danger{background:#fff1f2!important;color:#a51d3d!important;border-color:#fecdd3!important}.btn-danger:hover{background:#ffe4e6!important}
+
+
+/* Riwayat transaksi: konsisten, mudah dipindai, dan nyaman di layar kecil */
+.business-history{min-width:0}
+.business-history .business-actions{align-items:flex-end;gap:10px;flex-wrap:wrap;margin:14px 0 18px}
+.business-history .business-actions>input,
+.business-history .business-actions>select{min-width:150px;max-width:100%;flex:1 1 150px}
+.business-history .business-actions .field{min-width:130px;flex:0 1 155px;margin:0}
+.business-history .business-actions .field input{width:100%;min-width:0}
+.business-history .business-record{min-width:0;padding:16px;margin:12px 0;border:1px solid var(--line);border-radius:12px;background:linear-gradient(145deg,rgba(255,255,255,.025),rgba(255,255,255,.008));box-shadow:0 4px 16px rgba(0,0,0,.08)}
+.business-record-head{gap:12px;align-items:flex-start}
+.business-record-head>div{min-width:0;flex:1}
+.business-record-head strong{display:block;overflow-wrap:anywhere;line-height:1.4}
+.business-record-head small{display:block;margin-top:5px;line-height:1.55;overflow-wrap:anywhere}
+.business-record p{line-height:1.55;overflow-wrap:anywhere}
+.business-record .business-line{gap:12px;padding:9px 0;border-bottom:1px solid rgba(145,161,184,.14)}
+.business-record .business-line:last-of-type{border-bottom:0}
+.business-record .business-line>span{min-width:0;overflow-wrap:anywhere}
+.business-record .business-line>strong{text-align:right;white-space:nowrap}
+.business-record .business-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.business-record .status-pill{flex-shrink:0;max-width:46%;white-space:normal;text-align:center;line-height:1.35}
+.business-record .subtle{line-height:1.6}
+@media(max-width:760px){
+ .business-history .business-actions{display:grid;grid-template-columns:1fr 1fr}
+ .business-history .business-actions>input,
+ .business-history .business-actions>select,
+ .business-history .business-actions .field{width:100%;min-width:0;max-width:none}
+ .business-history .business-actions>input:first-child{grid-column:1/-1}
+ .business-record{padding:12px}
+ .business-record-head{flex-wrap:wrap}
+ .business-record-head .status-pill{max-width:100%}
+ .business-record .business-line{align-items:flex-start}
+ .business-record .business-line>strong{white-space:normal}
+}
+@media print{
+ body{background:#fff!important;color:#111!important}
+}
