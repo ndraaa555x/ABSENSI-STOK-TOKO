@@ -59,9 +59,10 @@ Deno.serve(async(req:Request)=>{
   const {data:target,error:targetError}=await admin.from("profiles").select("id,role").eq("id",targetId).maybeSingle();
   if(targetError||!target) return reply(404,{error:"Akun tujuan tidak ditemukan."});
   if(target.role==="owner") return reply(403,{error:"Akun Owner dilindungi dan tidak dapat dihapus dari menu karyawan."});
+  if(actor.role==="admin" && target.role!=="employee") return reply(403,{error:"Admin hanya dapat menghapus akun Karyawan. Akun Admin/HRD hanya dapat dikelola Owner."});
   const {data:employee,error:employeeError}=await admin.from("employees").select("id,profile_id").eq("id",employeeId).maybeSingle();
   if(employeeError||!employee) return reply(404,{error:"Data karyawan tidak ditemukan."});
-  if(employee.profile_id && employee.profile_id!==targetId) return reply(409,{error:"Akun yang dipilih tidak terhubung dengan karyawan ini."});
+  if(employee.profile_id!==targetId) return reply(409,{error:"Akun yang dipilih tidak terhubung dengan karyawan ini."});
   const {error:unlinkError}=await admin.from("employees").update({profile_id:null,updated_at:new Date().toISOString()}).eq("id",employeeId).eq("profile_id",targetId);
   if(unlinkError) return reply(500,{error:"Akun gagal dilepas dari data karyawan."});
   const {error:deleteError}=await admin.auth.admin.deleteUser(targetId);
