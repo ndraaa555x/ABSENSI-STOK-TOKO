@@ -48,7 +48,7 @@ Deno.serve(async(req:Request)=>{
   if(linkError){await admin.from("profiles").delete().eq("id",userId);await admin.auth.admin.deleteUser(userId);return reply(500,{error:"Akun gagal dihubungkan dengan data karyawan; perubahan dibatalkan."});}
   const auditError=await writeAudit("create_account",userId,{target_email:email,target_role:requestedRole,result:"success"});
   if(auditError){await admin.from("employees").update({profile_id:null,updated_at:new Date().toISOString()}).eq("id",employeeId).eq("profile_id",userId);await admin.from("profiles").delete().eq("id",userId);await admin.auth.admin.deleteUser(userId);return reply(500,{error:"Akun dibatalkan karena catatan audit gagal disimpan."});}
-  return reply(200,{success:true,user_id:userId,message:"Akun login karyawan berhasil dibuat."});
+  return reply(200,{success:true,user_id:userId,message:"Akun login karyawan berhasil dibuat langsung tanpa mengirim email undangan. Serahkan email login dan password sementara secara aman."});
  }
 
  if(body.action==="create_store_member"){
@@ -67,7 +67,8 @@ Deno.serve(async(req:Request)=>{
   }
   const {data:title,error:titleError}=await admin.from("offline_store_job_titles").select("id,title,permission_role,store_id,is_active").eq("id",titleId).eq("store_id",storeId).eq("is_active",true).maybeSingle();
   if(titleError||!title) return reply(400,{error:"Jabatan tidak aktif atau bukan milik toko ini."});
-  if(!["store_admin","inventory","cashier"].includes(title.permission_role)) return reply(403,{error:"Manajer hanya dapat menambahkan anggota dengan jabatan bawahan."});
+  if(!["manager","store_admin","inventory","cashier"].includes(title.permission_role)) return reply(400,{error:"Jabatan toko tidak valid."});
+   if(actor.role==="employee" && !["store_admin","inventory","cashier"].includes(title.permission_role)) return reply(403,{error:"Manajer hanya dapat menambahkan anggota dengan jabatan bawahan."});
   const {data:existingProfile,error:existingError}=await admin.from("profiles").select("id").ilike("email",email).maybeSingle();
   if(existingError) return reply(500,{error:"Status email akun gagal diperiksa."});
   if(existingProfile) return reply(409,{error:"Email sudah terdaftar di sistem. Untuk akun yang sudah ada, minta Owner/Admin melakukan penempatan dari menu Anggota Toko."});
@@ -89,7 +90,7 @@ Deno.serve(async(req:Request)=>{
    await admin.auth.admin.deleteUser(userId);
    return reply(500,{error:"Pembuatan akun dibatalkan karena catatan audit gagal disimpan."});
   }
-  return reply(200,{success:true,user_id:userId,message:"Akun anggota berhasil dibuat. Berikan email dan password sementara kepada anggota secara langsung; minta anggota mengganti password setelah masuk."});
+  return reply(200,{success:true,user_id:userId,message:"Akun anggota berhasil dibuat langsung tanpa mengirim email undangan. Berikan email login dan password sementara kepada anggota secara aman; minta anggota mengganti password setelah masuk."});
  }
  if(body.action==="delete_employee_account"){
   if(!["owner","admin"].includes(actor.role)) return reply(403,{error:"Hanya Owner/Admin yang dapat menghapus akun karyawan."});
