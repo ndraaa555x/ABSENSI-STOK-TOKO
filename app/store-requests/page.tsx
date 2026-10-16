@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Session } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import AppIcon from "@/components/app-icon";
 
 type Profile = { id: string; full_name: string | null; email: string | null; role: string; is_active: boolean };
 type Store = { id: string; store_code: string; name: string };
@@ -104,7 +105,7 @@ export default function CentralStoreRequestsPage() {
     <div className="topbar"><div><div className="eyebrow">KANTOR PUSAT · MODUL TOKO</div><h1>Pengajuan Permintaan Toko</h1><p className="subtle">Pusat kendali pengajuan barang dari seluruh toko offline. Proses semuanya dari halaman ini tanpa membuka modul toko satu per satu.</p></div><div className="business-actions"><Link href="/" className="btn">← Dashboard utama</Link><button className="btn" onClick={() => void load()} disabled={Boolean(busyId)}>Muat ulang</button></div></div>
     {notice && <div className="info-box" role="status">{notice}</div>}
     {error && <div className="error-box" role="alert">{error}</div>}
-    <div className="info-box">Seluruh daftar pengajuan dan tindak lanjut toko telah dipusatkan di <Link href="/transactions">Transaksi (TRX) →</Link>. Gunakan TRX untuk meninjau, menyetujui, menolak, dan memantau pengajuan. Data asli tetap tersimpan.</div>
+    <div className="info-box">Seluruh daftar pengajuan dan tindak lanjut toko telah dipusatkan di <Link href="/transactions">Transaksi (TRX) <AppIcon name="next" size={14} /></Link>. Gunakan TRX untuk meninjau, menyetujui, menolak, dan memantau pengajuan. Data asli tetap tersimpan.</div>
     <div className="stats-grid" style={{display:"none"}}>
       <div className="stat-card"><div className="stat-top">Menunggu keputusan</div><div className="stat-value">{pendingCount.toLocaleString("id-ID")}</div><div className="stat-note">Total nilai {money(totalPending)}</div></div>
       <div className="stat-card"><div className="stat-top">Dalam pengiriman</div><div className="stat-value">{shippingCount.toLocaleString("id-ID")}</div><div className="stat-note">Menunggu konfirmasi toko</div></div>
