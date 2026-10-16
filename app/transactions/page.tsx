@@ -114,18 +114,20 @@ export default function TransactionsPage() {
     }
     const current = profileData as Profile;
     setProfile(current);
-    const { data: memberRows } = await supabase.from("offline_store_memberships").select("store_id,user_id,store_role").eq("user_id", current.id).eq("is_active", true);
+    const errors: string[] = [];
+    const { data: memberRows, error: memberError } = await supabase.from("offline_store_memberships").select("store_id,user_id,store_role").eq("user_id", current.id).eq("is_active", true);
+    if (memberError) errors.push("keanggotaan toko");
     const ownMemberships = (memberRows || []) as {store_id:string;store_role:string;user_id?:string}[];
     setStoreMemberships(ownMemberships);
     let teamRows = ownMemberships;
     if (ownMemberships.length && !["owner","admin"].includes(current.role)) {
       const storeIds = ownMemberships.map((m) => m.store_id);
-      const { data } = await supabase.from("offline_store_memberships").select("store_id,user_id,store_role").in("store_id", storeIds).eq("is_active", true);
+      const { data, error: teamError } = await supabase.from("offline_store_memberships").select("store_id,user_id,store_role").in("store_id", storeIds).eq("is_active", true);
+      if (teamError) errors.push("anggota tim toko");
       if (data?.length) teamRows = data as {store_id:string;store_role:string;user_id?:string}[];
     }
     setTeamMemberships(teamRows);
     const result: Trx[] = [];
-    const errors: string[] = [];
     const [orders, orderItems, refunds, reports, ledger, requests, purchaseItems, submissions, receipts, receiptItems, sales, saleItems, storeLedger, movements, attendance, leaves, stores, employees, people, products, storeProducts] = await Promise.all([
       readAllRows("product_orders", "id,order_code,status,ordered_by,reviewed_by,requested_at,created_at,notes", "created_at"),
       readAllRows("product_order_items", "id,order_id,product_id,quantity,unit_price,line_total", "created_at"),
