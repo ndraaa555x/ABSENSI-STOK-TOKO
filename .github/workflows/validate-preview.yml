@@ -1,8 +1,5 @@
 name: Validate preview branch
 on:
-  push:
-    branches:
-      - "fix/ndraaaid-icons-access-audit-2026-10-16"
   pull_request:
     branches:
       - "feat/ndraaaid-integrated-redesign"
