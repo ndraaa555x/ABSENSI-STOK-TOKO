@@ -19,7 +19,7 @@ as $function$
 $function$;
 
 revoke all on function private.offline_store_is_active(uuid) from public;
-grant execute on function private.offline_store_is_active(uuid) to authenticated;
+-- Only the SECURITY DEFINER helpers below need this function; callers do not.
 
 create or replace function private.offline_store_manager(p_store_id uuid)
 returns boolean
