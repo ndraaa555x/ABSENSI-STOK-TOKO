@@ -350,7 +350,7 @@ export default function TransactionsPage() {
         .trx-empty{padding:28px 14px;text-align:center;color:#91a1b8;font-size:12px}
         .trx-pager{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-top:1px solid #25334a;font-size:11px;color:#91a1b8}
         .trx-modal-backdrop{position:fixed;inset:0;background:#020617cc;display:flex;align-items:center;justify-content:center;padding:16px;z-index:100}
-        .trx-modal{width:min(560px,100%);max-height:85vh;overflow:auto;background:#101827;border:1px solid #334155;border-radius:14px;padding:18px}
+        .trx-modal{width:min(560px,100%);max-height:85vh;overflow:auto;background:#101827;border:1px solid #334155;border-radius:14px;padding:18px}.trx-print-signatures{display:none}
         .trx-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}.trx-detail{background:#0b1220;border:1px solid #25334a;border-radius:9px;padding:10px;min-width:0}.trx-detail label{display:block;font-size:10px;color:#91a1b8;margin-bottom:5px}.trx-detail strong{font-size:12px;overflow-wrap:anywhere}
         @media(max-width:720px){.trx-page{padding:15px 10px}.trx-top{align-items:flex-start}.trx-stats{gap:6px}.trx-stat{padding:9px}.trx-stat-value{font-size:19px}.trx-controls{grid-template-columns:1fr 1fr}.trx-controls input{grid-column:1/-1}.trx-table th:nth-child(3),.trx-table td:nth-child(3),.trx-table th:nth-child(5),.trx-table td:nth-child(5){display:none}.trx-table td,.trx-table th{padding:9px 7px}.trx-code{white-space:normal;overflow-wrap:anywhere}.trx-detail-grid{grid-template-columns:1fr 1fr}}
       `}</style>
