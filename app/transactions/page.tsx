@@ -130,11 +130,11 @@ export default function TransactionsPage() {
     }
     setTeamMemberships(teamRows);
     const result: Trx[] = [];
-    const [orders, orderItems, refunds, reports, ledger, requests, purchaseItems, submissions, receipts, receiptItems, sales, saleItems, storeLedger, movements, attendance, leaves, stores, employees, people, products, storeProducts] = await Promise.all([
-      readAllRows("product_orders", "id,order_code,status,ordered_by,reviewed_by,requested_at,created_at,notes", "created_at"),
+    const [orders, orderItems, refunds, reports, ledger, requests, purchaseItems, submissions, receipts, receiptItems, sales, saleItems, storeLedger, movements, attendance, leaves, stores, employees, people, products, storeProducts, customers] = await Promise.all([
+      readAllRows("product_orders", "id,order_code,status,ordered_by,reviewed_by,requested_at,created_at,notes,customer_id", "created_at"),
       readAllRows("product_order_items", "id,order_id,product_id,quantity,unit_price,line_total", "created_at"),
       readAllRows("product_refunds", "id,refund_code,order_id,requested_by,reviewed_by,status,amount,reason,created_at", "created_at"),
-      readAllRows("financial_reports", "id,report_code,report_type,amount,description,status,submitted_by,reviewed_by,posted_transaction_id,created_at", "created_at"),
+      readAllRows("financial_reports", "id,report_code,report_type,amount,description,status,submitted_by,reviewed_by,posted_transaction_id,created_at,related_customer_id", "created_at"),
       readAllRows("financial_transactions", "id,transaction_code,transaction_type,amount,description,status,created_by,transaction_at,created_at,reference_code", "transaction_at"),
       readAllRows("offline_store_purchase_orders", "id,order_code,store_id,status,subtotal,paid_amount,notes,requested_by,reviewed_by,shipped_by,received_by,requested_at,created_at", "created_at"),
       readAllRows("offline_store_purchase_items", "id,order_id,central_product_id,store_product_id,quantity_requested,quantity_shipped,quantity_received,unit_cost,line_total", "created_at"),
@@ -151,11 +151,12 @@ export default function TransactionsPage() {
       readAllRows("employees", "id,full_name,profile_id"),
       readAllRows("profiles", "id,full_name,role"),
       readAllRows("products", "id,name,sku"),
-      readAllRows("offline_store_products", "id,store_id,name,sku")
+      readAllRows("offline_store_products", "id,store_id,name,sku"),
+      readAllRows("business_customers", "id,store_name,customer_code")
     ]);
 
     const addError = (label: string, response: { error: { message: string } | null }) => { if (response.error) errors.push(label); };
-    addError("pesanan", orders); addError("detail pesanan", orderItems); addError("katalog produk", products); addError("produk toko", storeProducts); addError("refund", refunds); addError("laporan keuangan", reports); addError("buku besar", ledger); addError("pengajuan toko", requests); addError("detail pembelian toko", purchaseItems); addError("pengajuan produk toko", submissions); addError("penerimaan stok", receipts); addError("detail penerimaan stok", receiptItems); addError("penjualan toko", sales); addError("detail penjualan toko", saleItems); addError("keuangan toko", storeLedger); addError("stok", movements); addError("absensi", attendance); addError("cuti", leaves);
+    addError("pesanan", orders); addError("detail pesanan", orderItems); addError("data pelanggan", customers); addError("katalog produk", products); addError("produk toko", storeProducts); addError("refund", refunds); addError("laporan keuangan", reports); addError("buku besar", ledger); addError("pengajuan toko", requests); addError("detail pembelian toko", purchaseItems); addError("pengajuan produk toko", submissions); addError("penerimaan stok", receipts); addError("detail penerimaan stok", receiptItems); addError("penjualan toko", sales); addError("detail penjualan toko", saleItems); addError("keuangan toko", storeLedger); addError("stok", movements); addError("absensi", attendance); addError("cuti", leaves);
     const personNames = new Map<string, string>();
     (people.data ?? []).forEach((p: any) => personNames.set(p.id, p.full_name || p.role || "Akun"));
     const employeeNames = new Map<string, string>();
@@ -173,6 +174,10 @@ export default function TransactionsPage() {
     (products.data ?? []).forEach((p: any) => productNames.set(p.id, p.name || p.sku || "Produk"));
     const storeProductNames = new Map<string, string>();
     (storeProducts.data ?? []).forEach((p: any) => storeProductNames.set(p.id, p.name || p.sku || "Produk toko"));
+    const customerNames = new Map<string, string>();
+    (customers.data ?? []).forEach((c: any) => customerNames.set(c.id, c.store_name || c.customer_code || "Pelanggan"));
+    const orderById = new Map<string, any>();
+    (orders.data ?? []).forEach((o: any) => orderById.set(o.id, o));
     const groupLines = (items: any[], key: string, format: (item: any) => string) => {
       const grouped = new Map<string, string[]>();
       items.forEach((item) => { const list = grouped.get(item[key]) || []; list.push(format(item)); grouped.set(item[key], list); });
@@ -185,20 +190,20 @@ export default function TransactionsPage() {
 
     (orders.data ?? []).forEach((r: any) => result.push({
       id: r.id, code: r.order_code || `ORD-${r.id.slice(0, 8)}`, category: "Pesanan",
-      activity: "Pesanan produk", location: "Kantor Pusat", status: statusLabel(r.status, "Pesanan"),
+      activity: "Pesanan produk", location: customerNames.get(r.customer_id) || "Kantor Pusat", status: statusLabel(r.status, "Pesanan"),
       createdAt: r.created_at || r.requested_at, actor: personNames.get(r.ordered_by) || "Akun tidak diketahui",
       ownerId: r.ordered_by || null, handlerId: r.reviewed_by || null, reviewerId: r.reviewed_by || null, reviewedBy: personNames.get(r.reviewed_by) || "Belum disetujui", processedBy: personNames.get(r.reviewed_by) || "Belum ditangani", description: [r.notes || "", ...(orderLines.get(r.id) || [])].filter(Boolean).join(" · "), sourceStatus: r.status, sourceTable: "product_orders"
     }));
     (refunds.data ?? []).forEach((r: any) => result.push({
       id: r.id, code: r.refund_code || `REF-${r.id.slice(0, 8)}`, category: "Refund",
-      activity: "Permintaan pengembalian dana", location: "Kantor Pusat", status: statusLabel(r.status, "Refund"),
+      activity: "Permintaan pengembalian dana", location: customerNames.get(orderById.get(r.order_id)?.customer_id) || "Kantor Pusat", status: statusLabel(r.status, "Refund"),
       createdAt: r.created_at, actor: personNames.get(r.requested_by) || "Akun tidak diketahui",
       ownerId: r.requested_by || null, handlerId: r.reviewed_by || null, reviewerId: r.reviewed_by || null, reviewedBy: personNames.get(r.reviewed_by) || "Belum disetujui", processedBy: personNames.get(r.reviewed_by) || "Belum ditangani", amount: Number(r.amount || 0), description: r.reason, sourceStatus: r.status, sourceTable: "product_refunds"
     }));
     (reports.data ?? []).forEach((r: any) => result.push({
       id: r.id, code: r.report_code || `FIN-${r.id.slice(0, 8)}`, category: "Keuangan",
       activity: r.report_type === "income" ? "Laporan pemasukan" : r.report_type === "expense" ? "Laporan pengeluaran" : "Laporan keuangan",
-      location: "Kantor Pusat", status: r.posted_transaction_id ? "Selesai" : statusLabel(r.status, "Keuangan"), createdAt: r.created_at,
+      location: customerNames.get(r.related_customer_id) || "Kantor Pusat", status: r.posted_transaction_id ? "Selesai" : statusLabel(r.status, "Keuangan"), createdAt: r.created_at,
       actor: personNames.get(r.submitted_by) || "Akun tidak diketahui", ownerId: r.submitted_by || null, handlerId: r.reviewed_by || null, reviewerId: r.reviewed_by || null, reviewedBy: personNames.get(r.reviewed_by) || "Belum disetujui", processedBy: personNames.get(r.reviewed_by) || "Belum ditangani",
       amount: Number(r.amount || 0), description: r.description, sourceStatus: r.posted_transaction_id ? "posted" : r.status, sourceTable: "financial_reports"
     }));
