@@ -1165,6 +1165,10 @@ export default function HomePage() {
             {!storeScopedAccount&&<div className="stat-card"><div className="stat-top"><span>Laporan uang</span><span className="stat-icon">↗</span></div><div className="stat-value">{dataLoading ? "—" : counts.reports}</div><div className="stat-note">Laporan sesuai hak akses</div></div>}
             {profile?.role==="owner"&&<div className="stat-card"><div className="stat-top"><span>Transaksi resmi</span><span className="stat-icon">◈</span></div><div className="stat-value">{dataLoading ? "—" : counts.finances}</div><div className="stat-note">Buku besar Owner</div></div>}
           </div>
+          {["owner","admin"].includes(profile?.role ?? "") && <section className="panel" style={{marginBottom:18,border:"1px solid rgba(74,144,226,.45)"}}>
+            <div className="panel-head"><div><div className="eyebrow">KANTOR PUSAT</div><h2>Pengajuan Pembelian dari Toko Offline</h2><p className="subtle">Periksa permintaan stok dari semua toko, lalu setujui dan kirim barang atau tolak dengan alasan.</p></div><span className="status">PUSAT</span></div>
+            <div className="business-actions"><Link href="/offline-store/purchases" className="btn btn-primary">Buka pengajuan pembelian →</Link><span className="subtle">Pengajuan yang sudah dikirim tetap tersimpan; tidak perlu diajukan ulang.</span></div>
+          </section>}
           <div className="content-grid">
             <section className="panel"><div className="panel-head"><div><h2>Modul bisnis</h2><div className="subtle">Pilih area kerja yang ingin Anda buka</div></div><span className="status">ONLINE</span></div>
               <div className="activity-list">
