@@ -664,3 +664,34 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   .main .business-actions { gap: 8px; }
   .main .business-actions > * { max-width: 100%; }
 }
+
+
+/* Dedicated POS and transaction-center layouts */
+.pos-page, .trx-page { min-height: 100vh; background: #101114; color: #f1f2f4; }
+.pos-page .panel, .pos-page .pos-catalog, .pos-page .pos-cart, .trx-page .trx-stat, .trx-page .trx-modal { background: #181a1f; border-color: #363941; color: #f1f2f4; box-shadow: none; }
+.pos-page .pos-header { background: #141519; border-bottom: 1px solid #363941; }
+.pos-page .pos-brand-mark { background: #d6d8dd; color: #16171a; border-color: #e6e7ea; }
+.pos-page .pos-product-card { background: #202329; border: 1px solid #454952; color: #f1f2f4; }
+.pos-page .pos-product-card:hover, .pos-page .pos-product-card:focus-visible { border-color: #c3c7d0; background: #292c32; }
+.pos-page .pos-product-price, .pos-page .pos-grand-total { color: #f1f2f4; }
+.pos-page input, .pos-page select, .pos-page textarea, .trx-page .trx-input { background: #111216; color: #f1f2f4; border-color: #454952; }
+.pos-page .btn, .trx-page .trx-btn { background: #25282e; color: #f1f2f4; border: 1px solid #555a64; }
+.pos-page .btn-primary, .trx-page .trx-btn-primary { background: #d6d8dd; color: #16171a; border-color: #e6e7ea; }
+.pos-page .pos-checkout-button { font-weight: 750; }
+.trx-page .trx-top { border-bottom: 1px solid #363941; }
+.trx-page .trx-title, .trx-page .trx-stat-value { color: #f1f2f4; }
+.trx-page .trx-muted, .trx-page .trx-stat-label, .trx-page .trx-sub { color: #9da2ad; }
+.trx-page .trx-cats button, .trx-page .trx-pager button { background: #181a1f; border: 1px solid #454952; color: #d7d9de; }
+.trx-page .trx-cats button.active, .trx-page .trx-pager button.active { background: #d6d8dd; color: #16171a; border-color: #e6e7ea; }
+.trx-page .trx-table { color: #f1f2f4; }
+.trx-page .trx-table th { background: #25282e; color: #d8dbe1; }
+.trx-page .trx-table th, .trx-page .trx-table td { border-color: #363941; }
+.trx-page .trx-row:hover { background: rgba(255,255,255,.035); }
+.trx-page .trx-modal-backdrop { background: rgba(0,0,0,.76); }
+.trx-page .trx-modal { border: 1px solid #454952; }
+@media (max-width: 720px) {
+  .pos-page .pos-workspace { grid-template-columns: minmax(0,1fr); }
+  .pos-page .pos-cart { position: static; }
+  .trx-page .trx-top { gap: 12px; flex-wrap: wrap; }
+  .trx-page .trx-table-wrap { overflow-x: auto; }
+}
