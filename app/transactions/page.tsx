@@ -15,6 +15,7 @@ type Trx = {
   category: TrxCategory;
   activity: string;
   location: string;
+  storeId?: string | null;
   status: TrxStatus;
   createdAt: string;
   actor: string;
@@ -64,6 +65,7 @@ function badgeClass(status: TrxStatus) {
 
 export default function TransactionsPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [storeMemberships, setStoreMemberships] = useState<{store_id:string;store_role:string}[]>([]);
   const [rows, setRows] = useState<Trx[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -92,6 +94,8 @@ export default function TransactionsPage() {
     }
     const current = profileData as Profile;
     setProfile(current);
+    const { data: memberRows } = await supabase.from("offline_store_memberships").select("store_id,store_role").eq("user_id", current.id).eq("is_active", true);
+    setStoreMemberships((memberRows || []) as {store_id:string;store_role:string}[]);
     const result: Trx[] = [];
     const errors: string[] = [];
     const [orders, refunds, reports, ledger, requests, submissions, receipts, sales, storeLedger, movements, attendance, leaves, stores, employees, people] = await Promise.all([
@@ -154,7 +158,7 @@ export default function TransactionsPage() {
       sourceStatus: r.status, sourceTable: "financial_transactions"
     }));
     (submissions.data ?? []).forEach((r: any) => result.push({
-      id: r.id, code: `PROD-${r.id.slice(0, 8).toUpperCase()}`, category: "Produk Toko",
+      id: r.id, code: `PROD-${r.id.slice(0, 8).toUpperCase()}`, category: "Produk Toko", storeId: r.store_id,
       activity: `Pengajuan produk toko: ${r.proposed_name || "Produk baru"}`, location: storeNames.get(r.store_id) || "Toko Offline",
       status: statusLabel(r.status, "Produk Toko"), createdAt: r.requested_at, actor: personNames.get(r.requested_by) || "Akun tidak diketahui",
       ownerId: r.requested_by || null, handlerId: r.reviewed_by || null, processedBy: personNames.get(r.reviewed_by) || "Belum ditangani",
@@ -162,21 +166,21 @@ export default function TransactionsPage() {
       sourceStatus: r.status, sourceTable: "offline_product_submissions"
     }));
     (receipts.data ?? []).forEach((r: any) => result.push({
-      id: r.id, code: r.receipt_code || `RCV-${r.id.slice(0, 8).toUpperCase()}`, category: "Penerimaan Stok",
+      id: r.id, code: r.receipt_code || `RCV-${r.id.slice(0, 8).toUpperCase()}`, category: "Penerimaan Stok", storeId: r.store_id,
       activity: `Penerimaan stok${r.supplier_name ? ` dari ${r.supplier_name}` : ""}`, location: storeNames.get(r.store_id) || "Toko Offline",
       status: statusLabel(r.status, "Penerimaan Stok"), createdAt: r.received_at || r.created_at,
       actor: personNames.get(r.created_by) || "Akun tidak diketahui", ownerId: r.created_by || null, handlerId: r.received_by || null,
       processedBy: personNames.get(r.received_by) || "Belum diterima", description: r.notes, sourceStatus: r.status, sourceTable: "offline_stock_receipts"
     }));
     (sales.data ?? []).forEach((r: any) => result.push({
-      id: r.id, code: r.sale_code || `SALE-${r.id.slice(0, 8).toUpperCase()}`, category: "Penjualan Toko",
+      id: r.id, code: r.sale_code || `SALE-${r.id.slice(0, 8).toUpperCase()}`, category: "Penjualan Toko", storeId: r.store_id,
       activity: "Penjualan toko offline", location: storeNames.get(r.store_id) || "Toko Offline", status: statusLabel(r.status, "Penjualan Toko"), createdAt: r.created_at,
       actor: personNames.get(r.cashier_id) || "Kasir", ownerId: r.cashier_id || null, handlerId: r.cashier_id || null, processedBy: personNames.get(r.cashier_id) || "Kasir",
       amount: Number(r.total || 0), description: `Subtotal ${money(Number(r.subtotal || 0))} · Diskon ${money(Number(r.discount_total || 0))} · Metode ${r.payment_method || "—"}`,
       sourceStatus: r.status, sourceTable: "offline_store_sales"
     }));
     (storeLedger.data ?? []).forEach((r: any) => result.push({
-      id: r.id, code: r.reference_code || `SFIN-${r.id.slice(0, 8).toUpperCase()}`, category: "Keuangan",
+      id: r.id, code: r.reference_code || `SFIN-${r.id.slice(0, 8).toUpperCase()}`, category: "Keuangan", storeId: r.store_id,
       activity: r.entry_type === "purchase_expense" ? "Beban pembelian stok toko" : "Pembayaran toko ke kantor",
       location: storeNames.get(r.store_id) || "Toko Offline", status: "Selesai", createdAt: r.created_at,
       actor: personNames.get(r.created_by) || "Akun tidak diketahui", ownerId: r.created_by || null, handlerId: r.created_by || null,
@@ -185,11 +189,11 @@ export default function TransactionsPage() {
       sourceStatus: "posted", sourceTable: "offline_store_finance_entries"
     }));
     (requests.data ?? []).forEach((r: any) => result.push({
-      id: r.id, code: r.order_code || `PO-${r.id.slice(0, 8)}`, category: "Pengajuan Toko",
+      id: r.id, code: r.order_code || `PO-${r.id.slice(0, 8)}`, category: "Pengajuan Toko", storeId: r.store_id,
       activity: "Pengajuan pembelian barang dari toko", location: storeNames.get(r.store_id) || "Toko Offline",
-      status: statusLabel(r.status, "Pengajuan Toko"), createdAt: r.created_at || r.requested_at,
+      status: r.status === "received" && Number(r.paid_amount || 0) < Number(r.subtotal || 0) ? "Diproses" : statusLabel(r.status, "Pengajuan Toko"), createdAt: r.created_at || r.requested_at,
       actor: personNames.get(r.requested_by) || "Akun tidak diketahui", ownerId: r.requested_by || null, handlerId: r.received_by || r.shipped_by || r.reviewed_by || null, processedBy: personNames.get(r.received_by || r.shipped_by || r.reviewed_by) || "Belum ditangani",
-      amount: Number(r.subtotal || 0), description: r.notes, sourceStatus: r.status, sourceTable: "offline_store_purchase_orders"
+      amount: Number(r.subtotal || 0), description: [r.notes || "", r.status === "received" ? `Pembayaran: ${money(Number(r.paid_amount || 0))} dari ${money(Number(r.subtotal || 0))}` : ""].filter(Boolean).join(" · "), sourceStatus: r.status, sourceTable: "offline_store_purchase_orders"
     }));
     (movements.data ?? []).forEach((r: any) => result.push({
       id: r.id, code: r.reference_code || `STK-${r.id.slice(0, 8)}`, category: "Stok",
@@ -246,7 +250,15 @@ export default function TransactionsPage() {
     if (!selected || !profile || loading) return;
     const canAdmin = profile.role === "owner" || profile.role === "admin";
     const canReviewLeave = canAdmin || profile.role === "hrd";
-    if ((selected.category === "Cuti" ? !canReviewLeave : !canAdmin)) return;
+    const selectedMembership = selected.storeId ? storeMemberships.find((m) => m.store_id === selected.storeId) : undefined;
+    const canStoreReceive = Boolean(selectedMembership && ["manager","store_admin","inventory"].includes(selectedMembership.store_role));
+    const canStorePay = Boolean(selectedMembership && ["manager","store_admin"].includes(selectedMembership.store_role));
+    const allowed = selected.category === "Cuti" ? canReviewLeave
+      : selected.sourceTable === "offline_product_submissions" ? canAdmin
+      : selected.sourceTable === "offline_store_purchase_orders" ? (action === "ship" || action === "reject" ? canAdmin : action === "receive" ? canStoreReceive : action === "pay" ? canStorePay : false)
+      : selected.sourceTable === "offline_stock_receipts" ? action === "receive" && canStoreReceive
+      : canAdmin;
+    if (!allowed) return;
     if (action === "reject") {
       const reason = window.prompt("Tuliskan alasan penolakan:");
       if (!reason?.trim()) return;
@@ -373,7 +385,7 @@ export default function TransactionsPage() {
           <div className="trx-detail"><label>Status pada sumber</label><strong>{selected.sourceStatus || "—"}</strong></div><div className="trx-detail"><label>Nominal</label><strong>{selected.amount != null ? money(selected.amount) : "Tidak berlaku"}</strong></div>
         </div>
         <div className="trx-detail" style={{marginTop:12}}><label>Catatan / rincian</label><strong>{selected.description || "Tidak ada catatan tambahan."}</strong></div>
-        {((profile?.role === "owner" || profile?.role === "admin") || (profile?.role === "hrd" && selected.category === "Cuti")) && <div style={{display:"flex",gap:7,flexWrap:"wrap",marginTop:14}}>
+        {((profile?.role === "owner" || profile?.role === "admin") || (profile?.role === "hrd" && selected.category === "Cuti") || (selected.storeId && storeMemberships.some((m) => m.store_id === selected.storeId && ["manager","store_admin","inventory"].includes(m.store_role)) && ["offline_store_purchase_orders","offline_stock_receipts"].includes(selected.sourceTable))) && <div style={{display:"flex",gap:7,flexWrap:"wrap",marginTop:14}}>
           {selected.sourceStatus === "pending" && selected.sourceTable === "product_orders" && <><button className="trx-btn" onClick={() => void processSelected("approve")}>Setujui pesanan</button><button className="trx-btn" onClick={() => void processSelected("reject")}>Tolak</button></>}
           {["pending","under_review"].includes(normalize(selected.sourceStatus)) && selected.sourceTable === "product_refunds" && <><button className="trx-btn" onClick={() => void processSelected("approve")}>Setujui refund</button><button className="trx-btn" onClick={() => void processSelected("reject")}>Tolak</button></>}
           {selected.sourceStatus === "pending" && selected.sourceTable === "financial_reports" && <><button className="trx-btn" onClick={() => void processSelected("approve")}>Setujui & catat</button><button className="trx-btn" onClick={() => void processSelected("reject")}>Tolak laporan</button></>}
