@@ -309,7 +309,7 @@ export default function TransactionsPage() {
     const allowed = selected.category === "Cuti" ? canReviewLeave
       : selected.sourceTable === "offline_product_submissions" ? canAdmin
       : selected.sourceTable === "offline_store_purchase_orders" ? (action === "ship" || action === "reject" ? canAdmin : action === "receive" ? canStoreReceive : action === "pay" ? canStorePay : false)
-      : selected.sourceTable === "offline_stock_receipts" ? false
+      : selected.sourceTable === "offline_stock_receipts" ? action === "receive" && canStoreReceive
       : canAdmin;
     if (!allowed) return;
     if (action === "reject") {
@@ -334,6 +334,9 @@ export default function TransactionsPage() {
       const method = window.prompt("Metode pembayaran (cash, bank_transfer, e_wallet, other):", "bank_transfer") || "bank_transfer";
       const { error: rpcError } = await supabase.rpc("pay_offline_store_purchase", { p_order_id: selected.id, p_amount: amount, p_payment_method: method });
       if (rpcError) { window.alert("Pembayaran gagal dicatat: " + rpcError.message); return; }
+    } else if (selected.sourceTable === "offline_stock_receipts" && action === "receive") {
+      const { error: rpcError } = await supabase.rpc("receive_offline_stock", { p_receipt_id: selected.id });
+      if (rpcError) { window.alert("Penerimaan stok gagal dicatat: " + rpcError.message); return; }
     } else if (selected.sourceTable === "offline_product_submissions" && (action === "approve" || action === "revise")) {
       const note = action === "revise" ? (window.prompt("Catatan perbaikan yang wajib dilengkapi:") || "").trim() : (window.prompt("Catatan persetujuan (opsional):") || "").trim();
       if (action === "revise" && !note) return;
@@ -445,6 +448,7 @@ export default function TransactionsPage() {
           {["owner","admin"].includes(profile?.role ?? "") && selected.sourceStatus === "pending" && selected.sourceTable === "financial_reports" && <><button className="trx-btn" onClick={() => void processSelected("approve")}>Setujui & catat</button><button className="trx-btn" onClick={() => void processSelected("reject")}>Tolak laporan</button></> }
           {["owner","admin"].includes(profile?.role ?? "") && selected.sourceStatus === "requested" && selected.sourceTable === "offline_store_purchase_orders" && <><button className="trx-btn" onClick={() => void processSelected("ship")}>Setujui & proses pengiriman</button><button className="trx-btn" onClick={() => void processSelected("reject")}>Tolak pengajuan</button></> }
           {selected.sourceStatus === "shipped" && selected.sourceTable === "offline_store_purchase_orders" && <button className="trx-btn" onClick={() => void processSelected("receive")}>Konfirmasi barang diterima</button>}
+           {selected.sourceStatus === "pending" && selected.sourceTable === "offline_stock_receipts" && <button className="trx-btn" onClick={() => void processSelected("receive")}>Konfirmasi stok diterima</button>}
           {storeMemberships.some((m) => m.store_id === selected.storeId && m.store_role === "manager") && selected.sourceStatus === "received" && selected.sourceTable === "offline_store_purchase_orders" && Number(selected.dueAmount || 0) > 0 && <button className="trx-btn" onClick={() => void processSelected("pay")}>Catat pembayaran · {money(Number(selected.dueAmount || 0))}</button> }
           {["owner","admin"].includes(profile?.role ?? "") && ["pending","under_review","requested"].includes(normalize(selected.sourceStatus)) && selected.sourceTable === "offline_product_submissions" && <><button className="trx-btn" onClick={() => void processSelected("approve")}>Setujui produk</button><button className="trx-btn" onClick={() => void processSelected("revise")}>Minta perbaikan</button><button className="trx-btn" onClick={() => void processSelected("reject")}>Tolak pengajuan</button></> }
           {selected.sourceStatus === "pending" && selected.sourceTable === "leave_requests" && <><button className="trx-btn" onClick={() => void processSelected("approve")}>Setujui cuti</button><button className="trx-btn" onClick={() => void processSelected("reject")}>Tolak cuti</button></>}
