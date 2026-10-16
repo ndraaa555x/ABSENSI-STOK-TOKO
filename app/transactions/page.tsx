@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any -- Supabase row shapes are validated against the database schema during load. */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -6,7 +7,7 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type Role = "owner" | "admin" | "hrd" | "employee";
 type Profile = { id: string; full_name: string | null; role: Role; is_active: boolean };
-type TrxCategory = "Pesanan" | "Refund" | "Pengajuan Toko" | "Keuangan" | "Stok" | "Absensi" | "Cuti";
+type TrxCategory = "Pesanan" | "Refund" | "Pengajuan Toko" | "Produk Toko" | "Penerimaan Stok" | "Penjualan Toko" | "Keuangan" | "Stok" | "Absensi" | "Cuti";
 type TrxStatus = "Menunggu" | "Belum diproses" | "Diproses" | "Menunggu persetujuan" | "Disetujui" | "Ditolak" | "Selesai" | "Perlu diperiksa" | "Kendala";
 type Trx = {
   id: string;
@@ -18,15 +19,16 @@ type Trx = {
   createdAt: string;
   actor: string;
   ownerId: string | null;
+  handlerId?: string | null;
   processedBy: string;
   amount?: number | null;
   description?: string | null;
   sourceStatus: string;
-  sourceTable: "product_orders" | "product_refunds" | "financial_reports" | "financial_transactions" | "offline_store_purchase_orders" | "stock_movements" | "attendance_records" | "leave_requests";
+  sourceTable: "product_orders" | "product_refunds" | "financial_reports" | "financial_transactions" | "offline_store_purchase_orders" | "offline_product_submissions" | "offline_stock_receipts" | "offline_store_sales" | "offline_store_finance_entries" | "stock_movements" | "attendance_records" | "leave_requests";
 };
 
 const PAGE_SIZE = 20;
-const CATEGORIES = ["Semua", "Pesanan", "Refund", "Pengajuan Toko", "Keuangan", "Stok", "Absensi", "Cuti"] as const;
+const CATEGORIES = ["Semua", "Pesanan", "Refund", "Pengajuan Toko", "Produk Toko", "Penerimaan Stok", "Penjualan Toko", "Keuangan", "Stok", "Absensi", "Cuti"] as const;
 const VIEWS = ["Perlu Ditindaklanjuti", "Tugas Saya", "Selesai", "Semua Transaksi"] as const;
 const money = (value: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(value);
 const dateTime = (value: string) => new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
@@ -35,7 +37,9 @@ const isOpenStatus = (row: Trx) => {
   const s = normalize(row.sourceStatus);
   if (row.category === "Pesanan") return ["pending", "approved", "menunggu", "disetujui"].includes(s);
   if (row.category === "Refund") return ["pending", "under_review", "requested", "approved", "menunggu", "disetujui"].includes(s);
-  if (row.category === "Pengajuan Toko") return ["requested", "shipped", "pending", "diproses", "dikirim"].includes(s);
+  if (row.category === "Pengajuan Toko") return ["requested", "shipped", "pending", "diproses", "dikirim", "received"].includes(s);
+  if (row.category === "Produk Toko") return ["pending", "requested", "submitted", "under_review"].includes(s);
+  if (row.category === "Penerimaan Stok") return ["pending", "requested", "draft", "processing"].includes(s);
   if (row.category === "Cuti" || row.category === "Keuangan") return ["pending", "requested", "submitted", "menunggu", "pending_approval"].includes(s);
   return false;
 };
@@ -90,12 +94,16 @@ export default function TransactionsPage() {
     setProfile(current);
     const result: Trx[] = [];
     const errors: string[] = [];
-    const [orders, refunds, reports, ledger, requests, movements, attendance, leaves, stores, employees, people] = await Promise.all([
+    const [orders, refunds, reports, ledger, requests, submissions, receipts, sales, storeLedger, movements, attendance, leaves, stores, employees, people] = await Promise.all([
       supabase.from("product_orders").select("id,order_code,status,ordered_by,reviewed_by,requested_at,created_at,notes").order("created_at", { ascending: false }).limit(500),
       supabase.from("product_refunds").select("id,refund_code,order_id,requested_by,reviewed_by,status,amount,reason,created_at").order("created_at", { ascending: false }).limit(500),
       supabase.from("financial_reports").select("id,report_code,report_type,amount,description,status,submitted_by,reviewed_by,created_at").order("created_at", { ascending: false }).limit(500),
       supabase.from("financial_transactions").select("id,transaction_code,transaction_type,amount,description,status,created_by,transaction_at,created_at,reference_code").order("transaction_at", { ascending: false }).limit(500),
-      supabase.from("offline_store_purchase_orders").select("id,order_code,store_id,status,subtotal,notes,requested_by,reviewed_by,shipped_by,received_by,requested_at,created_at").order("created_at", { ascending: false }).limit(500),
+      supabase.from("offline_store_purchase_orders").select("id,order_code,store_id,status,subtotal,paid_amount,notes,requested_by,reviewed_by,shipped_by,received_by,requested_at,created_at").order("created_at", { ascending: false }).limit(500),
+      supabase.from("offline_product_submissions").select("id,store_id,proposed_name,proposed_category_name,status,review_note,requested_by,reviewed_by,requested_at,reviewed_at,created_product_id,created_store_product_id").order("requested_at", { ascending: false }).limit(500),
+      supabase.from("offline_stock_receipts").select("id,store_id,receipt_code,status,supplier_name,notes,received_by,received_at,created_by,created_at").order("created_at", { ascending: false }).limit(500),
+      supabase.from("offline_store_sales").select("id,store_id,sale_code,subtotal,discount_total,total,payment_method,status,cashier_id,created_at").order("created_at", { ascending: false }).limit(500),
+      supabase.from("offline_store_finance_entries").select("id,store_id,order_id,entry_type,amount,payment_method,description,reference_code,created_by,created_at").order("created_at", { ascending: false }).limit(500),
       supabase.from("stock_movements").select("id,movement_type,quantity,reference_code,reason,notes,movement_at,created_by").order("movement_at", { ascending: false }).limit(500),
       supabase.from("attendance_records").select("id,employee_id,work_date,status,check_in_at,check_out_at,recorded_by,created_at").order("created_at", { ascending: false }).limit(500),
       supabase.from("leave_requests").select("id,employee_id,leave_type,start_date,end_date,reason,status,reviewed_by,created_at").order("created_at", { ascending: false }).limit(500),
@@ -105,7 +113,7 @@ export default function TransactionsPage() {
     ]);
 
     const addError = (label: string, response: { error: { message: string } | null }) => { if (response.error) errors.push(label); };
-    addError("pesanan", orders); addError("refund", refunds); addError("laporan keuangan", reports); addError("buku besar", ledger); addError("pengajuan toko", requests); addError("stok", movements); addError("absensi", attendance); addError("cuti", leaves);
+    addError("pesanan", orders); addError("refund", refunds); addError("laporan keuangan", reports); addError("buku besar", ledger); addError("pengajuan toko", requests); addError("pengajuan produk toko", submissions); addError("penerimaan stok", receipts); addError("penjualan toko", sales); addError("keuangan toko", storeLedger); addError("stok", movements); addError("absensi", attendance); addError("cuti", leaves);
     const personNames = new Map<string, string>();
     (people.data ?? []).forEach((p: any) => personNames.set(p.id, p.full_name || p.role || "Akun"));
     const employeeNames = new Map<string, string>();
@@ -121,19 +129,19 @@ export default function TransactionsPage() {
       id: r.id, code: r.order_code || `ORD-${r.id.slice(0, 8)}`, category: "Pesanan",
       activity: "Pesanan produk", location: "Kantor Pusat", status: statusLabel(r.status, "Pesanan"),
       createdAt: r.created_at || r.requested_at, actor: personNames.get(r.ordered_by) || "Akun tidak diketahui",
-      ownerId: r.ordered_by || null, processedBy: personNames.get(r.reviewed_by) || "Belum ditangani", description: r.notes, sourceStatus: r.status, sourceTable: "product_orders"
+      ownerId: r.ordered_by || null, handlerId: r.reviewed_by || null, processedBy: personNames.get(r.reviewed_by) || "Belum ditangani", description: r.notes, sourceStatus: r.status, sourceTable: "product_orders"
     }));
     (refunds.data ?? []).forEach((r: any) => result.push({
       id: r.id, code: r.refund_code || `REF-${r.id.slice(0, 8)}`, category: "Refund",
       activity: "Permintaan pengembalian dana", location: "Kantor Pusat", status: statusLabel(r.status, "Refund"),
       createdAt: r.created_at, actor: personNames.get(r.requested_by) || "Akun tidak diketahui",
-      ownerId: r.requested_by || null, processedBy: personNames.get(r.reviewed_by) || "Belum ditangani", amount: Number(r.amount || 0), description: r.reason, sourceStatus: r.status, sourceTable: "product_refunds"
+      ownerId: r.requested_by || null, handlerId: r.reviewed_by || null, processedBy: personNames.get(r.reviewed_by) || "Belum ditangani", amount: Number(r.amount || 0), description: r.reason, sourceStatus: r.status, sourceTable: "product_refunds"
     }));
     (reports.data ?? []).forEach((r: any) => result.push({
       id: r.id, code: r.report_code || `FIN-${r.id.slice(0, 8)}`, category: "Keuangan",
       activity: r.report_type === "income" ? "Laporan pemasukan" : r.report_type === "expense" ? "Laporan pengeluaran" : "Laporan keuangan",
       location: "Kantor Pusat", status: statusLabel(r.status, "Keuangan"), createdAt: r.created_at,
-      actor: personNames.get(r.submitted_by) || "Akun tidak diketahui", ownerId: r.submitted_by || null, processedBy: personNames.get(r.reviewed_by) || "Belum ditangani",
+      actor: personNames.get(r.submitted_by) || "Akun tidak diketahui", ownerId: r.submitted_by || null, handlerId: r.reviewed_by || null, processedBy: personNames.get(r.reviewed_by) || "Belum ditangani",
       amount: Number(r.amount || 0), description: r.description, sourceStatus: r.status, sourceTable: "financial_reports"
     }));
     (ledger.data ?? []).forEach((r: any) => result.push({
@@ -145,11 +153,42 @@ export default function TransactionsPage() {
       description: [r.description, r.reference_code ? `Referensi: ${r.reference_code}` : ""].filter(Boolean).join(" · "),
       sourceStatus: r.status, sourceTable: "financial_transactions"
     }));
+    (submissions.data ?? []).forEach((r: any) => result.push({
+      id: r.id, code: `PROD-${r.id.slice(0, 8).toUpperCase()}`, category: "Produk Toko",
+      activity: `Pengajuan produk toko: ${r.proposed_name || "Produk baru"}`, location: storeNames.get(r.store_id) || "Toko Offline",
+      status: statusLabel(r.status, "Produk Toko"), createdAt: r.requested_at, actor: personNames.get(r.requested_by) || "Akun tidak diketahui",
+      ownerId: r.requested_by || null, handlerId: r.reviewed_by || null, processedBy: personNames.get(r.reviewed_by) || "Belum ditangani",
+      description: [r.proposed_category_name ? `Kategori: ${r.proposed_category_name}` : "", r.review_note || ""].filter(Boolean).join(" · "),
+      sourceStatus: r.status, sourceTable: "offline_product_submissions"
+    }));
+    (receipts.data ?? []).forEach((r: any) => result.push({
+      id: r.id, code: r.receipt_code || `RCV-${r.id.slice(0, 8).toUpperCase()}`, category: "Penerimaan Stok",
+      activity: `Penerimaan stok${r.supplier_name ? ` dari ${r.supplier_name}` : ""}`, location: storeNames.get(r.store_id) || "Toko Offline",
+      status: statusLabel(r.status, "Penerimaan Stok"), createdAt: r.received_at || r.created_at,
+      actor: personNames.get(r.created_by) || "Akun tidak diketahui", ownerId: r.created_by || null, handlerId: r.received_by || null,
+      processedBy: personNames.get(r.received_by) || "Belum diterima", description: r.notes, sourceStatus: r.status, sourceTable: "offline_stock_receipts"
+    }));
+    (sales.data ?? []).forEach((r: any) => result.push({
+      id: r.id, code: r.sale_code || `SALE-${r.id.slice(0, 8).toUpperCase()}`, category: "Penjualan Toko",
+      activity: "Penjualan toko offline", location: storeNames.get(r.store_id) || "Toko Offline", status: statusLabel(r.status, "Penjualan Toko"), createdAt: r.created_at,
+      actor: personNames.get(r.cashier_id) || "Kasir", ownerId: r.cashier_id || null, handlerId: r.cashier_id || null, processedBy: personNames.get(r.cashier_id) || "Kasir",
+      amount: Number(r.total || 0), description: `Subtotal ${money(Number(r.subtotal || 0))} · Diskon ${money(Number(r.discount_total || 0))} · Metode ${r.payment_method || "—"}`,
+      sourceStatus: r.status, sourceTable: "offline_store_sales"
+    }));
+    (storeLedger.data ?? []).forEach((r: any) => result.push({
+      id: r.id, code: r.reference_code || `SFIN-${r.id.slice(0, 8).toUpperCase()}`, category: "Keuangan",
+      activity: r.entry_type === "purchase_expense" ? "Beban pembelian stok toko" : "Pembayaran toko ke kantor",
+      location: storeNames.get(r.store_id) || "Toko Offline", status: "Selesai", createdAt: r.created_at,
+      actor: personNames.get(r.created_by) || "Akun tidak diketahui", ownerId: r.created_by || null, handlerId: r.created_by || null,
+      processedBy: personNames.get(r.created_by) || "—", amount: Number(r.amount || 0),
+      description: [r.description, r.payment_method ? `Metode: ${r.payment_method}` : "", r.order_id ? `Order: ${r.order_id.slice(0, 8)}` : ""].filter(Boolean).join(" · "),
+      sourceStatus: "posted", sourceTable: "offline_store_finance_entries"
+    }));
     (requests.data ?? []).forEach((r: any) => result.push({
       id: r.id, code: r.order_code || `PO-${r.id.slice(0, 8)}`, category: "Pengajuan Toko",
       activity: "Pengajuan pembelian barang dari toko", location: storeNames.get(r.store_id) || "Toko Offline",
       status: statusLabel(r.status, "Pengajuan Toko"), createdAt: r.created_at || r.requested_at,
-      actor: personNames.get(r.requested_by) || "Akun tidak diketahui", ownerId: r.requested_by || null, processedBy: personNames.get(r.received_by || r.shipped_by || r.reviewed_by) || "Belum ditangani",
+      actor: personNames.get(r.requested_by) || "Akun tidak diketahui", ownerId: r.requested_by || null, handlerId: r.received_by || r.shipped_by || r.reviewed_by || null, processedBy: personNames.get(r.received_by || r.shipped_by || r.reviewed_by) || "Belum ditangani",
       amount: Number(r.subtotal || 0), description: r.notes, sourceStatus: r.status, sourceTable: "offline_store_purchase_orders"
     }));
     (movements.data ?? []).forEach((r: any) => result.push({
@@ -188,7 +227,7 @@ export default function TransactionsPage() {
     return rows.filter((r) => {
       const categoryOk = category === "Semua" || r.category === category;
       const viewOk = viewFilter === "Perlu Ditindaklanjuti" ? isOpenStatus(r)
-        : viewFilter === "Tugas Saya" ? (r.ownerId === profile?.id || r.processedBy === profile?.full_name)
+        : viewFilter === "Tugas Saya" ? (r.ownerId === profile?.id || r.handlerId === profile?.id)
         : viewFilter === "Selesai" ? r.status === "Selesai" : true;
       const statusOk = statusFilter === "all" || r.status === statusFilter;
       const permissionOk = canSeeFinance || r.category !== "Keuangan";
@@ -218,6 +257,23 @@ export default function TransactionsPage() {
         const { error: updateError } = await supabase.from(selected.sourceTable).update({ status: "rejected", reviewed_by: profile.id, reviewed_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", selected.id);
         if (updateError) { window.alert("Penolakan gagal: " + updateError.message); return; }
       }
+    } else if (selected.sourceTable === "offline_store_purchase_orders" && action === "receive") {
+      const { error: rpcError } = await supabase.rpc("receive_offline_store_purchase", { p_order_id: selected.id });
+      if (rpcError) { window.alert("Penerimaan gagal dicatat: " + rpcError.message); return; }
+    } else if (selected.sourceTable === "offline_store_purchase_orders" && action === "pay") {
+      const amount = Number(window.prompt("Nominal pembayaran (Rp):") || 0);
+      if (!Number.isFinite(amount) || amount <= 0) return;
+      const method = window.prompt("Metode pembayaran (cash, bank_transfer, e_wallet, other):", "bank_transfer") || "bank_transfer";
+      const { error: rpcError } = await supabase.rpc("pay_offline_store_purchase", { p_order_id: selected.id, p_amount: amount, p_payment_method: method });
+      if (rpcError) { window.alert("Pembayaran gagal dicatat: " + rpcError.message); return; }
+    } else if (selected.sourceTable === "offline_stock_receipts" && action === "receive") {
+      const { error: rpcError } = await supabase.rpc("receive_offline_stock", { p_receipt_id: selected.id });
+      if (rpcError) { window.alert("Penerimaan stok gagal: " + rpcError.message); return; }
+    } else if (selected.sourceTable === "offline_product_submissions" && (action === "approve" || action === "reject")) {
+      const note = action === "reject" ? (window.prompt("Alasan penolakan:") || "").trim() : (window.prompt("Catatan persetujuan (opsional):") || "").trim();
+      if (action === "reject" && !note) return;
+      const { error: rpcError } = await supabase.rpc("review_offline_product_submission", { p_submission_id: selected.id, p_decision: action === "approve" ? "approved" : "rejected", p_review_note: note || null, p_create_category: true });
+      if (rpcError) { window.alert("Pengajuan produk gagal diproses: " + rpcError.message); return; }
     } else if (selected.sourceTable === "offline_store_purchase_orders" && action === "ship") {
       const { error: rpcError } = await supabase.rpc("ship_offline_store_purchase", { p_order_id: selected.id });
       if (rpcError) { window.alert("Pengiriman gagal diproses: " + rpcError.message); return; }
@@ -322,7 +378,11 @@ export default function TransactionsPage() {
           {["pending","under_review"].includes(normalize(selected.sourceStatus)) && selected.sourceTable === "product_refunds" && <><button className="trx-btn" onClick={() => void processSelected("approve")}>Setujui refund</button><button className="trx-btn" onClick={() => void processSelected("reject")}>Tolak</button></>}
           {selected.sourceStatus === "pending" && selected.sourceTable === "financial_reports" && <><button className="trx-btn" onClick={() => void processSelected("approve")}>Setujui & catat</button><button className="trx-btn" onClick={() => void processSelected("reject")}>Tolak laporan</button></>}
           {selected.sourceStatus === "requested" && selected.sourceTable === "offline_store_purchase_orders" && <><button className="trx-btn" onClick={() => void processSelected("ship")}>Setujui & proses pengiriman</button><button className="trx-btn" onClick={() => void processSelected("reject")}>Tolak pengajuan</button></>}
-          {selected.sourceStatus === "shipped" && selected.sourceTable === "offline_store_purchase_orders" && <span className="trx-muted">Menunggu toko mengonfirmasi penerimaan barang.</span>}
+          {selected.sourceStatus === "shipped" && selected.sourceTable === "offline_store_purchase_orders" && <button className="trx-btn" onClick={() => void processSelected("receive")}>Konfirmasi barang diterima</button>}
+          {selected.sourceStatus === "received" && selected.sourceTable === "offline_store_purchase_orders" && <button className="trx-btn" onClick={() => void processSelected("pay")}>Catat pembayaran</button>
+          }
+          {selected.sourceStatus === "draft" && selected.sourceTable === "offline_stock_receipts" && <button className="trx-btn" onClick={() => void processSelected("receive")}>Konfirmasi stok diterima</button>}
+          {["pending","under_review","requested"].includes(normalize(selected.sourceStatus)) && selected.sourceTable === "offline_product_submissions" && <><button className="trx-btn" onClick={() => void processSelected("approve")}>Setujui produk</button><button className="trx-btn" onClick={() => void processSelected("reject")}>Tolak pengajuan</button></> }
           {selected.sourceStatus === "pending" && selected.sourceTable === "leave_requests" && <><button className="trx-btn" onClick={() => void processSelected("approve")}>Setujui cuti</button><button className="trx-btn" onClick={() => void processSelected("reject")}>Tolak cuti</button></>}
           {selected.sourceStatus === "approved" && selected.sourceTable === "product_orders" && <button className="trx-btn" onClick={() => void processSelected("fulfill")}>Tandai dipenuhi</button>}
         </div>}
