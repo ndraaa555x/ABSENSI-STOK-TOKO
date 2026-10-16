@@ -45,7 +45,7 @@ const navItems: { key: ModuleKey; icon: string; label: string; group: string }[]
   { key: "employees", icon: "▦", label: "Karyawan", group: "OPERASIONAL" },
   { key: "attendance", icon: "◷", label: "Absensi", group: "OPERASIONAL" },
   { key: "orders", icon: "▧", label: "Order Produk", group: "TRANSAKSI" },
-  { key: "refunds", icon: "↩", label: "Refund Produk", group: "TRANSAKSI" },
+  { key: "refunds", icon: "◇", label: "Refund Produk", group: "TRANSAKSI" },
   { key: "finance-reports", icon: "→", label: "Laporan Uang", group: "TRANSAKSI" },
   { key: "customers", icon: "▧", label: "Data Toko / Member", group: "TRANSAKSI" },
   { key: "leave", icon: "▣", label: "Izin / Cuti", group: "OPERASIONAL" },
@@ -1306,7 +1306,7 @@ export default function HomePage() {
             </div>
           </div>
         </section> : activePage === "refunds" ? <section className="business-page">
-          <div className="business-hero"><div><div className="eyebrow">PENGEMBALIAN PRODUK</div><h1>Refund Produk</h1><p>{profile?.role==="employee"?"Refund hanya dapat diajukan untuk order milik akun Anda yang sudah disetujui atau dipenuhi. Jika order masih menunggu Admin/Owner, tunggu keputusan terlebih dahulu.":"Owner/Admin dapat mengajukan refund untuk order toko yang sudah disetujui atau dipenuhi, termasuk order yang dibuat oleh akun lain."}</p></div><div className="business-hero-icon">↩</div></div>
+          <div className="business-hero"><div><div className="eyebrow">PENGEMBALIAN PRODUK</div><h1>Refund Produk</h1><p>{profile?.role==="employee"?"Refund hanya dapat diajukan untuk order milik akun Anda yang sudah disetujui atau dipenuhi. Jika order masih menunggu Admin/Owner, tunggu keputusan terlebih dahulu.":"Owner/Admin dapat mengajukan refund untuk order toko yang sudah disetujui atau dipenuhi, termasuk order yang dibuat oleh akun lain."}</p></div><div className="business-hero-icon">◇</div></div>
           {refundNotice && <div className="info-box" role="status">{refundNotice}</div>}{refundError && <div className="error-box" role="alert">{refundError}</div>}
           <div className="business-columns">
             <form className="panel business-form" onSubmit={submitRefund}><div className="eyebrow">AJUKAN REFUND</div><h2>Detail pengembalian</h2>
