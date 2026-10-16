@@ -125,7 +125,7 @@ export default function TransactionsPage() {
     ]);
 
     const addError = (label: string, response: { error: { message: string } | null }) => { if (response.error) errors.push(label); };
-    addError("pesanan", orders); addError("detail pesanan", orderItems); addError("refund", refunds); addError("laporan keuangan", reports); addError("buku besar", ledger); addError("pengajuan toko", requests); addError("detail pembelian toko", purchaseItems); addError("pengajuan produk toko", submissions); addError("penerimaan stok", receipts); addError("detail penerimaan stok", receiptItems); addError("penjualan toko", sales); addError("detail penjualan toko", saleItems); addError("keuangan toko", storeLedger); addError("stok", movements); addError("absensi", attendance); addError("cuti", leaves);
+    addError("pesanan", orders); addError("detail pesanan", orderItems); addError("katalog produk", products); addError("produk toko", storeProducts); addError("refund", refunds); addError("laporan keuangan", reports); addError("buku besar", ledger); addError("pengajuan toko", requests); addError("detail pembelian toko", purchaseItems); addError("pengajuan produk toko", submissions); addError("penerimaan stok", receipts); addError("detail penerimaan stok", receiptItems); addError("penjualan toko", sales); addError("detail penjualan toko", saleItems); addError("keuangan toko", storeLedger); addError("stok", movements); addError("absensi", attendance); addError("cuti", leaves);
     const personNames = new Map<string, string>();
     (people.data ?? []).forEach((p: any) => personNames.set(p.id, p.full_name || p.role || "Akun"));
     const employeeNames = new Map<string, string>();
@@ -268,13 +268,14 @@ export default function TransactionsPage() {
         : viewFilter === "Selesai" ? r.status === "Selesai" : true;
       const statusOk = statusFilter === "all" || r.status === statusFilter;
       const hasStoreFinanceAccess = Boolean(r.storeId && storeMemberships.some((m) => m.store_id === r.storeId && ["manager","store_admin"].includes(m.store_role)));
-      const permissionOk = canSeeFinance || r.category !== "Keuangan" || hasStoreFinanceAccess;
+      const permissionOk = canViewRow(r) && (canSeeFinance || r.category !== "Keuangan" || hasStoreFinanceAccess);
       const searchOk = !q || [r.code, r.category, r.activity, r.location, r.actor, r.status, r.description].some((v) => normalize(v).includes(q));
       return categoryOk && viewOk && statusOk && permissionOk && searchOk;
     });
-  }, [rows, category, viewFilter, profile, statusFilter, search, canSeeFinance]);
-  const openRows = useMemo(() => rows.filter((r) => isOpenStatus(r)), [rows]);
-  const pendingApproval = useMemo(() => rows.filter((r) => ["Menunggu", "Menunggu persetujuan", "Belum diproses", "Perlu diperiksa"].includes(r.status)), [rows]);
+  }, [rows, category, viewFilter, profile, statusFilter, search, canSeeFinance, canViewRow]);
+  const canViewRow = useCallback((r: Trx) => canSeeFinance || r.category !== "Keuangan" || Boolean(r.storeId && storeMemberships.some((m) => m.store_id === r.storeId && ["manager","store_admin"].includes(m.store_role))), [canSeeFinance, storeMemberships]);
+  const openRows = useMemo(() => rows.filter((r) => canViewRow(r) && isOpenStatus(r)), [rows, canViewRow]);
+  const pendingApproval = useMemo(() => rows.filter((r) => canViewRow(r) && ["Menunggu", "Menunggu persetujuan", "Belum diproses", "Perlu diperiksa"].includes(r.status)), [rows, canViewRow]);
   const pages = Math.max(1, Math.ceil(visibleRows.length / PAGE_SIZE));
   const pageRows = visibleRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   useEffect(() => { setPage(1); }, [category, viewFilter, statusFilter, search]);
