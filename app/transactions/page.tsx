@@ -272,7 +272,7 @@ export default function TransactionsPage() {
       const searchOk = !q || [r.code, r.category, r.activity, r.location, r.actor, r.status, r.description].some((v) => normalize(v).includes(q));
       return categoryOk && viewOk && statusOk && permissionOk && searchOk;
     });
-  }, [rows, category, viewFilter, profile, statusFilter, search, canViewRow]);
+  }, [rows, category, viewFilter, profile, statusFilter, search, canViewRow, storeMemberships]);
   const openRows = useMemo(() => rows.filter((r) => canViewRow(r) && isOpenStatus(r)), [rows, canViewRow]);
   const pendingApproval = useMemo(() => rows.filter((r) => canViewRow(r) && ["Menunggu", "Menunggu persetujuan", "Belum diproses", "Perlu diperiksa"].includes(r.status)), [rows, canViewRow]);
   const pages = Math.max(1, Math.ceil(visibleRows.length / PAGE_SIZE));
