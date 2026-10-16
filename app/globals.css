@@ -635,3 +635,32 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   .product-management-page .section-head { align-items: flex-start; gap: 12px; flex-wrap: wrap; }
   .product-management-page .business-form { padding: 14px; }
 }
+
+
+/* Standalone Toko Offline, POS and TRX routes use .main rather than .app-shell */
+.main { background: #101114; color: #f1f2f4; }
+.main .panel, .main .stat-card, .main .business-record { background: #181a1f; color: #f1f2f4; border-color: #363941; box-shadow: none; }
+.main .business-page { color: #f1f2f4; }
+.main .business-hero { background: linear-gradient(120deg,#1d1f24,#141519); border: 1px solid #3c4048; color: #f1f2f4; box-shadow: none; }
+.main .business-hero-icon { color: #e1e3e8; background: #292c32; border: 1px solid #4a4f59; }
+.main .business-form, .main .business-history { background: #181a1f; border-color: #363941; }
+.main .business-record-head, .main .business-line, .main .section-head { border-color: #363941; }
+.main .subtle { color: #9da2ad; }
+.main input, .main select, .main textarea { background: #111216; color: #f1f2f4; border-color: #454952; }
+.main input:focus, .main select:focus, .main textarea:focus { outline: 2px solid #aeb3bd; outline-offset: 1px; }
+.main .btn { background: #25282e; color: #f1f2f4; border: 1px solid #555a64; }
+.main .btn:hover { background: #343840; border-color: #858b96; }
+.main .btn-primary { background: #d6d8dd; color: #16171a; border-color: #e6e7ea; font-weight: 700; }
+.main .btn-primary:hover { background: #f0f1f3; color: #111216; }
+.main .nav-list { gap: 8px; }
+.main .nav-list button, .main .nav-list a { border: 1px solid #363941; border-radius: 10px; background: #181a1f; color: #d7d9de; padding: 10px 14px; }
+.main .nav-list button.active, .main .nav-list button[aria-pressed="true"] { background: #d6d8dd; color: #16171a; border-color: #e6e7ea; }
+.main table { color: #f1f2f4; }
+.main th { background: #25282e; color: #d8dbe1; }
+.main th, .main td { border-color: #363941; }
+@media (max-width: 640px) {
+  .main .business-hero { padding: 18px; gap: 10px; }
+  .main .business-columns { grid-template-columns: minmax(0,1fr); }
+  .main .business-actions { gap: 8px; }
+  .main .business-actions > * { max-width: 100%; }
+}
