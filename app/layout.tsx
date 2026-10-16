@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SMART BUSINESS MANAGEMENT",
-  description: "Sistem manajemen bisnis, absensi, inventaris, dan keuangan."
+  title: "NDRAAAID — Business Operating System",
+  description: "Platform operasional bisnis terpadu untuk tim, toko, inventaris, penjualan, absensi, dan keuangan."
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
