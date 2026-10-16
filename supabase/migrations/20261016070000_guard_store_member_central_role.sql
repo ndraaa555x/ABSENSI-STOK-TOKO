@@ -18,7 +18,7 @@ begin
 
   select pg_get_functiondef('public.manage_offline_store_member(uuid,text,uuid,boolean)'::regprocedure)
     into v_def;
-  v_old := 'if p_is_active and exists(select 1 from public.offline_store_memberships other where other.user_id=v.user_id and other.is_active and other.id<>v.id) then';
+  v_old := 'if p_is_active and exists(select 1 from public.offline_store_memberships other';
   v_new := E'if p_is_active and not exists(select 1 from public.profiles where id=v.user_id and is_active and role=''employee'') then raise exception ''Anggota Toko Offline harus memakai role pusat Karyawan. Ubah role akun melalui Owner/Admin terlebih dahulu.''; end if;\n  ' || v_old;
   if position(v_old in v_def) = 0 then
     raise exception 'Expected validation point not found in manage_offline_store_member; migration stopped';
