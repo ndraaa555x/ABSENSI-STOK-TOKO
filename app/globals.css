@@ -1106,3 +1106,108 @@ img,svg,video,canvas{max-width:100%}
  .main,.business-page,.pos-page,.trx-page{max-width:none!important;padding:0!important;margin:0!important;background:#fff!important;color:#111!important}
  .panel,.business-record,.trx-modal,.trx-detail{box-shadow:none!important;break-inside:avoid}
 }
+
+
+/* NDRAAAID — new visual system: warm porcelain, forest, and brass */
+:root{
+ color-scheme:light;
+ --bg:#f4f3ee;--panel:#ffffff;--panel2:#f8f8f4;--line:#e1e5dc;--muted:#68766d;--text:#17271f;
+ --blue:#1f6b4d;--cyan:#c49a55;--green:#28734f;--orange:#b77935;--red:#c64d4d;
+ --nd-line:#e1e5dc;--nd-accent:#1f6b4d;
+}
+html,body{background:#f4f3ee;color:#17271f}
+body{background:radial-gradient(ellipse at 88% 0%,rgba(196,154,85,.13),transparent 30%),#f4f3ee}
+h1,h2,h3{color:#17271f}
+.subtle{color:#68766d}
+.eyebrow{color:#1f6b4d;letter-spacing:.15em}
+.app-shell{background:#f4f3ee}
+.sidebar{background:#173c2d;color:#f7f7f0;border-right:0;padding:24px 16px}
+.sidebar .brand-title,.sidebar .brand-sub{color:#f7f7f0}
+.sidebar .brand-sub{opacity:.68}
+.brand-mark{background:linear-gradient(145deg,#cda76b,#a77b3d);color:#173c2d;box-shadow:0 8px 22px #0a24182b}
+.nav-label{color:#b5c9bc}
+.nav-item{color:#d3e0d6;border-color:transparent}
+.nav-item:hover,.nav-item.active{background:#24523f;color:#fff;border-color:#37664f}
+.nav-item.active{box-shadow:inset 3px 0 #d5b579}
+.side-foot{background:#204936;border-color:#37664f;color:#fff}
+.side-foot p{color:#c7d8cd}
+.main{background:transparent}
+.user-menu{background:#fff;border-color:#e1e5dc;color:#17271f}
+.avatar{background:linear-gradient(135deg,#1f6b4d,#4d8b67);color:#fff}
+.user-role{color:#28734f}
+.btn{background:#fff;border-color:#d9e0d8;color:#21382b;border-radius:11px}
+.btn:hover{border-color:#8db5a0;background:#f5f8f4}
+.btn-primary{background:#1f6b4d;color:#fff;border-color:#1f6b4d;box-shadow:0 7px 16px #1f6b4d20}
+.btn-primary:hover{background:#18563d;border-color:#18563d}
+.stat-card,.panel{background:#fff;border-color:#e1e5dc;box-shadow:0 8px 24px rgba(24,46,34,.045)}
+.stat-icon{background:#e9f1eb;color:#1f6b4d}
+.stat-value{color:#17271f}
+.status{background:#e5f3e9;color:#246c47}
+.activity{border-color:#edf0eb}
+.activity-icon{background:#f1f5f0;border-color:#e1e5dc;color:#1f6b4d}
+.quick-card,.module-card{background:#fff;border-color:#e1e5dc;color:#17271f}
+.quick-card:hover{border-color:#8db5a0;background:#f8fbf7}
+.quick-card span{color:#1f6b4d}
+.module-card p{color:#68766d}
+.field input,.field select,.field textarea,input,select,textarea{border-color:#d9e0d8}
+.login-wrap{background:#f4f3ee;color:#17271f;grid-template-columns:minmax(0,1.08fr) minmax(390px,.92fr)}
+.login-hero{position:relative;isolation:isolate;overflow:hidden;padding:clamp(28px,6vw,88px);background:radial-gradient(ellipse at 72% 23%,rgba(202,169,111,.22),transparent 34%),linear-gradient(145deg,#173c2d,#102e22 74%);border:0;color:#fff}
+.login-hero:after{content:"";position:absolute;z-index:-1;width:min(42vw,520px);aspect-ratio:1;right:-9%;bottom:-22%;border:1px solid rgba(226,203,158,.22);border-radius:48%;box-shadow:0 0 0 35px rgba(226,203,158,.035),0 0 0 75px rgba(226,203,158,.025);transform:rotate(-24deg)}
+.login-hero .brand{padding:0;gap:13px}
+.login-hero .brand-mark{width:48px;height:48px;border-radius:15px;background:#d8bd88;color:#173c2d;box-shadow:0 8px 28px #071d1433}
+.login-hero .brand-title{font-size:14px;letter-spacing:.12em;color:#fff}
+.login-hero .brand-sub{font-size:10px;letter-spacing:.13em;color:#c6d8ca}
+.login-hero .eyebrow{color:#d8bd88;font-size:10px}
+.hero-big{max-width:640px;font-size:clamp(40px,5.7vw,76px);line-height:1.03;letter-spacing:-.065em;color:#fff}
+.gradient-text{background:linear-gradient(100deg,#e7d4ad,#c49a55);-webkit-background-clip:text;background-clip:text;color:transparent}
+.login-hero .subtle{color:#c9d8cd;font-size:14px;line-height:1.8}
+.feature-pills{gap:8px}
+.feature-pill{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid rgba(219,231,220,.2);border-radius:999px;background:rgba(255,255,255,.055);color:#e6eee7}
+.feature-pill svg{color:#d8bd88}
+.login-side{display:flex;align-items:center;justify-content:center;padding:clamp(22px,5vw,72px);background:#f4f3ee}
+.login-card{width:min(100%,440px);padding:clamp(24px,3vw,42px);border:1px solid #e1e5dc;border-radius:24px;background:#fff;box-shadow:0 24px 70px rgba(24,46,34,.08)}
+.login-card .eyebrow{margin-bottom:12px}
+.login-card h2{font-size:clamp(25px,3vw,32px);letter-spacing:-.04em;margin-bottom:9px}
+.login-card .subtle{font-size:13px;line-height:1.7}
+.login-card .field{gap:8px;margin:22px 0}
+.login-card .field label{color:#31483a;font-size:12px;font-weight:700}
+.login-card input{width:100%;min-height:48px;padding:12px 14px;border:1px solid #d9e0d8;border-radius:11px;background:#fbfcfa;color:#17271f;outline:none}
+.login-card input:focus{border-color:#4f8a69;box-shadow:0 0 0 4px rgba(31,107,77,.1)}
+.login-card form .btn-primary{width:100%;min-height:49px;display:flex;align-items:center;justify-content:center;gap:9px;font-size:13px}
+.login-card>.btn{min-height:42px;border-color:transparent;color:#1f6b4d}
+.login-card .footer{border-top:1px solid #edf0eb;padding-top:16px;color:#7c887f;font-size:11px;line-height:1.6}
+.error-box{background:#fff1ef!important;border-color:#f3c9c2!important;color:#a33c32!important}
+.info-box{background:#edf7ef!important;border-color:#cde5d3!important;color:#286344!important}
+.business-hero{background:radial-gradient(ellipse at top right,rgba(196,154,85,.15),transparent 55%),linear-gradient(135deg,#fff,#f6f8f3);border-color:#e1e5dc}
+.business-record,.business-history article{background:#fbfcfa;border-color:#e1e5dc}
+.pos-page{background:#f4f3ee;color:#17271f}
+.pos-header,.pos-catalog,.pos-cart{background:#fff;border-color:#e1e5dc;color:#17271f;box-shadow:0 8px 24px rgba(24,46,34,.045)}
+.pos-product-card{background:#fbfcfa;border-color:#e1e5dc;color:#17271f}
+.pos-product-card:hover:not(:disabled){background:#f0f6f0;border-color:#8db5a0}
+.pos-product-card .subtle,.pos-product-sku{color:#68766d}
+.pos-totals,.pos-cart-line{border-color:#e1e5dc}
+.trx-page{background:#f4f3ee;color:#17271f}
+.trx-stat{background:#fff;border-color:#e1e5dc;color:#17271f}
+.trx-table-wrap{background:#fff;border:1px solid #e1e5dc;border-radius:12px}
+.trx-table th{background:#edf2ed;color:#31483a}
+.trx-table td,.trx-table th{border-color:#e7ebe5}
+.trx-table tbody tr:hover{background:#f5f8f4}
+input,select,textarea{background:#fff;color:#17271f}
+input::placeholder,textarea::placeholder{color:#8a968d}
+@media(max-width:900px){
+ .login-wrap{grid-template-columns:minmax(0,1fr)}
+ .login-hero{min-height:430px;padding:30px 24px 36px}
+ .login-hero>div:first-child>div:nth-child(2){margin-top:56px!important}
+ .hero-big{font-size:clamp(38px,9vw,58px)}
+ .login-side{padding:24px 16px 36px}
+ .login-card{border-radius:20px}
+}
+@media(max-width:600px){
+ .app-shell{grid-template-columns:minmax(0,1fr)}
+ .sidebar{padding:16px}
+ .main{padding:16px}
+ .login-hero{min-height:390px}
+ .login-hero .feature-pill{font-size:10px;padding:8px 10px}
+ .login-card{padding:24px 20px}
+}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
