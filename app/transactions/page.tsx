@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import AppIcon, { type AppIconName } from "@/components/app-icon";
 
 type Role = "owner" | "admin" | "hrd" | "employee";
 type Profile = { id: string; full_name: string | null; role: Role; is_active: boolean };
@@ -35,6 +36,26 @@ type Trx = {
 const PAGE_SIZE = 20;
 const CATEGORIES = ["Semua", "Pesanan", "Refund", "Pengajuan Toko", "Produk Toko", "Penerimaan Stok", "Penjualan Toko", "Aktivitas Sistem", "Keuangan", "Stok", "Absensi", "Cuti"] as const;
 const VIEWS = ["Perlu Ditindaklanjuti", "Tugas Saya", "Selesai", "Semua Transaksi"] as const;
+const viewIcons: Record<(typeof VIEWS)[number], AppIconName> = {
+  "Perlu Ditindaklanjuti": "activity",
+  "Tugas Saya": "profile",
+  "Selesai": "check",
+  "Semua Transaksi": "transactions",
+};
+const categoryIcons: Record<(typeof CATEGORIES)[number], AppIconName> = {
+  "Semua": "filter",
+  "Pesanan": "orders",
+  "Refund": "refunds",
+  "Pengajuan Toko": "requests",
+  "Produk Toko": "products",
+  "Penerimaan Stok": "inventory",
+  "Penjualan Toko": "pos",
+  "Aktivitas Sistem": "activity",
+  "Keuangan": "finance",
+  "Stok": "inventory",
+  "Absensi": "attendance",
+  "Cuti": "leave",
+};
 const money = (value: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(value);
 const dateTime = (value: string) => new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 const normalize = (value: unknown) => String(value ?? "").trim().toLowerCase();
@@ -432,7 +453,7 @@ export default function TransactionsPage() {
       <div className="trx-shell">
         <div className="trx-top">
           <div><div className="trx-eyebrow">PUSAT PENGAJUAN & RIWAYAT</div><h1 className="trx-title">Transaksi (TRX)</h1><div className="trx-muted">Semua aktivitas yang diizinkan untuk akun ini, dengan prioritas pengajuan yang masih membutuhkan tindakan.</div></div>
-          <div style={{display:"flex",gap:7,flexWrap:"wrap"}}><Link href="/" className="trx-btn">← Dashboard</Link><button className="trx-btn" onClick={() => setRefresh((v) => v + 1)} disabled={loading}>{loading ? "Memuat…" : "↻ Segarkan"}</button></div>
+          <div style={{display:"flex",gap:7,flexWrap:"wrap"}}><Link href="/" className="trx-btn"><AppIcon name="back" size={15} /> Dashboard</Link><button className="trx-btn" onClick={() => setRefresh((v) => v + 1)} disabled={loading}><AppIcon name="refresh" size={15} /> {loading ? "Memuat…" : "Segarkan"}</button></div>
         </div>
         <section className="trx-stats">
           <div className="trx-stat"><div className="trx-stat-label">Belum selesai</div><div className="trx-stat-value">{loading ? "—" : openRows.length}</div><div className="trx-muted">Perlu ditindaklanjuti</div></div>
@@ -440,8 +461,8 @@ export default function TransactionsPage() {
           <div className="trx-stat"><div className="trx-stat-label">Total data terbaca</div><div className="trx-stat-value">{loading ? "—" : rows.length}</div><div className="trx-muted">Sumber data yang berhasil dibaca</div></div>
         </section>
         {error && <div role="status" style={{border:"1px solid #92400e",background:"#78350f33",borderRadius:9,padding:10,fontSize:12,marginBottom:12,color:"#fde68a"}}>{error}</div>}
-        <div className="trx-cats" aria-label="Tampilan transaksi">{VIEWS.map((item) => <button key={item} className={`trx-cat ${viewFilter === item ? "active" : ""}`} onClick={() => setViewFilter(item)}>{item}</button>)}</div>
-        <div className="trx-cats" aria-label="Kategori transaksi">{CATEGORIES.map((item) => <button key={item} className={`trx-cat ${category === item ? "active" : ""}`} onClick={() => setCategory(item)}>{item}</button>)}</div>
+        <div className="trx-cats" aria-label="Tampilan transaksi">{VIEWS.map((item) => <button key={item} className={`trx-cat ${viewFilter === item ? "active" : ""}`} onClick={() => setViewFilter(item)}><AppIcon name={viewIcons[item]} size={15} /> {item}</button>)}</div>
+        <div className="trx-cats" aria-label="Kategori transaksi">{CATEGORIES.map((item) => <button key={item} className={`trx-cat ${category === item ? "active" : ""}`} onClick={() => setCategory(item)}><AppIcon name={categoryIcons[item]} size={15} /> {item}</button>)}</div>
         <div className="trx-controls">
           <input className="trx-input" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari kode, nama, toko, aktivitas…" aria-label="Cari transaksi" />
           <select className="trx-input" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} aria-label="Filter status">
