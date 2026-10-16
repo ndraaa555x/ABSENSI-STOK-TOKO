@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Session } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import AppIcon from "@/components/app-icon";
 
 type Profile = { id: string; email: string; role: string; is_active: boolean };
 type Store = { id: string; store_code: string; name: string };
@@ -145,7 +146,7 @@ export default function OfflineStorePurchasesPage() {
         <div className="field"><label>Catatan untuk kantor</label><textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Misalnya kebutuhan stok mingguan"/></div>
         <button className="btn btn-primary" disabled={busy || !productId}>{busy ? "Mengirim…" : "Kirim permintaan pembelian"}</button>
       </form>}
-      <div className="info-box">Riwayat pengajuan, pengiriman, penerimaan, dan pembayaran pembelian toko kini dipusatkan di <Link href="/transactions">Transaksi (TRX) →</Link>. Form pengajuan pembelian tetap tersedia di halaman ini.</div>
+      <div className="info-box">Riwayat pengajuan, pengiriman, penerimaan, dan pembayaran pembelian toko kini dipusatkan di <Link href="/transactions">Transaksi (TRX) <AppIcon name="next" size={14} /></Link>. Form pengajuan pembelian tetap tersedia di halaman ini.</div>
       <section className="panel business-history" style={{display:"none"}}><h2>Pesanan pembelian</h2><p className="subtle">Alur: diajukan → dikirim kantor (stok kantor berkurang) → diterima toko (stok toko bertambah dan biaya masuk ke keuangan toko).</p>
         {orderItems.map(o => <article className="business-record" key={o.id}>
           <div className="business-record-head"><div><strong>{o.order_code}</strong><small>{new Date(o.requested_at).toLocaleString("id-ID")} · {o.lines.length} item</small></div><span className={"status-pill " + (o.status === "received" ? "status-approved" : o.status === "rejected" ? "status-rejected" : "")}>{fmtStatus(o.status)}</span></div>
