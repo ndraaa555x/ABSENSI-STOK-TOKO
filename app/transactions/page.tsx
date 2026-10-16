@@ -67,7 +67,7 @@ function badgeClass(status: TrxStatus) {
 
 export default function TransactionsPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [storeMemberships, setStoreMemberships] = useState<{store_id:string;store_role:string}[]>([]);
+  const [storeMemberships, setStoreMemberships] = useState<{store_id:string;store_role:string;user_id?:string}[]>([]);
   const [rows, setRows] = useState<Trx[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -96,8 +96,14 @@ export default function TransactionsPage() {
     }
     const current = profileData as Profile;
     setProfile(current);
-    const { data: memberRows } = await supabase.from("offline_store_memberships").select("store_id,store_role").eq("user_id", current.id).eq("is_active", true);
-    setStoreMemberships((memberRows || []) as {store_id:string;store_role:string}[]);
+    const { data: memberRows } = await supabase.from("offline_store_memberships").select("store_id,user_id,store_role").eq("user_id", current.id).eq("is_active", true);
+    let activeMemberships = (memberRows || []) as {store_id:string;store_role:string;user_id?:string}[];
+    if (activeMemberships.length && !["owner","admin"].includes(current.role)) {
+      const storeIds = activeMemberships.map((m) => m.store_id);
+      const { data: teamRows } = await supabase.from("offline_store_memberships").select("store_id,user_id,store_role").in("store_id", storeIds).eq("is_active", true);
+      if (teamRows?.length) activeMemberships = teamRows as {store_id:string;store_role:string;user_id?:string}[];
+    }
+    setStoreMemberships(activeMemberships);
     const result: Trx[] = [];
     const errors: string[] = [];
     const [orders, orderItems, refunds, reports, ledger, requests, purchaseItems, submissions, receipts, receiptItems, sales, saleItems, storeLedger, movements, attendance, leaves, stores, employees, people, products, storeProducts] = await Promise.all([
@@ -223,7 +229,7 @@ export default function TransactionsPage() {
       const { data: auditRows, error: auditError } = await supabase.from("audit_logs").select("id,actor_id,action,entity_table,entity_id,details,created_at").order("created_at", { ascending: false }).limit(500);
       if (auditError) errors.push("audit sistem");
       (auditRows ?? []).forEach((r: any) => result.push({
-        id: r.id, code: `AUD-${r.id.slice(0, 8).toUpperCase()}`, category: "Aktivitas Sistem",
+        id: String(r.id), code: `AUD-${String(r.id).slice(0, 8).toUpperCase()}`, category: "Aktivitas Sistem",
         activity: String(r.action || "Aktivitas sistem").replaceAll("_", " "), location: String(r.entity_table || "Sistem"),
         status: "Selesai", createdAt: r.created_at, actor: personNames.get(r.actor_id) || "Akun tidak diketahui", ownerId: r.actor_id || null,
         handlerId: r.actor_id || null, processedBy: personNames.get(r.actor_id) || "—",
@@ -262,7 +268,19 @@ export default function TransactionsPage() {
 
   const canSeeAll = profile?.role === "owner" || profile?.role === "admin";
   const canSeeFinance = canSeeAll || profile?.role === "hrd";
-  const canViewRow = useCallback((r: Trx) => canSeeFinance || r.category !== "Keuangan" || Boolean(r.storeId && storeMemberships.some((m) => m.store_id === r.storeId && ["manager","store_admin"].includes(m.store_role))), [canSeeFinance, storeMemberships]);
+  const canViewRow = useCallback((r: Trx) => {
+    if (!profile) return false;
+    if (profile.role === "owner" || profile.role === "admin") return true;
+    if (profile.role === "hrd") return ["Absensi", "Cuti"].includes(r.category) && (r.ownerId === profile.id || r.category === "Absensi" || r.category === "Cuti");
+    const assignedStoreIds = new Set(storeMemberships.map((m) => m.store_id));
+    const hasStoreScope = assignedStoreIds.size > 0;
+    if (hasStoreScope) {
+      if (r.storeId && assignedStoreIds.has(r.storeId)) return true;
+      if (["Absensi", "Cuti"].includes(r.category) && r.ownerId && storeMemberships.some((m) => m.user_id === r.ownerId)) return true;
+      return false;
+    }
+    return r.ownerId === profile.id && ["Pesanan", "Refund", "Keuangan", "Absensi", "Cuti"].includes(r.category);
+  }, [profile, storeMemberships]);
   const visibleRows = useMemo(() => {
     const q = normalize(search);
     return rows.filter((r) => {
