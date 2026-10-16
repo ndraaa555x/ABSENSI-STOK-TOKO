@@ -15,6 +15,10 @@ import {
   FileText,
   Filter,
   LogOut,
+  Plus,
+  Minus,
+  Trash2,
+  Banknote,
   Menu,
   PackageSearch,
   Printer,
@@ -47,7 +51,7 @@ export const appIconNames = [
   "products", "categories", "barcode", "finance", "settings", "transactions",
   "store", "pos", "logout", "search", "requests", "database", "activity", "back",
   "check", "close", "next", "refresh", "security", "filter", "print", "credit-card",
-  "truck", "reports", "menu"
+  "truck", "reports", "menu", "add", "minus", "delete", "cash"
 ] as const;
 
 export type AppIconName = (typeof appIconNames)[number];
@@ -74,6 +78,10 @@ const iconMap: Record<AppIconName, ComponentType<SVGProps<SVGSVGElement> & { siz
   pos: IconFileInvoice,
   logout: LogOut,
   menu: Menu,
+  add: Plus,
+  minus: Minus,
+  delete: Trash2,
+  cash: Banknote,
   search: Search,
   requests: ClipboardList,
   database: Database,
