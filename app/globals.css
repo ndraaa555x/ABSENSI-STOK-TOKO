@@ -938,3 +938,12 @@ th,td{overflow-wrap:anywhere}
  .app-shell .user-role{letter-spacing:.06em}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+
+/* Navigation elements are visually identical whether rendered as buttons or links */
+.sidebar .nav-list>.nav-item{display:flex!important;align-items:center!important;gap:12px!important;width:100%!important;min-height:46px!important;padding:12px!important;border:1px solid transparent!important;border-radius:10px!important;background:transparent!important;color:#c2c9d3!important;font:600 13px/1.35 'DM Sans',sans-serif!important;text-align:left!important;text-decoration:none!important;box-shadow:none!important}
+.sidebar .nav-list>.nav-item:hover,.sidebar .nav-list>.nav-item:focus-visible{background:#22262c!important;border-color:#414750!important;color:#fff!important}
+.sidebar .nav-list>.nav-item.active{background:#252a31!important;border-color:#444b55!important;color:#fff!important;box-shadow:inset 3px 0 #8db8f4!important}
+.sidebar .nav-list>.nav-item .nav-icon{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 22px!important;width:22px!important;height:22px!important}
+.sidebar .nav-list>.nav-item .nav-icon svg{width:19px!important;height:19px!important}
+@media(max-width:900px){.sidebar .nav-label{margin-top:3px}.sidebar .nav-list{gap:4px}.sidebar .brand{padding:0 5px}.mobile-menu-toggle{display:inline-flex!important;align-items:center;gap:8px;min-height:40px;padding:8px 11px;border:1px solid var(--line);border-radius:10px;background:#171f2b;color:var(--text)}}
