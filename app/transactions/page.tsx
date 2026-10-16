@@ -296,9 +296,6 @@ export default function TransactionsPage() {
       const method = window.prompt("Metode pembayaran (cash, bank_transfer, e_wallet, other):", "bank_transfer") || "bank_transfer";
       const { error: rpcError } = await supabase.rpc("pay_offline_store_purchase", { p_order_id: selected.id, p_amount: amount, p_payment_method: method });
       if (rpcError) { window.alert("Pembayaran gagal dicatat: " + rpcError.message); return; }
-    } else if (selected.sourceTable === "offline_stock_receipts" && action === "receive") {
-      const { error: rpcError } = await supabase.rpc("receive_offline_stock", { p_receipt_id: selected.id });
-      if (rpcError) { window.alert("Penerimaan stok gagal: " + rpcError.message); return; }
     } else if (selected.sourceTable === "offline_product_submissions" && (action === "approve" || action === "revise")) {
       const note = action === "revise" ? (window.prompt("Catatan perbaikan yang wajib dilengkapi:") || "").trim() : (window.prompt("Catatan persetujuan (opsional):") || "").trim();
       if (action === "revise" && !note) return;
