@@ -947,3 +947,97 @@ th,td{overflow-wrap:anywhere}
 .sidebar .nav-list>.nav-item .nav-icon{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 22px!important;width:22px!important;height:22px!important}
 .sidebar .nav-list>.nav-item .nav-icon svg{width:19px!important;height:19px!important}
 @media(max-width:900px){.sidebar .nav-label{margin-top:3px}.sidebar .nav-list{gap:4px}.sidebar .brand{padding:0 5px}.mobile-menu-toggle{display:inline-flex!important;align-items:center;gap:8px;min-height:40px;padding:8px 11px;border:1px solid var(--line);border-radius:10px;background:#171f2b;color:var(--text)}}
+
+
+/* NDRAAAID integrated interface polish — shared across office, inventory, TRX and offline store */
+:root{
+  --nd-radius:16px;--nd-radius-sm:11px;--nd-surface:#111a27;--nd-surface-2:#172334;
+  --nd-line:rgba(148,163,184,.2);--nd-text:#e8eef7;--nd-muted:#9aa9bc;
+  --nd-accent:#8db8f4;--nd-shadow:0 14px 36px rgba(0,0,0,.16)
+}
+.app-shell,.main,.pos-page,.trx-page{color:var(--nd-text)}
+.main,.pos-page{width:100%;max-width:1600px;margin-inline:auto;padding:clamp(14px,2.5vw,32px)}
+.main>.topbar,.pos-header,.trx-top{gap:18px;margin-bottom:22px}
+.main>.topbar h1,.pos-header h1,.trx-title{letter-spacing:-.035em;line-height:1.12}
+.main .panel,.pos-page .panel,.business-page .panel,.trx-stat,.trx-table-wrap{
+  border:1px solid var(--nd-line);border-radius:var(--nd-radius);box-shadow:var(--nd-shadow)
+}
+.main .panel,.business-page .panel{padding:clamp(15px,2vw,24px)}
+.main .section-head,.business-page .section-head,.pos-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.main .subtle,.pos-page .subtle,.business-page .subtle{color:var(--nd-muted);line-height:1.6}
+.main .btn,.pos-page .btn,.business-page .btn,.trx-btn{
+  min-height:40px;border-radius:10px;font-weight:650;transition:transform .16s ease,border-color .16s ease,background .16s ease
+}
+.main .btn:hover,.pos-page .btn:hover,.business-page .btn:hover,.trx-btn:hover{transform:translateY(-1px)}
+.main .btn:focus-visible,.pos-page button:focus-visible,.business-page button:focus-visible,.trx-page button:focus-visible,
+.main a:focus-visible,.pos-page a:focus-visible,.business-page a:focus-visible{outline:2px solid var(--nd-accent);outline-offset:3px}
+.main input:not([type=checkbox]):not([type=radio]),.main select,.main textarea,
+.business-page input:not([type=checkbox]):not([type=radio]),.business-page select,.business-page textarea,
+.pos-page input:not([type=checkbox]):not([type=radio]),.pos-page select,.pos-page textarea{
+  width:100%;min-height:42px;border-radius:10px;border:1px solid var(--nd-line);background:#0d1623;color:var(--nd-text);padding:10px 12px
+}
+.main input:focus,.main select:focus,.main textarea:focus,.business-page input:focus,.business-page select:focus,.business-page textarea:focus,
+.pos-page input:focus,.pos-page select:focus,.pos-page textarea:focus{outline:2px solid rgba(141,184,244,.35);border-color:var(--nd-accent)}
+.main .field,.business-page .field{min-width:0;gap:7px}
+.main .field label,.business-page .field label,.pos-page .field span{font-size:12px;font-weight:700;color:#b9c7d8}
+.main .stats-grid{gap:12px}
+.main .stat-card,.business-page .stat-card{min-width:0;border:1px solid var(--nd-line);border-radius:14px;background:linear-gradient(145deg,rgba(25,39,57,.96),rgba(15,24,37,.96));padding:16px}
+.main .stat-value,.business-page .stat-value{font-variant-numeric:tabular-nums;letter-spacing:-.035em}
+.business-page{display:grid;gap:16px;min-width:0}
+.business-hero{border:1px solid var(--nd-line);border-radius:18px;padding:clamp(18px,3vw,28px);background:radial-gradient(ellipse at top right,rgba(69,116,177,.2),transparent 55%),linear-gradient(135deg,#172638,#101925)}
+.business-columns{align-items:start;gap:16px}
+.business-form,.business-history{min-width:0}
+.business-history article,.business-record{border:1px solid var(--nd-line);border-radius:12px;padding:14px;margin-top:10px;background:rgba(10,18,29,.42)}
+.business-actions{display:flex;flex-wrap:wrap;gap:8px}
+.status-pill{max-width:100%;white-space:normal}
+.pos-page{min-height:100vh;background:radial-gradient(ellipse at top left,rgba(47,82,126,.16),transparent 38%),#0b111a}
+.pos-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;border:1px solid var(--nd-line);border-radius:18px;background:rgba(17,26,39,.92);padding:18px 20px}
+.pos-brand-mark{border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.22)}
+.pos-workspace{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(330px,.85fr);gap:18px;align-items:start}
+.pos-catalog,.pos-cart{min-width:0;padding:clamp(15px,2vw,22px);background:rgba(17,26,39,.96)}
+.pos-cart{position:sticky;top:16px}
+.pos-search-row{display:grid;grid-template-columns:minmax(0,1fr) 110px;gap:12px;align-items:end}
+.pos-products{gap:10px}
+.pos-product-card{min-width:0;text-align:left;border:1px solid var(--nd-line);border-radius:13px;padding:14px;background:linear-gradient(145deg,#192638,#121b28);transition:transform .16s ease,border-color .16s ease,background .16s ease}
+.pos-product-card:hover:not(:disabled){transform:translateY(-2px);border-color:rgba(141,184,244,.6);background:#1b2b40}
+.pos-product-card:disabled{opacity:.52;cursor:not-allowed}
+.pos-cart-line{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:13px 0;border-bottom:1px solid var(--nd-line)}
+.pos-checkout-fields{gap:12px}
+.pos-totals{border-top:1px solid var(--nd-line);padding-top:14px;margin-top:14px}
+.pos-grand-total{font-size:1.1rem}
+.pos-checkout-button{width:100%;min-height:48px}
+.trx-page{max-width:1600px;margin-inline:auto;padding:clamp(14px,2.5vw,32px)}
+.trx-top{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+.trx-stat{background:linear-gradient(145deg,#172436,#111a27);padding:17px}
+.trx-cats{gap:8px;flex-wrap:wrap}
+.trx-cat{border-radius:999px;min-height:38px}
+.trx-controls{gap:10px;flex-wrap:wrap}
+.trx-input{min-height:42px;border-radius:10px}
+.trx-table-wrap{overflow:auto;background:#111a27}
+.trx-table{min-width:760px}
+.trx-table th{position:sticky;top:0;background:#172334;color:#b8c7d9}
+.trx-table td,.trx-table th{padding:13px 14px;border-bottom:1px solid var(--nd-line)}
+.trx-table tbody tr:hover{background:rgba(141,184,244,.055)}
+.trx-modal{box-shadow:0 24px 70px rgba(0,0,0,.45)}
+@media(max-width:980px){
+ .pos-workspace{grid-template-columns:minmax(0,1fr)}
+ .pos-cart{position:static}
+}
+@media(max-width:680px){
+ .main,.pos-page,.trx-page{padding:12px}
+ .main>.topbar,.pos-header{align-items:stretch}
+ .pos-header{padding:14px}
+ .pos-header-actions{display:flex;flex-wrap:wrap;gap:8px}
+ .pos-header-actions .btn{flex:1 1 100%;justify-content:center}
+ .pos-search-row{grid-template-columns:minmax(0,1fr) 92px}
+ .pos-product-card{padding:12px}
+ .pos-cart-line{grid-template-columns:minmax(0,1fr)}
+ .pos-quantity-control{justify-content:flex-start}
+ .main .section-head{align-items:stretch}
+ .main .section-head>.btn,.business-actions>.btn{max-width:100%}
+ .trx-controls>*{flex:1 1 100%;min-width:0}
+ .trx-cats{display:flex;overflow-x:auto;padding-bottom:5px}
+ .trx-cat{flex:0 0 auto}
+ .trx-modal{max-height:92vh;padding:14px}
+}
+@media(prefers-reduced-motion:reduce){.main .btn,.pos-page .btn,.business-page .btn,.trx-btn,.pos-product-card{transition:none}}
