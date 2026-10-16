@@ -109,7 +109,11 @@ export default function TransactionsPage() {
     const personNames = new Map<string, string>();
     (people.data ?? []).forEach((p: any) => personNames.set(p.id, p.full_name || p.role || "Akun"));
     const employeeNames = new Map<string, string>();
-    (employees.data ?? []).forEach((e: any) => employeeNames.set(e.id, e.full_name || "Karyawan"));
+    const employeeProfileIds = new Map<string, string>();
+    (employees.data ?? []).forEach((e: any) => {
+      employeeNames.set(e.id, e.full_name || "Karyawan");
+      if (e.profile_id) employeeProfileIds.set(e.id, e.profile_id);
+    });
     const storeNames = new Map<string, string>();
     (stores.data ?? []).forEach((s: any) => storeNames.set(s.id, s.name || s.store_code || "Toko Offline"));
 
@@ -159,14 +163,14 @@ export default function TransactionsPage() {
       id: r.id, code: `ABS-${String(r.work_date || "").replaceAll("-", "")}-${r.id.slice(0, 4).toUpperCase()}`, category: "Absensi",
       activity: `Catatan absensi: ${r.status || "tercatat"}`, location: "Lokasi kerja",
       status: "Selesai", createdAt: r.created_at || r.check_in_at || r.work_date,
-      actor: employeeNames.get(r.employee_id) || "Karyawan", ownerId: r.employee_id || null, processedBy: personNames.get(r.recorded_by) || "—",
+      actor: employeeNames.get(r.employee_id) || "Karyawan", ownerId: employeeProfileIds.get(r.employee_id) || null, processedBy: personNames.get(r.recorded_by) || "—",
       description: r.work_date ? `Tanggal kerja ${r.work_date}` : "", sourceStatus: r.status, sourceTable: "attendance_records"
     }));
     (leaves.data ?? []).forEach((r: any) => result.push({
       id: r.id, code: `CUT-${r.id.slice(0, 8).toUpperCase()}`, category: "Cuti",
       activity: `Pengajuan ${r.leave_type || "izin/cuti"}`, location: "Kantor / penempatan kerja",
       status: statusLabel(r.status, "Cuti"), createdAt: r.created_at,
-      actor: employeeNames.get(r.employee_id) || "Karyawan", ownerId: r.employee_id || null,
+      actor: employeeNames.get(r.employee_id) || "Karyawan", ownerId: employeeProfileIds.get(r.employee_id) || null,
       description: `${r.start_date || "—"} s.d. ${r.end_date || "—"} · ${r.reason || "Tanpa catatan"}`, sourceStatus: r.status, sourceTable: "leave_requests"
     }));
 
