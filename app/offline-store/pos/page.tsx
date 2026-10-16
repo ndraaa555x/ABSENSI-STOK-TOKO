@@ -165,7 +165,7 @@ export default function OfflineStorePOSPage() {
       <div className="pos-brand"><div className="pos-brand-mark">POS</div><div><div className="eyebrow">SMART BUSINESS MANAGEMENT</div><h1>Kasir / POS</h1><p className="subtle">Halaman khusus transaksi agar kasir tetap fokus.</p></div></div>
       <div className="pos-header-actions">
         {stores.length > 1 && <label className="pos-store-select"><span>Toko aktif</span><select value={storeId} onChange={(e) => { setStoreId(e.target.value); setCart([]); setLastSaleCode(""); }}><option value="">Pilih toko</option>{stores.filter((s) => centralAdmin || memberships.some((m) => m.store_id === s.id && m.is_active)).map((s) => <option key={s.id} value={s.id}>{s.store_code} — {s.name}</option>)}</select></label>}
-        <Link className="btn" href="/offline-store">← Kembali ke modul toko</Link>
+        <Link className="btn" href="/offline-store"><AppIcon name="back" size={15} /> Kembali ke modul toko</Link>
       </div>
     </header>
     {notice && <div className="info-box" role="status">{notice}{lastSaleCode && <strong className="pos-receipt-code"> · Kode: {lastSaleCode}</strong>}</div>}
