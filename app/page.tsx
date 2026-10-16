@@ -52,9 +52,9 @@ const navItems: { key: ModuleKey; icon: AppIconName; label: string; group: strin
   { key: "leave", icon: "leave", label: "Izin / Cuti", group: "OPERASIONAL" },
   { key: "inventory", icon: "inventory", label: "Inventaris & Stok", group: "OPERASIONAL" },
   { key: "notifications", icon: "notifications", label: "Notifikasi", group: "UTAMA" },
-  { key: "products", icon: "products", label: "Katalog", group: "KATALOG" },
-  { key: "categories", icon: "categories", label: "Kategori", group: "KATALOG" },
-  { key: "barcode", icon: "barcode", label: "Barcode", group: "KATALOG" },
+  { key: "products", icon: "products", label: "Produk", group: "PRODUK & STOK" },
+  { key: "categories", icon: "categories", label: "Kategori Produk", group: "PRODUK & STOK" },
+  { key: "barcode", icon: "barcode", label: "Pencarian Barcode", group: "PRODUK & STOK" },
   { key: "finance", icon: "finance", label: "Keuangan", group: "MANAJEMEN" },
   { key: "settings", icon: "settings", label: "Pengaturan", group: "MANAJEMEN" }
 ];
@@ -70,7 +70,7 @@ const descriptions: Record<ModuleKey, string> = {
   customers: "Daftarkan toko/pembeli sebagai member dan pantau aktivitas order.",
   leave: "Ajukan izin/cuti dan pantau statusnya; Admin/Owner meninjau permohonan karyawan.",
   notifications: "Pusat notifikasi dan pembaruan aktivitas akun.",
-  products: "Kelola katalog produk: tambah, lihat, edit, aktif/nonaktif, dan hapus sesuai riwayat transaksi.",
+  products: "Kelola data produk, harga, dan status produk sesuai hak akses.",
   categories: "Kelola kategori produk secara terpisah dari data produk dan stok.",
   inventory: "Pantau persediaan, stok minimum, dan pencatatan pergerakan barang.",
   barcode: "Cari produk melalui SKU atau barcode dan lihat stok yang tersedia.",
