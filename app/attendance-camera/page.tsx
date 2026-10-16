@@ -211,7 +211,7 @@ export default function AttendanceCameraPage() {
 
   if (!session) return <main className="login-side"><div className="login-card"><h1>Absensi kamera</h1><p>Silakan login terlebih dahulu.</p><Link href="/"><AppIcon name="back" size={15} /> Kembali ke login</Link></div></main>;
   if (!profile || !profile.is_active) return <main className="login-side"><div className="login-card"><h1>Akses terbatas</h1><p>Akun belum aktif atau profil tidak dapat dibaca. Hubungi Owner/Admin.</p><Link href="/"><AppIcon name="back" size={15} /> Kembali ke dashboard</Link></div></main>;
-  if (employees.length === 0 && !isManager) return <main className="login-side"><div className="login-card"><h1>Akun belum terhubung</h1><p>{error || "Akun login Anda belum terhubung ke data karyawan aktif. Minta Owner/Admin menghubungkannya di menu Karyawan."}</p><Link href="/">Kembali ke dashboard</Link></div></main>;
+  if (employees.length === 0 && !isManager) return <main className="login-side"><div className="login-card"><h1>Akun belum terhubung</h1><p>{error || "Akun login Anda belum terhubung ke data karyawan aktif. Minta Owner/Admin menghubungkannya di menu Karyawan."}</p><Link href="/"><AppIcon name="back" size={15} /> Kembali ke dashboard</Link></div></main>;
 
   return <main className={`login-side attendance-workspace ${isManager ? "attendance-manager" : "attendance-employee"}`} style={{ alignItems: "flex-start", paddingTop: 28 }}>
     <section className="login-card" style={{ width: "min(100%, 980px)" }}>
@@ -230,7 +230,7 @@ export default function AttendanceCameraPage() {
         <div>
           <div className="info-box"><strong>Persetujuan & privasi</strong><p>Jelaskan tujuan kepada karyawan sebelum melanjutkan. Template numerik wajah disimpan di database dengan pembatasan akses. Foto bukti absensi disimpan di bucket privat dan dijadwalkan untuk dihapus setelah 7 hari. Jangan mendaftarkan wajah tanpa persetujuan nyata.</p></div>
           <label style={{ display: "flex", gap: 10, alignItems: "flex-start", marginTop: 14, fontSize: 13, lineHeight: 1.5 }}><input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} style={{ marginTop: 3 }} /><span>Saya mengonfirmasi karyawan telah diberi penjelasan dan menyetujui pemrosesan template wajah serta foto bukti sesuai tujuan di atas.</span></label>
-          <button className="btn btn-primary" style={{ width: "100%", marginTop: 16 }} type="button" disabled={busy || !modelReady || !cameraReady} onClick={mode === "enroll" ? enrollFace : recordAttendance}>{busy ? "Memproses…" : mode === "enroll" ? "Ambil wajah & simpan template" : mode === "checkin" ? "Verifikasi wajah & check-in" : "Verifikasi wajah & check-out"}</button>
+          <button className="btn btn-primary" style={{ width: "100%", marginTop: 16 }} type="button" disabled={busy || !modelReady || !cameraReady} onClick={mode === "enroll" ? enrollFace : recordAttendance}>{busy ? "Memproses…" : mode === "enroll" ? <><AppIcon name="security" size={16} /> Ambil wajah & simpan template</> : mode === "checkin" ? <><AppIcon name="check" size={16} /> Verifikasi wajah & check-in</> : <><AppIcon name="check" size={16} /> Verifikasi wajah & check-out</>}</button>
           {notice && <div className="info-box" role="status" style={{ marginTop: 14 }}>{notice}</div>}
           {error && <div className="error-box" role="alert" style={{ marginTop: 14 }}>{error}</div>}
         </div>
