@@ -104,12 +104,13 @@ export default function CentralStoreRequestsPage() {
     <div className="topbar"><div><div className="eyebrow">KANTOR PUSAT · MODUL TOKO</div><h1>Pengajuan Permintaan Toko</h1><p className="subtle">Pusat kendali pengajuan barang dari seluruh toko offline. Proses semuanya dari halaman ini tanpa membuka modul toko satu per satu.</p></div><div className="business-actions"><Link href="/" className="btn">← Dashboard utama</Link><button className="btn" onClick={() => void load()} disabled={Boolean(busyId)}>Muat ulang</button></div></div>
     {notice && <div className="info-box" role="status">{notice}</div>}
     {error && <div className="error-box" role="alert">{error}</div>}
-    <div className="stats-grid">
+    <div className="info-box">Seluruh daftar pengajuan dan tindak lanjut toko telah dipusatkan di <Link href="/transactions">Transaksi (TRX) →</Link>. Gunakan TRX untuk meninjau, menyetujui, menolak, dan memantau pengajuan. Data asli tetap tersimpan.</div>
+    <div className="stats-grid" style={{display:"none"}}>
       <div className="stat-card"><div className="stat-top">Menunggu keputusan</div><div className="stat-value">{pendingCount.toLocaleString("id-ID")}</div><div className="stat-note">Total nilai {money(totalPending)}</div></div>
       <div className="stat-card"><div className="stat-top">Dalam pengiriman</div><div className="stat-value">{shippingCount.toLocaleString("id-ID")}</div><div className="stat-note">Menunggu konfirmasi toko</div></div>
       <div className="stat-card"><div className="stat-top">Sudah diterima</div><div className="stat-value">{receivedCount.toLocaleString("id-ID")}</div><div className="stat-note">Riwayat permintaan selesai</div></div>
     </div>
-    <section className="panel">
+    <section className="panel" style={{display:"none"}}>
       <div className="section-head"><div><h2>Daftar permintaan seluruh toko</h2><p className="subtle">Setiap pengajuan ditampilkan satu kali, beserta detail barang, harga modal, pemohon, dan status proses.</p></div><span className="status">KANTOR PUSAT</span></div>
       <div className="business-columns">
         <div className="field"><label htmlFor="request-search">Cari pengajuan</label><input id="request-search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Nomor pengajuan, nama toko, pemohon…"/></div>
