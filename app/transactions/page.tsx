@@ -132,7 +132,10 @@ export default function TransactionsPage() {
     const employeeProfileIds = new Map<string, string>();
     (employees.data ?? []).forEach((e: any) => {
       employeeNames.set(e.id, e.full_name || "Karyawan");
-      if (e.profile_id) employeeProfileIds.set(e.id, e.profile_id);
+      if (e.profile_id) {
+        employeeProfileIds.set(e.id, e.profile_id);
+        if (e.full_name) personNames.set(e.profile_id, e.full_name);
+      }
     });
     const storeNames = new Map<string, string>();
     (stores.data ?? []).forEach((s: any) => storeNames.set(s.id, s.name || s.store_code || "Toko Offline"));
