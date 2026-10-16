@@ -246,6 +246,7 @@ export default function HomePage() {
   const loadProfileAndCounts = useCallback(async (currentSession: Session) => {
     setDataLoading(true);
     setError("");
+    setMessage("");
     const { data: profileData, error: profileError } = await supabase
       .from("profiles")
       .select("id,email,full_name,role,is_active")
@@ -288,8 +289,18 @@ export default function HomePage() {
     ]);
     const finances = safeProfile.role==="owner" ? await supabase.from("financial_transactions").select("id", { count: "exact", head: true }) : {count:0,error:null};
     setCounts({employees:employees.count??0,attendance:attendance.count??0,products:products.count??0,finances:finances.count??0,orders:orders.count??0,refunds:refunds.count??0,reports:reports.count??0});
-    const failed = [employees, attendance, products, orders, refunds, reports, finances].some((item) => item.error);
-    if (failed) setMessage("Sebagian ringkasan tidak dapat dibaca oleh role atau kebijakan akses saat ini.");
+    const failedSections = [
+      employees.error ? "karyawan" : null,
+      attendance.error ? "absensi" : null,
+      products.error ? "produk/stok" : null,
+      orders.error ? "pesanan" : null,
+      refunds.error ? "refund" : null,
+      reports.error ? "laporan keuangan" : null,
+      finances.error ? "buku besar" : null,
+    ].filter(Boolean);
+    if (failedSections.length) {
+      setMessage(`Sebagian ringkasan tidak dapat dibaca: ${failedSections.join(", ")}. Periksa izin akses atau koneksi database.`);
+    }
     setDataLoading(false);
   }, []);
 
