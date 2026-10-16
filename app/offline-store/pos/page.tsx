@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Session } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import AppIcon from "@/components/app-icon";
 
 type Profile = { id: string; email: string; full_name: string | null; role: string; is_active: boolean };
 type Store = { id: string; store_code: string; name: string; is_active: boolean };
@@ -192,7 +193,7 @@ export default function OfflineStorePOSPage() {
       </section>
       <form className="pos-cart panel" onSubmit={checkout}>
         <div className="pos-section-head"><div><div className="eyebrow">ORDER AKTIF</div><h2>Keranjang belanja</h2><p className="subtle">{cartRows.length} jenis produk · {cartRows.reduce((sum, line) => sum + line.quantity, 0).toLocaleString("id-ID")} unit</p></div><button type="button" className="btn btn-compact" disabled={!cart.length || busy} onClick={() => { setCart([]); setError(""); }}>Kosongkan</button></div>
-        {!cartRows.length ? <div className="pos-cart-empty"><span>▧</span><strong>Belum ada produk</strong><p className="subtle">Pilih satu atau beberapa produk.</p></div> : <div className="pos-cart-lines">
+        {!cartRows.length ? <div className="pos-cart-empty"><span><AppIcon name="products" size={22} /></span><strong>Belum ada produk</strong><p className="subtle">Pilih satu atau beberapa produk.</p></div> : <div className="pos-cart-lines">
           {cartRows.map((line) => <article className="pos-cart-line" key={line.product_id}>
             <div className="pos-cart-product"><strong>{line.product.name}</strong><span>{money(Number(line.product.sale_price))} / {line.product.unit}</span></div>
             <div className="pos-quantity-control"><button type="button" aria-label={"Kurangi " + line.product.name} onClick={() => updateQuantity(line.product_id, String(line.quantity - 1))} disabled={busy}>−</button><input aria-label={"Jumlah " + line.product.name} type="number" min="0.001" step="0.001" value={line.quantity} onChange={(e) => updateQuantity(line.product_id, e.target.value)} disabled={busy}/><button type="button" aria-label={"Tambah " + line.product.name} onClick={() => updateQuantity(line.product_id, String(line.quantity + 1))} disabled={busy || line.quantity >= Number(line.product.current_stock)}>+</button></div>
