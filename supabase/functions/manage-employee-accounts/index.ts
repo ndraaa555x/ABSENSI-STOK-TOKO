@@ -48,7 +48,7 @@ Deno.serve(async(req:Request)=>{
   if(linkError){await admin.from("profiles").delete().eq("id",userId);await admin.auth.admin.deleteUser(userId);return reply(500,{error:"Akun gagal dihubungkan dengan data karyawan; perubahan dibatalkan."});}
   const auditError=await writeAudit("create_account",userId,{target_email:email,target_role:requestedRole,result:"success"});
   if(auditError){await admin.from("employees").update({profile_id:null,updated_at:new Date().toISOString()}).eq("id",employeeId).eq("profile_id",userId);await admin.from("profiles").delete().eq("id",userId);await admin.auth.admin.deleteUser(userId);return reply(500,{error:"Akun dibatalkan karena catatan audit gagal disimpan."});}
-  return reply(200,{success:true,user_id:userId,message:"Akun login karyawan berhasil dibuat."});
+  return reply(200,{success:true,user_id:userId,message:"Akun login karyawan berhasil dibuat langsung tanpa mengirim email undangan. Serahkan email login dan password sementara secara aman."});
  }
 
  if(body.action==="create_store_member"){
@@ -90,7 +90,7 @@ Deno.serve(async(req:Request)=>{
    await admin.auth.admin.deleteUser(userId);
    return reply(500,{error:"Pembuatan akun dibatalkan karena catatan audit gagal disimpan."});
   }
-  return reply(200,{success:true,user_id:userId,message:"Akun anggota berhasil dibuat. Berikan email dan password sementara kepada anggota secara langsung; minta anggota mengganti password setelah masuk."});
+  return reply(200,{success:true,user_id:userId,message:"Akun anggota berhasil dibuat langsung tanpa mengirim email undangan. Berikan email login dan password sementara kepada anggota secara aman; minta anggota mengganti password setelah masuk."});
  }
  if(body.action==="delete_employee_account"){
   if(!["owner","admin"].includes(actor.role)) return reply(403,{error:"Hanya Owner/Admin yang dapat menghapus akun karyawan."});
