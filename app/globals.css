@@ -572,3 +572,66 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .business-columns>*{min-width:0}.business-actions{display:flex;align-items:center;flex-wrap:wrap;gap:9px}.business-actions>*{max-width:100%}
 .field input,.field select,.field textarea{max-width:100%;min-width:0}.panel,.stat-card,.module-card{min-width:0}
 @media(max-width:720px){.business-actions{align-items:stretch}.business-actions>.btn{justify-content:center}.business-columns{grid-template-columns:minmax(0,1fr)!important}.business-record-head{align-items:flex-start;gap:10px}.business-record-head>*{min-width:0;overflow-wrap:anywhere}.panel{padding:16px}}
+
+
+/* NDRAAAID charcoal / graphite / silver workspace refinements */
+:root {
+  --ndraaa-bg: #101114;
+  --ndraaa-panel: #181a1f;
+  --ndraaa-panel-raised: #202329;
+  --ndraaa-line: #363941;
+  --ndraaa-silver: #d7d9de;
+  --ndraaa-muted: #9da2ad;
+  --ndraaa-accent: #c3c7d0;
+}
+.app-shell, .app-shell .main { background: var(--ndraaa-bg); color: #f1f2f4; }
+.app-shell .sidebar { background: #141519; border-right: 1px solid var(--ndraaa-line); }
+.app-shell .brand-mark { background: linear-gradient(145deg,#e1e3e7,#747984); color: #17181b; border: 1px solid #f0f1f3; }
+.app-shell .brand-title, .app-shell .brand-sub { color: #e3e5e9; }
+.app-shell .topbar { background: rgba(16,17,20,.94); border-bottom: 1px solid var(--ndraaa-line); }
+.app-shell .panel, .app-shell .stat-card, .app-shell .quick-card, .app-shell .profile-detail-card { background: var(--ndraaa-panel); border: 1px solid var(--ndraaa-line); box-shadow: none; }
+.app-shell .nav-item { color: #b9bdc6; border: 1px solid transparent; }
+.app-shell .nav-item:hover, .app-shell .nav-item.active { color: #fff; background: #292c32; border-color: #555a64; }
+.app-shell .nav-icon, .app-shell .stat-icon, .app-shell .activity-icon { color: var(--ndraaa-silver); }
+.app-shell .btn { background: #25282e; color: #f1f2f4; border: 1px solid #555a64; }
+.app-shell .btn:hover { background: #343840; border-color: #858b96; }
+.app-shell .btn-primary { background: #d6d8dd; color: #16171a; border-color: #e6e7ea; font-weight: 700; }
+.app-shell .btn-primary:hover { background: #f0f1f3; color: #111216; }
+.app-shell input, .app-shell select, .app-shell textarea { background: #111216; color: #f1f2f4; border-color: #454952; }
+.app-shell input:focus, .app-shell select:focus, .app-shell textarea:focus { outline: 2px solid #aeb3bd; outline-offset: 1px; }
+.app-shell .status-pill, .app-shell .status { border-color: #4b505a; }
+.app-shell .business-page { color: #f0f1f3; }
+.app-shell .business-hero { background: linear-gradient(120deg,#1d1f24,#141519); border: 1px solid #3c4048; box-shadow: none; }
+.app-shell .business-hero-icon { color: #e1e3e8; background: #292c32; border: 1px solid #4a4f59; }
+.app-shell .business-form, .app-shell .business-history, .app-shell .business-record { background: var(--ndraaa-panel); border-color: var(--ndraaa-line); }
+.app-shell .business-record { border-radius: 12px; }
+.app-shell .business-line, .app-shell .section-head { border-color: var(--ndraaa-line); }
+.app-shell .subtle, .app-shell .stat-note { color: var(--ndraaa-muted); }
+.dashboard-content-grid { grid-template-columns: minmax(0,1.2fr) minmax(280px,.8fr); }
+.dashboard-kpis { grid-template-columns: repeat(4,minmax(0,1fr)); }
+.dashboard-shortcuts { grid-template-columns: repeat(2,minmax(0,1fr)); }
+.dashboard-shortcuts .quick-card { min-height: 104px; }
+.dashboard-focus { align-self: stretch; }
+.product-management-page .table-wrap { overflow-x: auto; }
+.product-management-page table { width: 100%; min-width: 1020px; border-collapse: collapse; }
+.product-management-page th { color: #d8dbe1; background: #25282e; text-align: left; }
+.product-management-page th, .product-management-page td { border-bottom: 1px solid var(--ndraaa-line); padding: 12px 10px; vertical-align: top; }
+.product-management-page tr:hover td { background: rgba(255,255,255,.025); }
+.product-management-page .business-actions { gap: 6px; }
+.product-management-page .btn { white-space: nowrap; }
+.product-management-page .btn-danger { background: #332426; border-color: #75464a; color: #ffdfe1; }
+.product-management-page .btn-danger:hover { background: #4a2c30; }
+@media (max-width: 1000px) {
+  .dashboard-content-grid { grid-template-columns: 1fr; }
+  .dashboard-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 620px) {
+  .dashboard-kpis { gap: 10px; }
+  .dashboard-kpis .stat-card { padding: 12px; min-width: 0; }
+  .dashboard-kpis .stat-value { font-size: 22px; }
+  .dashboard-shortcuts { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .dashboard-shortcuts .quick-card { padding: 12px; min-width: 0; }
+  .product-management-page .business-hero { gap: 10px; padding: 18px; }
+  .product-management-page .section-head { align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+  .product-management-page .business-form { padding: 14px; }
+}
