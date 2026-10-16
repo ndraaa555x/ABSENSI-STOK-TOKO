@@ -258,7 +258,7 @@ export default function TransactionsPage() {
   useEffect(() => { setPage(1); }, [category, viewFilter, statusFilter, search]);
 
 
-  async function processSelected(action: "approve" | "reject" | "fulfill" | "ship") {
+  async function processSelected(action: "approve" | "reject" | "fulfill" | "ship" | "receive" | "pay") {
     if (!selected || !profile || loading) return;
     const canAdmin = profile.role === "owner" || profile.role === "admin";
     const canReviewLeave = canAdmin || profile.role === "hrd";
@@ -277,6 +277,9 @@ export default function TransactionsPage() {
       if (selected.sourceTable === "offline_store_purchase_orders") {
         const { error: rpcError } = await supabase.rpc("reject_offline_store_purchase", { p_order_id: selected.id, p_reason: reason.trim() });
         if (rpcError) { window.alert("Penolakan gagal: " + rpcError.message); return; }
+      } else if (selected.sourceTable === "offline_product_submissions") {
+        const { error: rpcError } = await supabase.rpc("review_offline_product_submission", { p_submission_id: selected.id, p_decision: "rejected", p_review_note: reason.trim(), p_create_category: false });
+        if (rpcError) { window.alert("Penolakan pengajuan produk gagal: " + rpcError.message); return; }
       } else {
         const { error: updateError } = await supabase.from(selected.sourceTable).update({ status: "rejected", reviewed_by: profile.id, reviewed_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", selected.id);
         if (updateError) { window.alert("Penolakan gagal: " + updateError.message); return; }
