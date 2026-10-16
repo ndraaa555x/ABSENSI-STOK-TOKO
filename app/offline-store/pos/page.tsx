@@ -104,9 +104,9 @@ export default function OfflineStorePOSPage() {
   useEffect(() => {
     if (storeId && profile) {
       const role = memberships.find((m) => m.store_id === storeId && m.is_active)?.store_role;
-      void loadProducts(storeId, role);
+      void loadProducts(storeId, centralAdmin ? "manager" : role);
     }
-  }, [storeId, profile, memberships, loadProducts]);
+  }, [storeId, profile, memberships, centralAdmin, loadProducts]);
 
   function addProduct(product: Product) {
     setError(""); setNotice("");
@@ -147,7 +147,7 @@ export default function OfflineStorePOSPage() {
       setLastSaleCode(saleCode);
       setNotice("Penjualan berhasil disimpan. Stok dan harga pokok diperbarui oleh sistem.");
       setCart([]); setDiscountPercent("0"); setCashReceived("");
-      await loadProducts(storeId, membership?.store_role);
+      await loadProducts(storeId, centralAdmin ? "manager" : membership?.store_role);
     } catch (cause: unknown) {
       setError(cause instanceof Error ? cause.message : "Transaksi gagal diproses. Silakan coba lagi.");
     } finally { setBusy(false); }
