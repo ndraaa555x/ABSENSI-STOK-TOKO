@@ -15,6 +15,7 @@ import {
   FileText,
   Filter,
   LogOut,
+  Menu,
   PackageSearch,
   Printer,
   RotateCw,
@@ -47,7 +48,7 @@ export const appIconNames = [
   "products", "categories", "barcode", "finance", "settings", "transactions",
   "store", "pos", "logout", "search", "requests", "database", "activity", "back",
   "check", "close", "next", "refresh", "security", "filter", "print", "credit-card",
-  "truck", "reports"
+  "truck", "reports", "menu"
 ] as const;
 
 export type AppIconName = (typeof appIconNames)[number];
@@ -73,6 +74,7 @@ const iconMap: Record<AppIconName, ComponentType<SVGProps<SVGSVGElement> & { siz
   store: IconBuildingStore,
   pos: IconFileInvoice,
   logout: LogOut,
+  menu: Menu,
   search: Search,
   requests: ClipboardList,
   database: Database,
