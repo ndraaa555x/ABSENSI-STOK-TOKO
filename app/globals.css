@@ -914,3 +914,51 @@ body{background:linear-gradient(180deg,#151619 0%,#101113 100%)!important}
   .app-shell .main,.main{padding-left:9px!important;padding-right:9px!important}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+
+/* Isolated full-screen workspaces use the same NDRAAAID signature palette */
+.pos-page{background:#111214!important;color:#eceef1!important}
+.pos-page .pos-header,.pos-page .pos-brand,.pos-page .pos-workspace,.pos-page .pos-catalog,.pos-page .pos-cart{color:#eceef1!important}
+.pos-page .pos-brand-mark{background:linear-gradient(145deg,#41454c,#24262a)!important;border:1px solid #626771!important;color:#f4f5f7!important;box-shadow:none!important}
+.pos-page .pos-product-card,.pos-page .pos-empty,.pos-page .pos-cart-empty,.pos-page .pos-in-cart,.pos-page .pos-safe-note{
+ background:#1d1f23!important;color:#e6e8eb!important;border-color:#3a3e44!important
+}
+.pos-page .pos-product-card:hover:not(:disabled){border-color:#858b95!important}
+.pos-page .pos-product-sku,.pos-page .pos-product-price,.pos-page .pos-add-label,.pos-page .pos-cart-product span,.pos-page .pos-line-total{color:#a0a5ad!important}
+.pos-page .pos-section-head,.pos-page .pos-cart-line,.pos-page .pos-totals{border-color:#3a3e44!important}
+.pos-page .pos-grand-total{color:#f0f1f3!important}
+.pos-page .pos-remove{color:#d4b9bc!important;border-color:#76545a!important;background:#302326!important}
+.pos-page .pos-quantity-control button{background:#292c31!important;color:#eceef1!important;border-color:#555a63!important}
+.pos-page .pos-cart-empty span{background:#292c31!important;border-color:#454a52!important;color:#d0d4da!important}
+.pos-page .pos-cart-empty span svg{color:#d0d4da!important}
+.pos-page .pos-store-select,.pos-page .pos-search-row{color:#eceef1!important}
+.pos-page .pos-search-row input,.pos-page .pos-search-row select,.pos-page .pos-checkout-fields input,.pos-page .pos-checkout-fields select{background:#17191c!important;color:#eceef1!important;border-color:#454a52!important}
+.pos-page .pos-checkout-button{background:#d4d7dc!important;color:#17191c!important;border-color:#d4d7dc!important}
+.trx-page{background:#111214!important;color:#eceef1!important}
+.trx-shell,.trx-top,.trx-stat,.trx-cats,.trx-controls,.trx-table-wrap,.trx-empty,.trx-row,.trx-modal,.trx-detail,.trx-print-signatures{
+ background:#1b1d20!important;color:#eceef1!important;border-color:#3a3e44!important;box-shadow:none!important
+}
+.trx-eyebrow,.trx-muted,.trx-stat-label,.trx-sub{color:#a0a5ad!important}
+.trx-title,.trx-stat-value,.trx-code,.trx-detail strong,.trx-row strong{color:#eceef1!important}
+.trx-btn{background:#292c31!important;color:#eceef1!important;border:1px solid #555a63!important;border-radius:9px!important}
+.trx-btn:hover{background:#34383e!important;border-color:#858b95!important}
+.trx-btn-primary{background:#d4d7dc!important;color:#17191c!important;border-color:#d4d7dc!important}
+.trx-input,.trx-controls input,.trx-controls select,.trx-controls textarea{background:#17191c!important;color:#eceef1!important;border-color:#454a52!important}
+.trx-table{color:#e5e7eb!important;background:transparent!important}
+.trx-table th{background:#25282d!important;color:#c7cbd2!important;border-color:#3a3e44!important}
+.trx-table td{color:#d0d4da!important;border-color:#3a3e44!important}
+.trx-row:hover{background:#25282d!important}
+.trx-modal-backdrop{background:rgba(0,0,0,.78)!important}
+.trx-detail{background:#22252a!important;border:1px solid #3a3e44!important}
+.trx-owner-signature{color:#eceef1!important;border-color:#777d86!important}
+.trx-print-signatures{background:#1b1d20!important}
+.login-card,.login-side,.login-wrap{background:#111214!important;color:#eceef1!important}
+.login-card h1,.login-card h2,.login-card p,.login-card label{color:#eceef1!important}
+.login-card .brand-mark{background:linear-gradient(145deg,#41454c,#24262a)!important;border-color:#626771!important}
+@media(max-width:720px){
+ .trx-page{padding:12px!important}
+ .trx-top{align-items:flex-start!important;gap:12px!important}
+ .trx-controls{grid-template-columns:minmax(0,1fr)!important}
+ .trx-table-wrap{max-width:100%!important;overflow-x:auto!important}
+ .trx-modal{width:calc(100vw - 24px)!important;max-width:calc(100vw - 24px)!important;max-height:calc(100dvh - 24px)!important;overflow-y:auto!important}
+}
