@@ -18,6 +18,7 @@ type Trx = {
   createdAt: string;
   actor: string;
   ownerId: string | null;
+  processedBy: string;
   amount?: number | null;
   description?: string | null;
   sourceStatus: string;
@@ -29,7 +30,14 @@ const CATEGORIES = ["Semua", "Pesanan", "Refund", "Pengajuan Toko", "Keuangan", 
 const money = (value: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(value);
 const dateTime = (value: string) => new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 const normalize = (value: unknown) => String(value ?? "").trim().toLowerCase();
-const isOpenStatus = (status: string) => !["approved", "completed", "complete", "fulfilled", "received", "paid", "closed", "rejected", "cancelled", "canceled", "selesai", "disetujui", "ditolak", "dibatalkan", "dipenuhi", "diterima", "lunas"].includes(normalize(status));
+const isOpenStatus = (row: Trx) => {
+  const s = normalize(row.sourceStatus);
+  if (row.category === "Pesanan") return ["pending", "approved", "menunggu", "disetujui"].includes(s);
+  if (row.category === "Refund") return ["pending", "under_review", "requested", "approved", "menunggu", "disetujui"].includes(s);
+  if (row.category === "Pengajuan Toko") return ["requested", "shipped", "pending", "diproses", "dikirim"].includes(s);
+  if (row.category === "Cuti" || row.category === "Keuangan") return ["pending", "requested", "submitted", "menunggu", "pending_approval"].includes(s);
+  return false;
+};
 
 function statusLabel(status: string, category: TrxCategory): TrxStatus {
   const s = normalize(status);
@@ -106,40 +114,40 @@ export default function TransactionsPage() {
       id: r.id, code: r.order_code || `ORD-${r.id.slice(0, 8)}`, category: "Pesanan",
       activity: "Pesanan produk", location: "Kantor Pusat", status: statusLabel(r.status, "Pesanan"),
       createdAt: r.created_at || r.requested_at, actor: personNames.get(r.ordered_by) || "Akun tidak diketahui",
-      ownerId: r.ordered_by || null, description: r.notes, sourceStatus: r.status, sourceTable: "product_orders"
+      ownerId: r.ordered_by || null, processedBy: personNames.get(r.reviewed_by) || "Belum ditangani", description: r.notes, sourceStatus: r.status, sourceTable: "product_orders"
     }));
     (refunds.data ?? []).forEach((r: any) => result.push({
       id: r.id, code: r.refund_code || `REF-${r.id.slice(0, 8)}`, category: "Refund",
       activity: "Permintaan pengembalian dana", location: "Kantor Pusat", status: statusLabel(r.status, "Refund"),
       createdAt: r.created_at, actor: personNames.get(r.requested_by) || "Akun tidak diketahui",
-      ownerId: r.requested_by || null, amount: Number(r.amount || 0), description: r.reason, sourceStatus: r.status, sourceTable: "product_refunds"
+      ownerId: r.requested_by || null, processedBy: personNames.get(r.reviewed_by) || "Belum ditangani", amount: Number(r.amount || 0), description: r.reason, sourceStatus: r.status, sourceTable: "product_refunds"
     }));
     (reports.data ?? []).forEach((r: any) => result.push({
       id: r.id, code: r.report_code || `FIN-${r.id.slice(0, 8)}`, category: "Keuangan",
       activity: r.report_type === "income" ? "Laporan pemasukan" : r.report_type === "expense" ? "Laporan pengeluaran" : "Laporan keuangan",
       location: "Kantor Pusat", status: statusLabel(r.status, "Keuangan"), createdAt: r.created_at,
-      actor: personNames.get(r.submitted_by) || "Akun tidak diketahui", ownerId: r.submitted_by || null,
+      actor: personNames.get(r.submitted_by) || "Akun tidak diketahui", ownerId: r.submitted_by || null, processedBy: personNames.get(r.reviewed_by) || "Belum ditangani",
       amount: Number(r.amount || 0), description: r.description, sourceStatus: r.status, sourceTable: "financial_reports"
     }));
     (requests.data ?? []).forEach((r: any) => result.push({
       id: r.id, code: r.order_code || `PO-${r.id.slice(0, 8)}`, category: "Pengajuan Toko",
       activity: "Pengajuan pembelian barang dari toko", location: storeNames.get(r.store_id) || "Toko Offline",
       status: statusLabel(r.status, "Pengajuan Toko"), createdAt: r.created_at || r.requested_at,
-      actor: personNames.get(r.requested_by) || "Akun tidak diketahui", ownerId: r.requested_by || null,
+      actor: personNames.get(r.requested_by) || "Akun tidak diketahui", ownerId: r.requested_by || null, processedBy: personNames.get(r.received_by || r.shipped_by || r.reviewed_by) || "Belum ditangani",
       amount: Number(r.subtotal || 0), description: r.notes, sourceStatus: r.status, sourceTable: "offline_store_purchase_orders"
     }));
     (movements.data ?? []).forEach((r: any) => result.push({
       id: r.id, code: r.reference_code || `STK-${r.id.slice(0, 8)}`, category: "Stok",
       activity: `Pergerakan stok: ${String(r.movement_type || "perubahan").replaceAll("_", " ")}`, location: "Kantor Pusat",
       status: "Selesai", createdAt: r.movement_at || r.created_at,
-      actor: personNames.get(r.created_by) || "Akun tidak diketahui", ownerId: r.created_by || null,
+      actor: personNames.get(r.created_by) || "Akun tidak diketahui", ownerId: r.created_by || null, processedBy: personNames.get(r.created_by) || "—",
       description: r.reason || r.notes, sourceStatus: r.movement_type || "recorded", sourceTable: "stock_movements"
     }));
     (attendance.data ?? []).forEach((r: any) => result.push({
       id: r.id, code: `ABS-${String(r.work_date || "").replaceAll("-", "")}-${r.id.slice(0, 4).toUpperCase()}`, category: "Absensi",
       activity: `Catatan absensi: ${r.status || "tercatat"}`, location: "Lokasi kerja",
       status: "Selesai", createdAt: r.created_at || r.check_in_at || r.work_date,
-      actor: employeeNames.get(r.employee_id) || "Karyawan", ownerId: r.employee_id || null,
+      actor: employeeNames.get(r.employee_id) || "Karyawan", ownerId: r.employee_id || null, processedBy: personNames.get(r.reviewed_by) || "Belum ditangani", processedBy: personNames.get(r.recorded_by) || "—",
       description: r.work_date ? `Tanggal kerja ${r.work_date}` : "", sourceStatus: r.status, sourceTable: "attendance_records"
     }));
     (leaves.data ?? []).forEach((r: any) => result.push({
@@ -161,12 +169,12 @@ export default function TransactionsPage() {
     const q = normalize(search);
     return rows.filter((r) => {
       const categoryOk = category === "Semua" || r.category === category;
-      const statusOk = statusFilter === "all" || (statusFilter === "open" ? isOpenStatus(r.sourceStatus) && !["Stok", "Absensi"].includes(r.category) : r.status === statusFilter);
+      const statusOk = statusFilter === "all" || (statusFilter === "open" ? isOpenStatus(r) : r.status === statusFilter);
       const searchOk = !q || [r.code, r.category, r.activity, r.location, r.actor, r.status, r.description].some((v) => normalize(v).includes(q));
       return categoryOk && statusOk && searchOk;
     });
   }, [rows, category, statusFilter, search]);
-  const openRows = useMemo(() => rows.filter((r) => isOpenStatus(r.sourceStatus) && !["Stok", "Absensi"].includes(r.category)), [rows]);
+  const openRows = useMemo(() => rows.filter((r) => isOpenStatus(r)), [rows]);
   const pendingApproval = useMemo(() => rows.filter((r) => ["Menunggu", "Menunggu persetujuan", "Belum diproses", "Perlu diperiksa"].includes(r.status)), [rows]);
   const pages = Math.max(1, Math.ceil(visibleRows.length / PAGE_SIZE));
   const pageRows = visibleRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -284,7 +292,7 @@ export default function TransactionsPage() {
         <div style={{marginTop:12}}><span className={badgeClass(selected.status)}>{selected.status}</span></div>
         <div className="trx-detail-grid">
           <div className="trx-detail"><label>Kategori</label><strong>{selected.category}</strong></div><div className="trx-detail"><label>Lokasi / penempatan</label><strong>{selected.location}</strong></div>
-          <div className="trx-detail"><label>Dibuat / diajukan oleh</label><strong>{selected.actor}</strong></div><div className="trx-detail"><label>Waktu tercatat</label><strong>{dateTime(selected.createdAt)}</strong></div>
+          <div className="trx-detail"><label>Dibuat / diajukan oleh</label><strong>{selected.actor}</strong></div><div className="trx-detail"><label>Diproses / ditangani oleh</label><strong>{selected.processedBy}</strong></div><div className="trx-detail"><label>Waktu tercatat</label><strong>{dateTime(selected.createdAt)}</strong></div>
           <div className="trx-detail"><label>Status pada sumber</label><strong>{selected.sourceStatus || "—"}</strong></div><div className="trx-detail"><label>Nominal</label><strong>{selected.amount != null ? money(selected.amount) : "Tidak berlaku"}</strong></div>
         </div>
         <div className="trx-detail" style={{marginTop:12}}><label>Catatan / rincian</label><strong>{selected.description || "Tidak ada catatan tambahan."}</strong></div>
