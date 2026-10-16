@@ -4,10 +4,8 @@ import type { ComponentType, SVGProps } from "react";
 import {
   Activity,
   ArrowLeft,
-  AlertCircle,
   ArrowLeftRight,
   Bell,
-  Barcode,
   CalendarDays,
   CheckCircle2,
   ChevronRight,
