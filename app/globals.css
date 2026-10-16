@@ -860,3 +860,14 @@ hr,.divider{border-color:#393E46!important}
   .checkbox-inline{padding-bottom:0}
 }
 @media(max-width:390px){.product-card-grid,.category-card-grid{grid-template-columns:minmax(0,1fr)}.category-summary-grid,.inventory-summary-grid{grid-template-columns:1fr}.product-card-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+
+/* Shared Tabler/Lucide SVG alignment across the complete workspace */
+.nav-icon,.stat-icon,.business-hero-icon,.feature-pill,.quick-card>span,.category-mark,.logout-symbol,.side-foot-title{display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.nav-icon svg,.stat-icon svg,.business-hero-icon svg,.feature-pill svg,.quick-card>span svg,.category-mark svg,.logout-symbol svg,.side-foot-title svg{display:block;flex:0 0 auto}
+.nav-icon svg{width:18px;height:18px}
+.stat-icon svg{width:17px;height:17px}
+.business-hero-icon svg{width:22px;height:22px}
+.feature-pill svg{width:14px;height:14px}
+.side-foot-title{align-items:center;gap:8px}
+.pos-cart-empty>span svg{display:block;margin:0 auto 8px}
