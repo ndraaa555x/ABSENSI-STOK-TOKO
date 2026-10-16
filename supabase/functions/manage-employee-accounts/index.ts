@@ -51,6 +51,46 @@ Deno.serve(async(req:Request)=>{
   return reply(200,{success:true,user_id:userId,message:"Akun login karyawan berhasil dibuat."});
  }
 
+ if(body.action==="invite_store_member"){
+  const storeId=typeof body.store_id==="string"?body.store_id:"";
+  const fullName=typeof body.full_name==="string"?body.full_name.trim():"";
+  const email=typeof body.email==="string"?body.email.trim().toLowerCase():"";
+  const titleId=typeof body.job_title_id==="string"?body.job_title_id:"";
+  if(!storeId||!fullName||!email.includes("@")||!titleId) return reply(400,{error:"Nama lengkap, email, toko, dan jabatan wajib diisi."});
+  if(!["owner","admin","employee"].includes(actor.role)) return reply(403,{error:"Akun ini tidak berwenang mengundang anggota toko."});
+  const {data:store,error:storeError}=await admin.from("offline_stores").select("id,name,is_active").eq("id",storeId).maybeSingle();
+  if(storeError||!store||!store.is_active) return reply(404,{error:"Toko aktif tidak ditemukan."});
+  if(actor.role==="employee"){
+   const {data:own,error:ownError}=await admin.from("offline_store_memberships").select("store_role").eq("store_id",storeId).eq("user_id",actor.id).eq("is_active",true).maybeSingle();
+   if(ownError||!own||own.store_role!=="manager") return reply(403,{error:"Hanya Manajer Toko aktif yang dapat mengundang anggota untuk toko penempatannya."});
+  }
+  const {data:title,error:titleError}=await admin.from("offline_store_job_titles").select("id,title,permission_role,store_id,is_active").eq("id",titleId).eq("store_id",storeId).eq("is_active",true).maybeSingle();
+  if(titleError||!title) return reply(400,{error:"Jabatan tidak aktif atau bukan milik toko ini."});
+  if(!["store_admin","inventory","cashier"].includes(title.permission_role)) return reply(403,{error:"Manajer hanya dapat mengundang anggota dengan jabatan bawahan."});
+  const {data:existingProfile,error:existingError}=await admin.from("profiles").select("id").ilike("email",email).maybeSingle();
+  if(existingError) return reply(500,{error:"Status email akun gagal diperiksa."});
+  if(existingProfile) return reply(409,{error:"Email sudah terdaftar di sistem. Untuk akun yang sudah ada, minta Owner/Admin melakukan penempatan dari menu Anggota Toko."});
+  const siteUrl=(Deno.env.get("APP_SITE_URL")||"https://smart-business-management-red.vercel.app").replace(/\/$/,"");
+  const {data:invited,error:inviteError}=await admin.auth.admin.inviteUserByEmail(email,{data:{full_name:fullName},redirectTo:siteUrl+"/?setup-password=1"});
+  if(inviteError||!invited.user) return reply(400,{error:inviteError?.message??"Undangan email gagal dikirim."});
+  const userId=invited.user.id;
+  const {error:profileError}=await admin.from("profiles").upsert({id:userId,email,full_name:fullName,role:"employee",is_active:true,updated_at:new Date().toISOString()},{onConflict:"id"});
+  if(profileError){await admin.auth.admin.deleteUser(userId);return reply(500,{error:"Profil Karyawan gagal disiapkan; undangan dibatalkan."});}
+  const {data:membership,error:membershipError}=await admin.from("offline_store_memberships").insert({store_id:storeId,user_id:userId,store_role:title.permission_role,is_active:true,created_by:actor.id,job_title_id:title.id,job_title:title.title}).select("id").single();
+  if(membershipError){
+   await admin.from("profiles").delete().eq("id",userId);
+   await admin.auth.admin.deleteUser(userId);
+   return reply(500,{error:"Penempatan anggota gagal dibuat; undangan dibatalkan. "+membershipError.message});
+  }
+  const {error:auditError}=await admin.from("audit_logs").insert({actor_id:actor.id,action:"invite",entity_table:"offline_store_memberships",entity_id:membership.id,details:{store_id:storeId,store_name:store.name,target_user_id:userId,target_email:email,target_full_name:fullName,store_role:title.permission_role,job_title:title.title,result:"invited"}});
+  if(auditError){
+   await admin.from("offline_store_memberships").delete().eq("id",membership.id);
+   await admin.from("profiles").delete().eq("id",userId);
+   await admin.auth.admin.deleteUser(userId);
+   return reply(500,{error:"Undangan dibatalkan karena catatan audit gagal disimpan."});
+  }
+  return reply(200,{success:true,user_id:userId,message:"Undangan berhasil dikirim. Anggota perlu membuka email dan membuat kata sandinya sendiri."});
+ }
  if(body.action==="delete_employee_account"){
   if(!["owner","admin"].includes(actor.role)) return reply(403,{error:"Hanya Owner/Admin yang dapat menghapus akun karyawan."});
   const targetId=typeof body.user_id==="string"?body.user_id:"", employeeId=typeof body.employee_id==="string"?body.employee_id:"";
