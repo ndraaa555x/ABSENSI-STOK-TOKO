@@ -36,6 +36,23 @@ const VIEWS = ["Perlu Ditindaklanjuti", "Tugas Saya", "Selesai", "Semua Transaks
 const money = (value: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(value);
 const dateTime = (value: string) => new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 const normalize = (value: unknown) => String(value ?? "").trim().toLowerCase();
+async function readAllRows(table: string, columns: string, orderColumn?: string) {
+  const client = supabase as any;
+  const rows: any[] = [];
+  let offset = 0;
+  const batchSize = 1000;
+  while (offset < 50000) {
+    let query = client.from(table).select(columns);
+    if (orderColumn) query = query.order(orderColumn, { ascending: false });
+    const { data, error } = await query.range(offset, offset + batchSize - 1);
+    if (error) return { data: null, error };
+    rows.push(...(data ?? []));
+    if (!data || data.length < batchSize) break;
+    offset += batchSize;
+  }
+  return { data: rows, error: null };
+}
+
 const isOpenStatus = (row: Trx) => {
   const s = normalize(row.sourceStatus);
   if (row.category === "Pesanan") return ["pending", "approved", "menunggu", "disetujui"].includes(s);
@@ -110,27 +127,27 @@ export default function TransactionsPage() {
     const result: Trx[] = [];
     const errors: string[] = [];
     const [orders, orderItems, refunds, reports, ledger, requests, purchaseItems, submissions, receipts, receiptItems, sales, saleItems, storeLedger, movements, attendance, leaves, stores, employees, people, products, storeProducts] = await Promise.all([
-      supabase.from("product_orders").select("id,order_code,status,ordered_by,reviewed_by,requested_at,created_at,notes").order("created_at", { ascending: false }).limit(500),
-      supabase.from("product_order_items").select("id,order_id,product_id,quantity,unit_price,line_total").order("created_at", { ascending: false }).limit(2000),
-      supabase.from("product_refunds").select("id,refund_code,order_id,requested_by,reviewed_by,status,amount,reason,created_at").order("created_at", { ascending: false }).limit(500),
-      supabase.from("financial_reports").select("id,report_code,report_type,amount,description,status,submitted_by,reviewed_by,posted_transaction_id,created_at").order("created_at", { ascending: false }).limit(500),
-      supabase.from("financial_transactions").select("id,transaction_code,transaction_type,amount,description,status,created_by,transaction_at,created_at,reference_code").order("transaction_at", { ascending: false }).limit(500),
-      supabase.from("offline_store_purchase_orders").select("id,order_code,store_id,status,subtotal,paid_amount,notes,requested_by,reviewed_by,shipped_by,received_by,requested_at,created_at").order("created_at", { ascending: false }).limit(500),
-      supabase.from("offline_store_purchase_items").select("id,order_id,central_product_id,store_product_id,quantity_requested,quantity_shipped,quantity_received,unit_cost,line_total").order("created_at", { ascending: false }).limit(3000),
-      supabase.from("offline_product_submissions").select("id,store_id,proposed_name,proposed_category_name,status,review_note,requested_by,reviewed_by,requested_at,reviewed_at,created_product_id,created_store_product_id").order("requested_at", { ascending: false }).limit(500),
-      supabase.from("offline_stock_receipts").select("id,store_id,receipt_code,status,supplier_name,notes,received_by,received_at,created_by,created_at").order("created_at", { ascending: false }).limit(500),
-      supabase.from("offline_stock_receipt_items").select("id,receipt_id,store_product_id,quantity,unit_cost").limit(3000),
-      supabase.from("offline_store_sales").select("id,store_id,sale_code,subtotal,discount_total,total,payment_method,status,cashier_id,created_at").order("created_at", { ascending: false }).limit(500),
-      supabase.from("offline_store_sale_items").select("id,sale_id,store_product_id,product_name,quantity,unit_price,discount_amount,line_total").limit(3000),
-      supabase.from("offline_store_finance_entries").select("id,store_id,order_id,entry_type,amount,payment_method,description,reference_code,created_by,created_at").order("created_at", { ascending: false }).limit(500),
-      supabase.from("stock_movements").select("id,movement_type,quantity,reference_code,reason,notes,movement_at,created_by").order("movement_at", { ascending: false }).limit(500),
-      supabase.from("attendance_records").select("id,employee_id,work_date,status,check_in_at,check_out_at,recorded_by,created_at").order("created_at", { ascending: false }).limit(500),
-      supabase.from("leave_requests").select("id,employee_id,leave_type,start_date,end_date,reason,status,reviewed_by,created_at").order("created_at", { ascending: false }).limit(500),
-      supabase.from("offline_stores").select("id,name,store_code").limit(500),
-      supabase.from("employees").select("id,full_name,profile_id").limit(1000),
-      supabase.from("profiles").select("id,full_name,role").limit(1000),
-      supabase.from("products").select("id,name,sku").limit(2000),
-      supabase.from("offline_store_products").select("id,store_id,name,sku").limit(3000)
+      readAllRows("product_orders", "id,order_code,status,ordered_by,reviewed_by,requested_at,created_at,notes", "created_at"),
+      readAllRows("product_order_items", "id,order_id,product_id,quantity,unit_price,line_total", "created_at"),
+      readAllRows("product_refunds", "id,refund_code,order_id,requested_by,reviewed_by,status,amount,reason,created_at", "created_at"),
+      readAllRows("financial_reports", "id,report_code,report_type,amount,description,status,submitted_by,reviewed_by,posted_transaction_id,created_at", "created_at"),
+      readAllRows("financial_transactions", "id,transaction_code,transaction_type,amount,description,status,created_by,transaction_at,created_at,reference_code", "transaction_at"),
+      readAllRows("offline_store_purchase_orders", "id,order_code,store_id,status,subtotal,paid_amount,notes,requested_by,reviewed_by,shipped_by,received_by,requested_at,created_at", "created_at"),
+      readAllRows("offline_store_purchase_items", "id,order_id,central_product_id,store_product_id,quantity_requested,quantity_shipped,quantity_received,unit_cost,line_total", "created_at"),
+      readAllRows("offline_product_submissions", "id,store_id,proposed_name,proposed_category_name,status,review_note,requested_by,reviewed_by,requested_at,reviewed_at,created_product_id,created_store_product_id", "requested_at"),
+      readAllRows("offline_stock_receipts", "id,store_id,receipt_code,status,supplier_name,notes,received_by,received_at,created_by,created_at", "created_at"),
+      readAllRows("offline_stock_receipt_items", "id,receipt_id,store_product_id,quantity,unit_cost", "created_at"),
+      readAllRows("offline_store_sales", "id,store_id,sale_code,subtotal,discount_total,total,payment_method,status,cashier_id,created_at", "created_at"),
+      readAllRows("offline_store_sale_items", "id,sale_id,store_product_id,product_name,quantity,unit_price,discount_amount,line_total"),
+      readAllRows("offline_store_finance_entries", "id,store_id,order_id,entry_type,amount,payment_method,description,reference_code,created_by,created_at", "created_at"),
+      readAllRows("stock_movements", "id,movement_type,quantity,reference_code,reason,notes,movement_at,created_by", "movement_at"),
+      readAllRows("attendance_records", "id,employee_id,work_date,status,check_in_at,check_out_at,recorded_by,created_at", "created_at"),
+      readAllRows("leave_requests", "id,employee_id,leave_type,start_date,end_date,reason,status,reviewed_by,created_at", "created_at"),
+      readAllRows("offline_stores", "id,name,store_code"),
+      readAllRows("employees", "id,full_name,profile_id"),
+      readAllRows("profiles", "id,full_name,role"),
+      readAllRows("products", "id,name,sku"),
+      readAllRows("offline_store_products", "id,store_id,name,sku")
     ]);
 
     const addError = (label: string, response: { error: { message: string } | null }) => { if (response.error) errors.push(label); };
@@ -229,7 +246,7 @@ export default function TransactionsPage() {
       amount: Number(r.subtotal || 0), description: [r.notes || "", ...(purchaseLines.get(r.id) || []), r.status === "received" ? `Pembayaran: ${money(Number(r.paid_amount || 0))} dari ${money(Number(r.subtotal || 0))}` : ""].filter(Boolean).join(" · "), sourceStatus: r.status, sourceTable: "offline_store_purchase_orders"
     }));
     if (current.role === "owner") {
-      const { data: auditRows, error: auditError } = await supabase.from("audit_logs").select("id,actor_id,action,entity_table,entity_id,details,created_at").order("created_at", { ascending: false }).limit(500);
+      const { data: auditRows, error: auditError } = await readAllRows("audit_logs", "id,actor_id,action,entity_table,entity_id,details,created_at", "created_at");
       if (auditError) errors.push("audit sistem");
       (auditRows ?? []).forEach((r: any) => result.push({
         id: String(r.id), code: `AUD-${String(r.id).slice(0, 8).toUpperCase()}`, category: "Aktivitas Sistem",
