@@ -399,47 +399,47 @@ export default function TransactionsPage() {
   return (
     <main className="trx-page">
       <style jsx>{`
-        .trx-page{min-height:100vh;padding:24px clamp(14px,3vw,34px);background:#080d18;color:#f2f6ff;font-family:inherit}
+        .trx-page{min-height:100vh;padding:24px clamp(14px,3vw,34px);background:#F5F6F7;color:#252930;font-family:inherit}
         .trx-shell{max-width:1440px;margin:0 auto}
         .trx-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px}
-        .trx-eyebrow{font-size:10px;letter-spacing:.16em;color:#67e8f9;font-weight:800}
+        .trx-eyebrow{font-size:10px;letter-spacing:.16em;color:#626873;font-weight:800}
         .trx-title{font-size:clamp(24px,3vw,32px);font-weight:800;margin:7px 0}
-        .trx-muted{font-size:12px;line-height:1.5;color:#91a1b8}
-        .trx-btn{border:1px solid #2b4261;background:#132138;color:#e8f2ff;border-radius:9px;padding:8px 11px;font-size:12px;font-weight:700;white-space:nowrap}
+        .trx-muted{font-size:12px;line-height:1.5;color:#69717D}
+        .trx-btn{border:1px solid #C9CED5;background:#FFFFFF;color:#30343B;border-radius:9px;padding:8px 11px;font-size:12px;font-weight:700;white-space:nowrap}
         .trx-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-bottom:14px}
-        .trx-stat{border:1px solid #25334a;background:#101827;border-radius:11px;padding:11px 13px;min-width:0}
-        .trx-stat-label{font-size:11px;color:#91a1b8}.trx-stat-value{font-size:22px;font-weight:800;margin-top:4px}
+        .trx-stat{border:1px solid #D8DCE2;background:#FFFFFF;border-radius:11px;padding:11px 13px;min-width:0}
+        .trx-stat-label{font-size:11px;color:#69717D}.trx-stat-value{font-size:22px;font-weight:800;margin-top:4px}
         .trx-controls{display:grid;grid-template-columns:minmax(160px,1.5fr) repeat(2,minmax(120px,1fr));gap:8px;margin:14px 0}
-        .trx-input{width:100%;min-width:0;background:#0d1523;border:1px solid #25334a;color:#f2f6ff;border-radius:9px;padding:9px 10px;font-size:12px;outline:none}
+        .trx-input{width:100%;min-width:0;background:#FFFFFF;border:1px solid #D8DCE2;color:#252930;border-radius:9px;padding:9px 10px;font-size:12px;outline:none}
         .trx-cats{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0}
-        .trx-cat{border:1px solid #25334a;background:#101827;color:#aab8cd;padding:7px 10px;border-radius:999px;font-size:11px}
-        .trx-cat.active{background:#18304a;border-color:#3b82f6;color:#eaf4ff}
-        .trx-table-wrap{border:1px solid #25334a;border-radius:12px;overflow:hidden;background:#101827}
+        .trx-cat{border:1px solid #D8DCE2;background:#FFFFFF;color:#69717D;padding:7px 10px;border-radius:999px;font-size:11px}
+        .trx-cat.active{background:#ECEEF1;border-color:#858C96;color:#252930}
+        .trx-table-wrap{border:1px solid #D8DCE2;border-radius:12px;overflow:hidden;background:#FFFFFF}
         .trx-table{width:100%;border-collapse:collapse;font-size:12px}
-        .trx-table th{text-align:left;background:#131f31;color:#9eacc1;font-size:10px;letter-spacing:.04em;font-weight:700;padding:10px 11px;white-space:nowrap}
-        .trx-table td{padding:9px 11px;border-top:1px solid #25334a;vertical-align:middle}
-        .trx-row{cursor:pointer}.trx-row:hover{background:#152238}
-        .trx-code{font-weight:800;color:#e8f2ff;white-space:nowrap}.trx-activity{font-weight:700}.trx-sub{font-size:10px;color:#91a1b8;margin-top:3px;line-height:1.4}
+        .trx-table th{text-align:left;background:#ECEEF1;color:#69717D;font-size:10px;letter-spacing:.04em;font-weight:700;padding:10px 11px;white-space:nowrap}
+        .trx-table td{padding:9px 11px;border-top:1px solid #D8DCE2;vertical-align:middle}
+        .trx-row{cursor:pointer}.trx-row:hover{background:#F0F1F3}
+        .trx-code{font-weight:800;color:#30343B;white-space:nowrap}.trx-activity{font-weight:700}.trx-sub{font-size:10px;color:#69717D;margin-top:3px;line-height:1.4}
         .trx-badge{display:inline-flex;border-radius:999px;padding:4px 7px;font-size:10px;font-weight:800;white-space:nowrap;border:1px solid transparent}
-        .trx-wait{color:#fcd34d;background:#78350f33;border-color:#92400e66}.trx-progress{color:#93c5fd;background:#1e3a8a44;border-color:#1d4ed866}.trx-good{color:#6ee7b7;background:#064e3b44;border-color:#04785766}.trx-bad{color:#fda4af;background:#88133744;border-color:#9f123966}
-        .trx-empty{padding:28px 14px;text-align:center;color:#91a1b8;font-size:12px}
-        .trx-pager{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-top:1px solid #25334a;font-size:11px;color:#91a1b8}
-        .trx-modal-backdrop{position:fixed;inset:0;background:#020617cc;display:flex;align-items:center;justify-content:center;padding:16px;z-index:100}
-        .trx-modal{width:min(560px,100%);max-height:85vh;overflow:auto;background:#101827;border:1px solid #334155;border-radius:14px;padding:18px}.trx-print-signatures{display:none}
-        .trx-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}.trx-detail{background:#0b1220;border:1px solid #25334a;border-radius:9px;padding:10px;min-width:0}.trx-detail label{display:block;font-size:10px;color:#91a1b8;margin-bottom:5px}.trx-detail strong{font-size:12px;overflow-wrap:anywhere}
-        @media print{body{background:#fff!important}.trx-page>*:not(.trx-modal-backdrop){display:none!important}.trx-modal-backdrop{position:static!important;background:#fff!important;padding:0!important;display:block!important}.trx-modal{width:100%!important;max-height:none!important;overflow:visible!important;border:0!important;border-radius:0!important;background:#fff!important;color:#111!important;box-shadow:none!important}.trx-modal .trx-btn{display:none!important}.trx-modal .trx-muted{color:#444!important}.trx-detail{border:1px solid #bbb!important;background:#fff!important}.trx-print-signatures{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;margin-top:36px;page-break-inside:avoid}.trx-print-signatures div{border-top:1px solid #555;padding-top:8px;min-height:54px;font-size:11px}.trx-print-signatures strong{display:block;margin-top:28px;font-size:12px}.trx-print-signatures .trx-owner-signature{font-style:italic;letter-spacing:.08em;text-transform:uppercase}}@media(max-width:720px){.trx-page{padding:15px 10px}.trx-top{align-items:flex-start}.trx-stats{gap:6px}.trx-stat{padding:9px}.trx-stat-value{font-size:19px}.trx-controls{grid-template-columns:1fr 1fr}.trx-controls input{grid-column:1/-1}.trx-table th:nth-child(3),.trx-table td:nth-child(3),.trx-table th:nth-child(5),.trx-table td:nth-child(5){display:none}.trx-table td,.trx-table th{padding:9px 7px}.trx-code{white-space:normal;overflow-wrap:anywhere}.trx-detail-grid{grid-template-columns:1fr 1fr}}
+        .trx-wait{color:#8B6D3C;background:#F8F0E4;border-color:#D8C7A8}.trx-progress{color:#505762;background:#ECEEF1;border-color:#D8DCE2}.trx-good{color:#3F6655;background:#E8F0EC;border-color:#C9D9D0}.trx-bad{color:#8A444A;background:#FFF5F5;border-color:#E2C3C5}
+        .trx-empty{padding:28px 14px;text-align:center;color:#69717D;font-size:12px}
+        .trx-pager{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-top:1px solid #D8DCE2;font-size:11px;color:#69717D}
+        .trx-modal-backdrop{position:fixed;inset:0;background:rgba(23,25,29,.48);display:flex;align-items:center;justify-content:center;padding:16px;z-index:100}
+        .trx-modal{width:min(560px,100%);max-height:85vh;overflow:auto;background:#FFFFFF;border:1px solid #C9CED5;border-radius:14px;padding:18px}.trx-print-signatures{display:none}
+        .trx-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}.trx-detail{background:#F5F6F7;border:1px solid #D8DCE2;border-radius:9px;padding:10px;min-width:0}.trx-detail label{display:block;font-size:10px;color:#69717D;margin-bottom:5px}.trx-detail strong{font-size:12px;overflow-wrap:anywhere}
+        @media print{body{background:#fff!important}.trx-page>*:not(.trx-modal-backdrop){display:none!important}.trx-modal-backdrop{position:static!important;background:#fff!important;padding:0!important;display:block!important}.trx-modal{width:100%!important;max-height:none!important;overflow:visible!important;border:0!important;border-radius:0!important;background:#fff!important;color:#111!important;box-shadow:none!important}.trx-modal .trx-btn{display:none!important}.trx-modal .trx-muted{color:#444!important}.trx-detail{border:1px solid #bbb!important;background:#fff!important}.trx-print-signatures{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;margin-top:36px;page-break-inside:avoid}.trx-print-signatures div{border-top:1px solid #555;padding-top:8px;min-height:54px;font-size:11px}.trx-print-signatures strong{display:block;margin-top:28px;font-size:12px}.trx-print-signatures .trx-owner-signature{font-style:italic;letter-spacing:.08em;text-transform:uppercase}}@media(max-width:420px){.trx-detail-grid{grid-template-columns:minmax(0,1fr)}.trx-modal{padding:13px}}@media(max-width:720px){.trx-page{padding:15px 10px}.trx-top{align-items:flex-start}.trx-stats{gap:6px}.trx-stat{padding:9px}.trx-stat-value{font-size:19px}.trx-controls{grid-template-columns:1fr 1fr}.trx-controls input{grid-column:1/-1}.trx-table th:nth-child(3),.trx-table td:nth-child(3),.trx-table th:nth-child(5),.trx-table td:nth-child(5){display:none}.trx-table td,.trx-table th{padding:9px 7px}.trx-code{white-space:normal;overflow-wrap:anywhere}.trx-detail-grid{grid-template-columns:1fr 1fr}}
       `}</style>
       <div className="trx-shell">
         <div className="trx-top">
           <div><div className="trx-eyebrow">PUSAT PENGAJUAN & RIWAYAT</div><h1 className="trx-title">Transaksi (TRX)</h1><div className="trx-muted">Semua aktivitas yang diizinkan untuk akun ini, dengan prioritas pengajuan yang masih membutuhkan tindakan.</div></div>
-          <div style={{display:"flex",gap:7,flexWrap:"wrap"}}><Link href="/" className="trx-btn">← Dashboard</Link><button className="trx-btn" onClick={() => setRefresh((v) => v + 1)} disabled={loading}>{loading ? "Memuat…" : "↻ Segarkan"}</button></div>
+          <div style={{display:"flex",gap:7,flexWrap:"wrap"}}><Link href="/" className="trx-btn">Kembali ke Dashboard</Link><button className="trx-btn" onClick={() => setRefresh((v) => v + 1)} disabled={loading}>{loading ? "Memuat…" : "Segarkan"}</button></div>
         </div>
         <section className="trx-stats">
           <div className="trx-stat"><div className="trx-stat-label">Belum selesai</div><div className="trx-stat-value">{loading ? "—" : openRows.length}</div><div className="trx-muted">Perlu ditindaklanjuti</div></div>
           <div className="trx-stat"><div className="trx-stat-label">Menunggu persetujuan</div><div className="trx-stat-value">{loading ? "—" : pendingApproval.length}</div><div className="trx-muted">Belum diputuskan</div></div>
           <div className="trx-stat"><div className="trx-stat-label">Total data terbaca</div><div className="trx-stat-value">{loading ? "—" : rows.length}</div><div className="trx-muted">Sumber data yang berhasil dibaca</div></div>
         </section>
-        {error && <div role="status" style={{border:"1px solid #92400e",background:"#78350f33",borderRadius:9,padding:10,fontSize:12,marginBottom:12,color:"#fde68a"}}>{error}</div>}
+        {error && <div role="status" style={{border:"1px solid #92400e",background:"#F8F0E4",borderRadius:9,padding:10,fontSize:12,marginBottom:12,color:"#fde68a"}}>{error}</div>}
         <div className="trx-cats" aria-label="Tampilan transaksi">{VIEWS.map((item) => <button key={item} className={`trx-cat ${viewFilter === item ? "active" : ""}`} onClick={() => setViewFilter(item)}>{item}</button>)}</div>
         <div className="trx-cats" aria-label="Kategori transaksi">{CATEGORIES.map((item) => <button key={item} className={`trx-cat ${category === item ? "active" : ""}`} onClick={() => setCategory(item)}>{item}</button>)}</div>
         <div className="trx-controls">

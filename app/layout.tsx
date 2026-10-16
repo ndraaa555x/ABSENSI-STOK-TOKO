@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SMART BUSINESS MANAGEMENT",
+  title: "NDRAAAID | Smart Business Management",
   description: "Sistem manajemen bisnis, absensi, inventaris, dan keuangan."
 };
 
