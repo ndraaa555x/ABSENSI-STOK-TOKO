@@ -648,7 +648,7 @@ export default function HomePage() {
           setEmployeeError("Data karyawan tersimpan, tetapi akun login belum berhasil dibuat: " + (accountData?.error || accountInvokeError?.message || "kesalahan server"));
           setEmployeeNotice("Karyawan dibuat tanpa akun login. Perbaiki kendala akun lalu coba lagi.");
         } else {
-          setEmployeeNotice("Akun berhasil dibuat dengan role " + (newAccountRole === "admin" ? "Admin" : newAccountRole === "hrd" ? "HRD/SDM" : "Karyawan") + ". Berikan email dan kata sandi awal secara aman.");
+          setEmployeeNotice("Akun berhasil dibuat langsung tanpa email undangan dengan role " + (newAccountRole === "admin" ? "Admin" : newAccountRole === "hrd" ? "HRD/SDM" : "Karyawan") + ". Serahkan email login dan password sementara secara aman, lalu minta karyawan menggantinya setelah login.");
           resetEmployeeForm();
         }
       } else {
@@ -699,7 +699,7 @@ export default function HomePage() {
     setBusy(true); setError(""); setMessage("");
     if (newPassword.length < 8) { setError("Kata sandi harus minimal 8 karakter."); setBusy(false); return; }
     const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
-    if (updateError) setError("Kata sandi gagal disimpan. Pastikan tautan undangan masih berlaku, lalu coba buka ulang email undangan.");
+    if (updateError) setError("Kata sandi gagal disimpan. Silakan coba lagi atau gunakan fitur Lupa Password jika Anda tidak dapat memperbaruinya.");
     else {
       setNewPassword("");
       setSetupPasswordMode(false);
@@ -1233,8 +1233,8 @@ export default function HomePage() {
               <div className="field"><label htmlFor="employee-joined">Tanggal bergabung</label><input id="employee-joined" type="date" value={employeeForm.joined_on} onChange={e=>setEmployeeForm(f=>({...f,joined_on:e.target.value}))}/></div>
             </div>
             {!editingEmployeeId && ["owner","admin"].includes(profile?.role ?? "") && <div className="panel" style={{marginTop:14,background:"rgba(10,20,38,.35)"}}>
-              <label style={{display:"flex",gap:10,alignItems:"center",cursor:"pointer"}}><input type="checkbox" checked={createLoginAccount} onChange={e=>setCreateLoginAccount(e.target.checked)} /> Buat akun login untuk karyawan ini</label>
-              {createLoginAccount && <div style={{marginTop:12}}><p className="subtle">Akun akan login menggunakan email di atas. Pilih role sesuai kewenangan Anda.</p><div className="field"><label htmlFor="new-account-role">Role akun *</label><select id="new-account-role" value={newAccountRole} onChange={e=>setNewAccountRole(e.target.value as "employee"|"hrd"|"admin")}><option value="employee">Karyawan (akses operasional terbatas)</option>{profile?.role==="owner" && <option value="hrd">HRD / SDM</option>}{profile?.role==="owner" && <option value="admin">Admin (akses operasional)</option>}</select></div><div className="field"><label htmlFor="employee-initial-password">Kata sandi awal (minimal 8 karakter) *</label><input id="employee-initial-password" type="password" minLength={8} autoComplete="new-password" required value={employeePassword} onChange={e=>setEmployeePassword(e.target.value)} placeholder="Buat kata sandi sementara"/></div></div>}
+              <label style={{display:"flex",gap:10,alignItems:"center",cursor:"pointer"}}><input type="checkbox" checked={createLoginAccount} onChange={e=>setCreateLoginAccount(e.target.checked)} /> Buat akun login dengan password sementara (tanpa email undangan)</label>
+              {createLoginAccount && <div style={{marginTop:12}}><p className="subtle">Akun dibuat langsung tanpa mengirim email undangan. Serahkan email login dan password sementara kepada karyawan secara aman. Pilih role sesuai kewenangan Anda.</p><div className="field"><label htmlFor="new-account-role">Role akun *</label><select id="new-account-role" value={newAccountRole} onChange={e=>setNewAccountRole(e.target.value as "employee"|"hrd"|"admin")}><option value="employee">Karyawan (akses operasional terbatas)</option>{profile?.role==="owner" && <option value="hrd">HRD / SDM</option>}{profile?.role==="owner" && <option value="admin">Admin (akses operasional)</option>}</select></div><div className="field"><label htmlFor="employee-initial-password">Password sementara (minimal 8 karakter) *</label><input id="employee-initial-password" type="password" minLength={8} autoComplete="new-password" required value={employeePassword} onChange={e=>setEmployeePassword(e.target.value)} placeholder="Buat password sementara"/></div></div>}
             </div>}
             <div className="field"><label htmlFor="employee-notes">Catatan (opsional)</label><textarea id="employee-notes" rows={2} value={employeeForm.notes} onChange={e=>setEmployeeForm(f=>({...f,notes:e.target.value}))} placeholder="Catatan internal"/></div>
             <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button className="btn btn-primary" type="submit" disabled={employeeSaving}>{employeeSaving?"Menyimpan…":editingEmployeeId?"Simpan perubahan":"Tambah karyawan"}</button>{editingEmployeeId && <button className="btn" type="button" onClick={resetEmployeeForm}>Batal edit</button>}</div>
