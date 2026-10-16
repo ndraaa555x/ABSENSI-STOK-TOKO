@@ -100,26 +100,32 @@ export default function TransactionsPage() {
     setStoreMemberships((memberRows || []) as {store_id:string;store_role:string}[]);
     const result: Trx[] = [];
     const errors: string[] = [];
-    const [orders, refunds, reports, ledger, requests, submissions, receipts, sales, storeLedger, movements, attendance, leaves, stores, employees, people] = await Promise.all([
+    const [orders, orderItems, refunds, reports, ledger, requests, purchaseItems, submissions, receipts, receiptItems, sales, saleItems, storeLedger, movements, attendance, leaves, stores, employees, people, products, storeProducts] = await Promise.all([
       supabase.from("product_orders").select("id,order_code,status,ordered_by,reviewed_by,requested_at,created_at,notes").order("created_at", { ascending: false }).limit(500),
+      supabase.from("product_order_items").select("id,order_id,product_id,quantity,unit_price,line_total").order("created_at", { ascending: false }).limit(2000),
       supabase.from("product_refunds").select("id,refund_code,order_id,requested_by,reviewed_by,status,amount,reason,created_at").order("created_at", { ascending: false }).limit(500),
       supabase.from("financial_reports").select("id,report_code,report_type,amount,description,status,submitted_by,reviewed_by,posted_transaction_id,created_at").order("created_at", { ascending: false }).limit(500),
       supabase.from("financial_transactions").select("id,transaction_code,transaction_type,amount,description,status,created_by,transaction_at,created_at,reference_code").order("transaction_at", { ascending: false }).limit(500),
       supabase.from("offline_store_purchase_orders").select("id,order_code,store_id,status,subtotal,paid_amount,notes,requested_by,reviewed_by,shipped_by,received_by,requested_at,created_at").order("created_at", { ascending: false }).limit(500),
+      supabase.from("offline_store_purchase_items").select("id,order_id,central_product_id,store_product_id,quantity_requested,quantity_shipped,quantity_received,unit_cost,line_total").order("created_at", { ascending: false }).limit(3000),
       supabase.from("offline_product_submissions").select("id,store_id,proposed_name,proposed_category_name,status,review_note,requested_by,reviewed_by,requested_at,reviewed_at,created_product_id,created_store_product_id").order("requested_at", { ascending: false }).limit(500),
       supabase.from("offline_stock_receipts").select("id,store_id,receipt_code,status,supplier_name,notes,received_by,received_at,created_by,created_at").order("created_at", { ascending: false }).limit(500),
+      supabase.from("offline_stock_receipt_items").select("id,receipt_id,store_product_id,quantity,unit_cost").limit(3000),
       supabase.from("offline_store_sales").select("id,store_id,sale_code,subtotal,discount_total,total,payment_method,status,cashier_id,created_at").order("created_at", { ascending: false }).limit(500),
+      supabase.from("offline_store_sale_items").select("id,sale_id,store_product_id,product_name,quantity,unit_price,discount_amount,line_total").limit(3000),
       supabase.from("offline_store_finance_entries").select("id,store_id,order_id,entry_type,amount,payment_method,description,reference_code,created_by,created_at").order("created_at", { ascending: false }).limit(500),
       supabase.from("stock_movements").select("id,movement_type,quantity,reference_code,reason,notes,movement_at,created_by").order("movement_at", { ascending: false }).limit(500),
       supabase.from("attendance_records").select("id,employee_id,work_date,status,check_in_at,check_out_at,recorded_by,created_at").order("created_at", { ascending: false }).limit(500),
       supabase.from("leave_requests").select("id,employee_id,leave_type,start_date,end_date,reason,status,reviewed_by,created_at").order("created_at", { ascending: false }).limit(500),
       supabase.from("offline_stores").select("id,name,store_code").limit(500),
       supabase.from("employees").select("id,full_name,profile_id").limit(1000),
-      supabase.from("profiles").select("id,full_name,role").limit(1000)
+      supabase.from("profiles").select("id,full_name,role").limit(1000),
+      supabase.from("products").select("id,name,sku").limit(2000),
+      supabase.from("offline_store_products").select("id,store_id,name,sku").limit(3000)
     ]);
 
     const addError = (label: string, response: { error: { message: string } | null }) => { if (response.error) errors.push(label); };
-    addError("pesanan", orders); addError("refund", refunds); addError("laporan keuangan", reports); addError("buku besar", ledger); addError("pengajuan toko", requests); addError("pengajuan produk toko", submissions); addError("penerimaan stok", receipts); addError("penjualan toko", sales); addError("keuangan toko", storeLedger); addError("stok", movements); addError("absensi", attendance); addError("cuti", leaves);
+    addError("pesanan", orders); addError("detail pesanan", orderItems); addError("refund", refunds); addError("laporan keuangan", reports); addError("buku besar", ledger); addError("pengajuan toko", requests); addError("detail pembelian toko", purchaseItems); addError("pengajuan produk toko", submissions); addError("penerimaan stok", receipts); addError("detail penerimaan stok", receiptItems); addError("penjualan toko", sales); addError("detail penjualan toko", saleItems); addError("keuangan toko", storeLedger); addError("stok", movements); addError("absensi", attendance); addError("cuti", leaves);
     const personNames = new Map<string, string>();
     (people.data ?? []).forEach((p: any) => personNames.set(p.id, p.full_name || p.role || "Akun"));
     const employeeNames = new Map<string, string>();
@@ -130,12 +136,25 @@ export default function TransactionsPage() {
     });
     const storeNames = new Map<string, string>();
     (stores.data ?? []).forEach((s: any) => storeNames.set(s.id, s.name || s.store_code || "Toko Offline"));
+    const productNames = new Map<string, string>();
+    (products.data ?? []).forEach((p: any) => productNames.set(p.id, p.name || p.sku || "Produk"));
+    const storeProductNames = new Map<string, string>();
+    (storeProducts.data ?? []).forEach((p: any) => storeProductNames.set(p.id, p.name || p.sku || "Produk toko"));
+    const groupLines = (items: any[], key: string, format: (item: any) => string) => {
+      const grouped = new Map<string, string[]>();
+      items.forEach((item) => { const list = grouped.get(item[key]) || []; list.push(format(item)); grouped.set(item[key], list); });
+      return grouped;
+    };
+    const orderLines = groupLines(orderItems.data ?? [], "order_id", (i) => `${productNames.get(i.product_id) || "Produk"} × ${i.quantity} (${money(Number(i.line_total || 0))})`);
+    const purchaseLines = groupLines(purchaseItems.data ?? [], "order_id", (i) => `${productNames.get(i.central_product_id) || "Produk"} × ${i.quantity_requested} · dikirim ${i.quantity_shipped} · diterima ${i.quantity_received} · modal/unit ${money(Number(i.unit_cost || 0))}`);
+    const receiptLines = groupLines(receiptItems.data ?? [], "receipt_id", (i) => `${storeProductNames.get(i.store_product_id) || "Produk toko"} × ${i.quantity} · modal/unit ${money(Number(i.unit_cost || 0))}`);
+    const saleLines = groupLines(saleItems.data ?? [], "sale_id", (i) => `${i.product_name || storeProductNames.get(i.store_product_id) || "Produk"} × ${i.quantity} · diskon ${money(Number(i.discount_amount || 0))}`);
 
     (orders.data ?? []).forEach((r: any) => result.push({
       id: r.id, code: r.order_code || `ORD-${r.id.slice(0, 8)}`, category: "Pesanan",
       activity: "Pesanan produk", location: "Kantor Pusat", status: statusLabel(r.status, "Pesanan"),
       createdAt: r.created_at || r.requested_at, actor: personNames.get(r.ordered_by) || "Akun tidak diketahui",
-      ownerId: r.ordered_by || null, handlerId: r.reviewed_by || null, processedBy: personNames.get(r.reviewed_by) || "Belum ditangani", description: r.notes, sourceStatus: r.status, sourceTable: "product_orders"
+      ownerId: r.ordered_by || null, handlerId: r.reviewed_by || null, processedBy: personNames.get(r.reviewed_by) || "Belum ditangani", description: [r.notes || "", ...(orderLines.get(r.id) || [])].filter(Boolean).join(" · "), sourceStatus: r.status, sourceTable: "product_orders"
     }));
     (refunds.data ?? []).forEach((r: any) => result.push({
       id: r.id, code: r.refund_code || `REF-${r.id.slice(0, 8)}`, category: "Refund",
@@ -172,13 +191,13 @@ export default function TransactionsPage() {
       activity: `Penerimaan stok${r.supplier_name ? ` dari ${r.supplier_name}` : ""}`, location: storeNames.get(r.store_id) || "Toko Offline",
       status: statusLabel(r.status, "Penerimaan Stok"), createdAt: r.received_at || r.created_at,
       actor: personNames.get(r.created_by) || "Akun tidak diketahui", ownerId: r.created_by || null, handlerId: r.received_by || null,
-      processedBy: personNames.get(r.received_by) || "Belum diterima", description: r.notes, sourceStatus: r.status, sourceTable: "offline_stock_receipts"
+      processedBy: personNames.get(r.received_by) || "Belum diterima", description: [r.notes || "", ...(receiptLines.get(r.id) || [])].filter(Boolean).join(" · "), sourceStatus: r.status, sourceTable: "offline_stock_receipts"
     }));
     (sales.data ?? []).forEach((r: any) => result.push({
       id: r.id, code: r.sale_code || `SALE-${r.id.slice(0, 8).toUpperCase()}`, category: "Penjualan Toko", storeId: r.store_id,
       activity: "Penjualan toko offline", location: storeNames.get(r.store_id) || "Toko Offline", status: statusLabel(r.status, "Penjualan Toko"), createdAt: r.created_at,
       actor: personNames.get(r.cashier_id) || "Kasir", ownerId: r.cashier_id || null, handlerId: r.cashier_id || null, processedBy: personNames.get(r.cashier_id) || "Kasir",
-      amount: Number(r.total || 0), description: `Subtotal ${money(Number(r.subtotal || 0))} · Diskon ${money(Number(r.discount_total || 0))} · Metode ${r.payment_method || "—"}`,
+      amount: Number(r.total || 0), description: [`Subtotal ${money(Number(r.subtotal || 0))}`, `Diskon ${money(Number(r.discount_total || 0))}`, `Metode ${r.payment_method || "—"}`, ...(saleLines.get(r.id) || [])].join(" · "),
       sourceStatus: r.status, sourceTable: "offline_store_sales"
     }));
     (storeLedger.data ?? []).forEach((r: any) => result.push({
@@ -195,7 +214,7 @@ export default function TransactionsPage() {
       activity: "Pengajuan pembelian barang dari toko", location: storeNames.get(r.store_id) || "Toko Offline",
       status: r.status === "received" && Number(r.paid_amount || 0) < Number(r.subtotal || 0) ? "Diproses" : statusLabel(r.status, "Pengajuan Toko"), paidAmount: Number(r.paid_amount || 0), dueAmount: Math.max(0, Number(r.subtotal || 0) - Number(r.paid_amount || 0)), createdAt: r.created_at || r.requested_at,
       actor: personNames.get(r.requested_by) || "Akun tidak diketahui", ownerId: r.requested_by || null, handlerId: r.received_by || r.shipped_by || r.reviewed_by || null, processedBy: personNames.get(r.received_by || r.shipped_by || r.reviewed_by) || "Belum ditangani",
-      amount: Number(r.subtotal || 0), description: [r.notes || "", r.status === "received" ? `Pembayaran: ${money(Number(r.paid_amount || 0))} dari ${money(Number(r.subtotal || 0))}` : ""].filter(Boolean).join(" · "), sourceStatus: r.status, sourceTable: "offline_store_purchase_orders"
+      amount: Number(r.subtotal || 0), description: [r.notes || "", ...(purchaseLines.get(r.id) || []), r.status === "received" ? `Pembayaran: ${money(Number(r.paid_amount || 0))} dari ${money(Number(r.subtotal || 0))}` : ""].filter(Boolean).join(" · "), sourceStatus: r.status, sourceTable: "offline_store_purchase_orders"
     }));
     if (current.role === "owner") {
       const { data: auditRows, error: auditError } = await supabase.from("audit_logs").select("id,actor_id,action,entity_table,entity_id,details,created_at").order("created_at", { ascending: false }).limit(500);
