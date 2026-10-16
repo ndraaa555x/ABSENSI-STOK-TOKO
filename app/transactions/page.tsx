@@ -22,11 +22,12 @@ type Trx = {
   amount?: number | null;
   description?: string | null;
   sourceStatus: string;
-  sourceTable: "product_orders" | "product_refunds" | "financial_reports" | "offline_store_purchase_orders" | "stock_movements" | "attendance_records" | "leave_requests";
+  sourceTable: "product_orders" | "product_refunds" | "financial_reports" | "financial_transactions" | "offline_store_purchase_orders" | "stock_movements" | "attendance_records" | "leave_requests";
 };
 
 const PAGE_SIZE = 20;
 const CATEGORIES = ["Semua", "Pesanan", "Refund", "Pengajuan Toko", "Keuangan", "Stok", "Absensi", "Cuti"] as const;
+const VIEWS = ["Perlu Ditindaklanjuti", "Tugas Saya", "Selesai", "Semua Transaksi"] as const;
 const money = (value: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(value);
 const dateTime = (value: string) => new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 const normalize = (value: unknown) => String(value ?? "").trim().toLowerCase();
@@ -43,7 +44,7 @@ function statusLabel(status: string, category: TrxCategory): TrxStatus {
   const s = normalize(status);
   if (["rejected", "declined", "denied", "ditolak"].includes(s)) return "Ditolak";
   if (["approved", "disetujui"].includes(s)) return category === "Refund" ? "Diproses" : "Disetujui";
-  if (["completed", "complete", "fulfilled", "received", "paid", "closed", "selesai", "dipenuhi", "diterima", "lunas"].includes(s)) return "Selesai";
+  if (["completed", "complete", "fulfilled", "received", "paid", "posted", "closed", "selesai", "dipenuhi", "diterima", "lunas"].includes(s)) return "Selesai";
   if (["processing", "in_progress", "shipped", "shipping", "diproses", "dikirim"].includes(s)) return "Diproses";
   if (["requested", "pending", "waiting", "submitted", "menunggu", "pending_approval"].includes(s)) return category === "Pengajuan Toko" ? "Belum diproses" : "Menunggu persetujuan";
   if (["draft", "unreviewed", "belum_diperiksa"].includes(s)) return "Perlu diperiksa";
@@ -63,7 +64,8 @@ export default function TransactionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [category, setCategory] = useState<string>("Semua");
-  const [statusFilter, setStatusFilter] = useState("open");
+  const [viewFilter, setViewFilter] = useState<(typeof VIEWS)[number]>("Perlu Ditindaklanjuti");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Trx | null>(null);
@@ -88,10 +90,11 @@ export default function TransactionsPage() {
     setProfile(current);
     const result: Trx[] = [];
     const errors: string[] = [];
-    const [orders, refunds, reports, requests, movements, attendance, leaves, stores, employees, people] = await Promise.all([
+    const [orders, refunds, reports, ledger, requests, movements, attendance, leaves, stores, employees, people] = await Promise.all([
       supabase.from("product_orders").select("id,order_code,status,ordered_by,reviewed_by,requested_at,created_at,notes").order("created_at", { ascending: false }).limit(500),
       supabase.from("product_refunds").select("id,refund_code,order_id,requested_by,reviewed_by,status,amount,reason,created_at").order("created_at", { ascending: false }).limit(500),
       supabase.from("financial_reports").select("id,report_code,report_type,amount,description,status,submitted_by,reviewed_by,created_at").order("created_at", { ascending: false }).limit(500),
+      supabase.from("financial_transactions").select("id,transaction_code,transaction_type,amount,description,status,created_by,transaction_at,created_at,reference_code").order("transaction_at", { ascending: false }).limit(500),
       supabase.from("offline_store_purchase_orders").select("id,order_code,store_id,status,subtotal,notes,requested_by,reviewed_by,shipped_by,received_by,requested_at,created_at").order("created_at", { ascending: false }).limit(500),
       supabase.from("stock_movements").select("id,movement_type,quantity,reference_code,reason,notes,movement_at,created_by").order("movement_at", { ascending: false }).limit(500),
       supabase.from("attendance_records").select("id,employee_id,work_date,status,check_in_at,check_out_at,recorded_by,created_at").order("created_at", { ascending: false }).limit(500),
@@ -102,7 +105,7 @@ export default function TransactionsPage() {
     ]);
 
     const addError = (label: string, response: { error: { message: string } | null }) => { if (response.error) errors.push(label); };
-    addError("pesanan", orders); addError("refund", refunds); addError("laporan keuangan", reports); addError("pengajuan toko", requests); addError("stok", movements); addError("absensi", attendance); addError("cuti", leaves);
+    addError("pesanan", orders); addError("refund", refunds); addError("laporan keuangan", reports); addError("buku besar", ledger); addError("pengajuan toko", requests); addError("stok", movements); addError("absensi", attendance); addError("cuti", leaves);
     const personNames = new Map<string, string>();
     (people.data ?? []).forEach((p: any) => personNames.set(p.id, p.full_name || p.role || "Akun"));
     const employeeNames = new Map<string, string>();
@@ -129,6 +132,15 @@ export default function TransactionsPage() {
       actor: personNames.get(r.submitted_by) || "Akun tidak diketahui", ownerId: r.submitted_by || null, processedBy: personNames.get(r.reviewed_by) || "Belum ditangani",
       amount: Number(r.amount || 0), description: r.description, sourceStatus: r.status, sourceTable: "financial_reports"
     }));
+    (ledger.data ?? []).forEach((r: any) => result.push({
+      id: r.id, code: r.transaction_code || `LED-${r.id.slice(0, 8)}`, category: "Keuangan",
+      activity: r.transaction_type === "income" ? "Transaksi uang masuk" : "Transaksi uang keluar", location: "Buku Besar Kantor",
+      status: statusLabel(r.status, "Keuangan"), createdAt: r.transaction_at || r.created_at,
+      actor: personNames.get(r.created_by) || "Akun tidak diketahui", ownerId: r.created_by || null,
+      processedBy: personNames.get(r.created_by) || "—", amount: Number(r.amount || 0),
+      description: [r.description, r.reference_code ? `Referensi: ${r.reference_code}` : ""].filter(Boolean).join(" · "),
+      sourceStatus: r.status, sourceTable: "financial_transactions"
+    }));
     (requests.data ?? []).forEach((r: any) => result.push({
       id: r.id, code: r.order_code || `PO-${r.id.slice(0, 8)}`, category: "Pengajuan Toko",
       activity: "Pengajuan pembelian barang dari toko", location: storeNames.get(r.store_id) || "Toko Offline",
@@ -147,7 +159,7 @@ export default function TransactionsPage() {
       id: r.id, code: `ABS-${String(r.work_date || "").replaceAll("-", "")}-${r.id.slice(0, 4).toUpperCase()}`, category: "Absensi",
       activity: `Catatan absensi: ${r.status || "tercatat"}`, location: "Lokasi kerja",
       status: "Selesai", createdAt: r.created_at || r.check_in_at || r.work_date,
-      actor: employeeNames.get(r.employee_id) || "Karyawan", ownerId: r.employee_id || null, processedBy: personNames.get(r.reviewed_by) || "Belum ditangani", processedBy: personNames.get(r.recorded_by) || "—",
+      actor: employeeNames.get(r.employee_id) || "Karyawan", ownerId: r.employee_id || null, processedBy: personNames.get(r.recorded_by) || "—",
       description: r.work_date ? `Tanggal kerja ${r.work_date}` : "", sourceStatus: r.status, sourceTable: "attendance_records"
     }));
     (leaves.data ?? []).forEach((r: any) => result.push({
@@ -165,20 +177,26 @@ export default function TransactionsPage() {
 
   useEffect(() => { if (isSupabaseConfigured) void load(); else { setError("Koneksi database belum dikonfigurasi."); setLoading(false); } }, [load, refresh]);
 
+  const canSeeAll = profile?.role === "owner" || profile?.role === "admin";
+  const canSeeFinance = canSeeAll || profile?.role === "hrd";
   const visibleRows = useMemo(() => {
     const q = normalize(search);
     return rows.filter((r) => {
       const categoryOk = category === "Semua" || r.category === category;
-      const statusOk = statusFilter === "all" || (statusFilter === "open" ? isOpenStatus(r) : r.status === statusFilter);
+      const viewOk = viewFilter === "Perlu Ditindaklanjuti" ? isOpenStatus(r)
+        : viewFilter === "Tugas Saya" ? (r.ownerId === profile?.id || r.processedBy === profile?.full_name)
+        : viewFilter === "Selesai" ? r.status === "Selesai" : true;
+      const statusOk = statusFilter === "all" || r.status === statusFilter;
+      const permissionOk = canSeeFinance || r.category !== "Keuangan";
       const searchOk = !q || [r.code, r.category, r.activity, r.location, r.actor, r.status, r.description].some((v) => normalize(v).includes(q));
-      return categoryOk && statusOk && searchOk;
+      return categoryOk && viewOk && statusOk && permissionOk && searchOk;
     });
-  }, [rows, category, statusFilter, search]);
+  }, [rows, category, viewFilter, profile, statusFilter, search, canSeeFinance]);
   const openRows = useMemo(() => rows.filter((r) => isOpenStatus(r)), [rows]);
   const pendingApproval = useMemo(() => rows.filter((r) => ["Menunggu", "Menunggu persetujuan", "Belum diproses", "Perlu diperiksa"].includes(r.status)), [rows]);
   const pages = Math.max(1, Math.ceil(visibleRows.length / PAGE_SIZE));
   const pageRows = visibleRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  useEffect(() => { setPage(1); }, [category, statusFilter, search]);
+  useEffect(() => { setPage(1); }, [category, viewFilter, statusFilter, search]);
 
 
   async function processSelected(action: "approve" | "reject" | "fulfill" | "ship") {
@@ -217,9 +235,7 @@ export default function TransactionsPage() {
     setRefresh((v) => v + 1);
   }
 
-  const canSeeAll = profile?.role === "owner" || profile?.role === "admin";
-  const canSeeFinance = canSeeAll || profile?.role === "hrd";
-  const filteredRows = pageRows.filter((r) => canSeeFinance || r.category !== "Keuangan");
+  const filteredRows = pageRows;
 
   return (
     <main className="trx-page">
@@ -256,7 +272,7 @@ export default function TransactionsPage() {
       `}</style>
       <div className="trx-shell">
         <div className="trx-top">
-          <div><div className="trx-eyebrow">PUSAT RIWAYAT & TINDAK LANJUT</div><h1 className="trx-title">Transaksi (TRX)</h1><div className="trx-muted">Semua aktivitas yang diizinkan untuk akun ini, dengan prioritas pengajuan yang masih membutuhkan tindakan.</div></div>
+          <div><div className="trx-eyebrow">PUSAT PENGAJUAN & RIWAYAT</div><h1 className="trx-title">Transaksi (TRX)</h1><div className="trx-muted">Semua aktivitas yang diizinkan untuk akun ini, dengan prioritas pengajuan yang masih membutuhkan tindakan.</div></div>
           <div style={{display:"flex",gap:7,flexWrap:"wrap"}}><Link href="/" className="trx-btn">← Dashboard</Link><button className="trx-btn" onClick={() => setRefresh((v) => v + 1)} disabled={loading}>{loading ? "Memuat…" : "↻ Segarkan"}</button></div>
         </div>
         <section className="trx-stats">
@@ -265,11 +281,12 @@ export default function TransactionsPage() {
           <div className="trx-stat"><div className="trx-stat-label">Total data terbaca</div><div className="trx-stat-value">{loading ? "—" : rows.length}</div><div className="trx-muted">Sumber data yang berhasil dibaca</div></div>
         </section>
         {error && <div role="status" style={{border:"1px solid #92400e",background:"#78350f33",borderRadius:9,padding:10,fontSize:12,marginBottom:12,color:"#fde68a"}}>{error}</div>}
-        <div className="trx-cats">{CATEGORIES.map((item) => <button key={item} className={`trx-cat ${category === item ? "active" : ""}`} onClick={() => setCategory(item)}>{item}</button>)}</div>
+        <div className="trx-cats" aria-label="Tampilan transaksi">{VIEWS.map((item) => <button key={item} className={`trx-cat ${viewFilter === item ? "active" : ""}`} onClick={() => setViewFilter(item)}>{item}</button>)}</div>
+        <div className="trx-cats" aria-label="Kategori transaksi">{CATEGORIES.map((item) => <button key={item} className={`trx-cat ${category === item ? "active" : ""}`} onClick={() => setCategory(item)}>{item}</button>)}</div>
         <div className="trx-controls">
           <input className="trx-input" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari kode, nama, toko, aktivitas…" aria-label="Cari transaksi" />
           <select className="trx-input" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} aria-label="Filter status">
-            <option value="open">Belum selesai / perlu tindakan</option><option value="all">Semua status</option><option value="Menunggu persetujuan">Menunggu persetujuan</option><option value="Belum diproses">Belum diproses</option><option value="Diproses">Diproses</option><option value="Disetujui">Disetujui</option><option value="Ditolak">Ditolak</option><option value="Selesai">Selesai</option><option value="Perlu diperiksa">Perlu diperiksa</option>
+            <option value="all">Semua status</option><option value="Menunggu persetujuan">Menunggu persetujuan</option><option value="Belum diproses">Belum diproses</option><option value="Diproses">Diproses</option><option value="Disetujui">Disetujui</option><option value="Ditolak">Ditolak</option><option value="Selesai">Selesai</option><option value="Perlu diperiksa">Perlu diperiksa</option>
           </select>
           <div className="trx-muted" style={{alignSelf:"center"}}>Menampilkan {filteredRows.length ? (page - 1) * PAGE_SIZE + 1 : 0}–{Math.min(page * PAGE_SIZE, visibleRows.length)} dari {visibleRows.length} hasil · 20 per halaman</div>
         </div>
@@ -285,7 +302,7 @@ export default function TransactionsPage() {
           </table>
           <div className="trx-pager"><span>Halaman {Math.min(page, pages)} dari {pages}</span><div style={{display:"flex",gap:6}}><button className="trx-btn" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>Sebelumnya</button><button className="trx-btn" disabled={page >= pages} onClick={() => setPage((p) => Math.min(pages, p + 1))}>Berikutnya</button></div></div>
         </div>
-        <p className="trx-muted" style={{marginTop:10}}>Catatan: halaman ini menggabungkan catatan dari modul sumber tanpa menghapus data asli. Tombol tindakan persetujuan akan diaktifkan setelah alur tindakan setiap kategori dipetakan dan diuji.</p>
+        <p className="trx-muted" style={{marginTop:10}}>Catatan: data asli tetap tersimpan di modul sumber. Daftar ini menyatukan riwayat yang dapat dibaca akun Anda; beberapa alur operasional khusus masih memerlukan validasi sebelum tombol tindakan dipindahkan seluruhnya ke sini.</p>
       </div>
       {selected && <div className="trx-modal-backdrop" onClick={() => setSelected(null)}><section className="trx-modal" role="dialog" aria-modal="true" aria-label="Detail transaksi" onClick={(e) => e.stopPropagation()}>
         <div style={{display:"flex",justifyContent:"space-between",gap:12,alignItems:"flex-start"}}><div><div className="trx-eyebrow">DETAIL TRANSAKSI</div><h2 style={{fontSize:19,margin:"7px 0"}}>{selected.code}</h2><div className="trx-muted">{selected.activity}</div></div><button className="trx-btn" onClick={() => setSelected(null)}>Tutup</button></div>
