@@ -53,7 +53,7 @@ function statusLabel(status: string, category: TrxCategory): TrxStatus {
   if (["approved", "disetujui"].includes(s)) return category === "Refund" ? "Diproses" : "Disetujui";
   if (["completed", "complete", "fulfilled", "received", "paid", "posted", "closed", "selesai", "dipenuhi", "diterima", "lunas"].includes(s)) return "Selesai";
   if (["processing", "in_progress", "shipped", "shipping", "diproses", "dikirim"].includes(s)) return "Diproses";
-  if (["requested", "pending", "waiting", "submitted", "menunggu", "pending_approval"].includes(s)) return category === "Pengajuan Toko" ? "Belum diproses" : "Menunggu persetujuan";
+  if (["requested", "pending", "waiting", "submitted", "menunggu", "pending_approval"].includes(s)) return ["Pengajuan Toko", "Penerimaan Stok"].includes(category) ? "Belum diproses" : "Menunggu persetujuan";
   if (["draft", "unreviewed", "belum_diperiksa"].includes(s)) return "Perlu diperiksa";
   return "Perlu diperiksa";
 }
@@ -433,7 +433,7 @@ export default function TransactionsPage() {
           </table>
           <div className="trx-pager"><span>Halaman {Math.min(page, pages)} dari {pages}</span><div style={{display:"flex",gap:6}}><button className="trx-btn" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>Sebelumnya</button><button className="trx-btn" disabled={page >= pages} onClick={() => setPage((p) => Math.min(pages, p + 1))}>Berikutnya</button></div></div>
         </div>
-        <p className="trx-muted" style={{marginTop:10}}>Catatan: data asli tetap tersimpan di modul sumber. Daftar ini menyatukan riwayat yang dapat dibaca akun Anda; beberapa alur operasional khusus masih memerlukan validasi sebelum tombol tindakan dipindahkan seluruhnya ke sini.</p>
+        <p className="trx-muted" style={{marginTop:10}}>Data sumber tetap utuh. Tindakan yang tersedia mengikuti status transaksi dan kewenangan akun; riwayat yang tidak dapat dibaca akan ditandai di atas.</p>
       </div>
       {selected && <div className="trx-modal-backdrop" onClick={() => setSelected(null)}><section className="trx-modal" role="dialog" aria-modal="true" aria-label="Detail transaksi" onClick={(e) => e.stopPropagation()}>
         <div style={{display:"flex",justifyContent:"space-between",gap:12,alignItems:"flex-start"}}><div><div className="trx-eyebrow">DETAIL TRANSAKSI</div><h2 style={{fontSize:19,margin:"7px 0"}}>{selected.code}</h2><div className="trx-muted">{selected.activity}</div></div><div style={{display:"flex",gap:7,flexWrap:"wrap"}}>{["owner","admin"].includes(profile?.role ?? "") && ["Pesanan","Refund","Pengajuan Toko","Produk Toko","Penerimaan Stok","Penjualan Toko","Keuangan"].includes(selected.category) && <button className="trx-btn" onClick={() => window.print()}>Cetak bukti transaksi</button>}<button className="trx-btn" onClick={() => setSelected(null)}>Tutup</button></div></div>
