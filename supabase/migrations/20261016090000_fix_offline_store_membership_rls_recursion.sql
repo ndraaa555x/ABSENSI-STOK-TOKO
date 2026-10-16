@@ -21,7 +21,7 @@ $function$;
 
 -- Receive a prepared store stock receipt exactly once. Stock and FIFO cost batches
 -- are created only when an authorized store user confirms physical receipt.
-create or replace function public.receive_offline_stock(p_receipt_id uuid)
+create or replace function private.receive_offline_stock(p_receipt_id uuid)
 returns void
 language plpgsql
 security definer
