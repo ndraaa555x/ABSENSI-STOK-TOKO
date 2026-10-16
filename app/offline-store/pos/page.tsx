@@ -55,6 +55,8 @@ export default function OfflineStorePOSPage() {
   const loadProducts = useCallback(async (id: string, role: string | undefined) => {
     if (!id) { setProducts([]); return; }
     setLoadingProducts(true);
+    const defaultDiscountLimit = ["manager", "store_admin"].includes(role || "") ? 15 : 5;
+    setDiscountLimit(defaultDiscountLimit);
     const [productResult, policyResult] = await Promise.all([
       supabase.from("offline_store_products").select("id,store_id,name,sku,barcode_value,unit,sale_price,current_stock,is_active").eq("store_id", id).eq("is_active", true).order("name"),
       supabase.from("offline_store_discount_policies").select("cashier_max_percent,manager_max_percent").eq("store_id", id).maybeSingle()
@@ -63,7 +65,7 @@ export default function OfflineStorePOSPage() {
     else setProducts((productResult.data || []) as Product[]);
     if (policyResult.data) {
       const limit = ["manager", "store_admin"].includes(role || "") ? Number(policyResult.data.manager_max_percent) : Number(policyResult.data.cashier_max_percent);
-      setDiscountLimit(Number.isFinite(limit) ? limit : 0);
+      setDiscountLimit(Number.isFinite(limit) ? limit : defaultDiscountLimit);
     }
     setLoadingProducts(false);
   }, []);
