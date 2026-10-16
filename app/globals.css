@@ -1041,3 +1041,68 @@ th,td{overflow-wrap:anywhere}
  .trx-modal{max-height:92vh;padding:14px}
 }
 @media(prefers-reduced-motion:reduce){.main .btn,.pos-page .btn,.business-page .btn,.trx-btn,.pos-product-card{transition:none}}
+
+
+/* Final cross-module responsive and interaction pass */
+:root{--ndra-focus:rgba(141,184,244,.72);--ndra-hover:rgba(141,184,244,.09)}
+html{scroll-behavior:smooth;scroll-padding-top:18px}
+body{overflow-wrap:anywhere}
+button:disabled,[role="button"][aria-disabled="true"]{cursor:not-allowed!important;opacity:.58}
+button:not(:disabled),a,select{touch-action:manipulation}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--ndra-focus)!important;outline-offset:3px}
+input[type=checkbox],input[type=radio]{accent-color:#8db8f4}
+label{line-height:1.45}
+hr{border:0;border-top:1px solid var(--nd-line,#334155);margin:16px 0}
+pre,code{max-width:100%;overflow-wrap:anywhere}
+img,svg,video,canvas{max-width:100%}
+:where(.panel,.stat-card,.business-record,.module-card,.quick-card,.trx-stat,.trx-detail,.pos-product-card){overflow-wrap:anywhere}
+:where(.main,.business-page,.pos-page,.trx-page) :where(.panel,.business-form,.business-history,.pos-catalog,.pos-cart,.trx-table-wrap){min-width:0}
+:where(.main,.business-page,.pos-page,.trx-page) :where(input,select,textarea){max-width:100%;min-width:0}
+:where(.main,.business-page,.pos-page,.trx-page) :where(button,a.btn,.btn,.trx-btn){-webkit-tap-highlight-color:transparent}
+:where(.main,.business-page,.pos-page,.trx-page) :where(.panel-head,.section-head,.business-actions,.pos-header-actions,.trx-controls){min-width:0}
+:where(.main,.business-page,.pos-page,.trx-page) :where(.panel-head,.section-head,.business-actions,.pos-header-actions){display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.pos-product-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));gap:12px}
+.pos-product-card{width:100%;min-height:112px;display:flex;flex-direction:column;justify-content:space-between;gap:8px}
+.pos-cart-lines{display:grid;gap:4px}
+.pos-product-sku,.pos-in-cart,.pos-add-label{overflow-wrap:anywhere}
+.pos-quantity-control{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pos-remove{min-width:36px;min-height:36px}
+.trx-modal-backdrop{overscroll-behavior:contain}
+.trx-modal{width:min(100%,920px);max-width:calc(100vw - 24px)}
+.trx-detail-grid{min-width:0}
+.trx-detail{overflow-wrap:anywhere}
+.business-record-head{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.business-line{overflow-wrap:anywhere}
+.status,.status-pill{display:inline-flex;align-items:center;gap:5px;max-width:100%;overflow-wrap:anywhere}
+@media(max-width:900px){
+ .pos-workspace{grid-template-columns:minmax(0,1fr)!important}
+ .pos-cart{position:static!important}
+ .trx-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .business-columns{grid-template-columns:minmax(0,1fr)!important}
+}
+@media(max-width:600px){
+ .pos-product-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .pos-product-card{min-height:100px;padding:10px}
+ .pos-search-row{grid-template-columns:minmax(0,1fr) 84px}
+ .pos-checkout-fields{grid-template-columns:minmax(0,1fr)!important}
+ .trx-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .trx-stat{padding:12px}
+ .trx-title{font-size:clamp(22px,6vw,30px)}
+ .trx-modal-backdrop{padding:8px!important}
+ .trx-modal{max-width:100%;padding:12px}
+ .trx-detail-grid{grid-template-columns:minmax(0,1fr)!important}
+ .business-record{padding:12px}
+ .business-record-head{align-items:flex-start}
+ .business-actions>*{max-width:100%}
+}
+@media(max-width:360px){
+ .pos-product-grid{grid-template-columns:minmax(0,1fr)}
+ .pos-search-row{grid-template-columns:minmax(0,1fr)}
+ .trx-stats{grid-template-columns:minmax(0,1fr)}
+}
+@media print{
+ body{background:#fff!important;color:#111!important}
+ .sidebar,.topbar,.mobile-menu-backdrop,.mobile-menu-toggle,.no-print{display:none!important}
+ .main,.business-page,.pos-page,.trx-page{max-width:none!important;padding:0!important;margin:0!important;background:#fff!important;color:#111!important}
+ .panel,.business-record,.trx-modal,.trx-detail{box-shadow:none!important;break-inside:avoid}
+}
