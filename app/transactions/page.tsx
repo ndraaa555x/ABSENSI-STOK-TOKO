@@ -133,7 +133,7 @@ export default function TransactionsPage() {
     const [orders, orderItems, refunds, reports, ledger, requests, purchaseItems, submissions, receipts, receiptItems, sales, saleItems, storeLedger, movements, attendance, leaves, stores, employees, people, products, storeProducts, customers] = await Promise.all([
       readAllRows("product_orders", "id,order_code,status,ordered_by,reviewed_by,requested_at,created_at,notes,customer_id", "created_at"),
       readAllRows("product_order_items", "id,order_id,product_id,quantity,unit_price,line_total", "created_at"),
-      readAllRows("product_refunds", "id,refund_code,order_id,requested_by,reviewed_by,status,amount,reason,created_at", "created_at"),
+      readAllRows("product_refunds", "id,refund_code,order_id,order_item_id,requested_by,reviewed_by,status,amount,reason,created_at", "created_at"),
       readAllRows("financial_reports", "id,report_code,report_type,amount,description,status,submitted_by,reviewed_by,posted_transaction_id,created_at,related_customer_id", "created_at"),
       readAllRows("financial_transactions", "id,transaction_code,transaction_type,amount,description,status,created_by,transaction_at,created_at,reference_code", "transaction_at"),
       readAllRows("offline_store_purchase_orders", "id,order_code,store_id,status,subtotal,paid_amount,notes,requested_by,reviewed_by,shipped_by,received_by,requested_at,created_at", "created_at"),
@@ -178,6 +178,8 @@ export default function TransactionsPage() {
     (customers.data ?? []).forEach((c: any) => customerNames.set(c.id, c.store_name || c.customer_code || "Pelanggan"));
     const orderById = new Map<string, any>();
     (orders.data ?? []).forEach((o: any) => orderById.set(o.id, o));
+    const orderItemById = new Map<string, any>();
+    (orderItems.data ?? []).forEach((i: any) => orderItemById.set(i.id, i));
     const groupLines = (items: any[], key: string, format: (item: any) => string) => {
       const grouped = new Map<string, string[]>();
       items.forEach((item) => { const list = grouped.get(item[key]) || []; list.push(format(item)); grouped.set(item[key], list); });
@@ -198,7 +200,7 @@ export default function TransactionsPage() {
       id: r.id, code: r.refund_code || `REF-${r.id.slice(0, 8)}`, category: "Refund",
       activity: "Permintaan pengembalian dana", location: customerNames.get(orderById.get(r.order_id)?.customer_id) || "Kantor Pusat", status: statusLabel(r.status, "Refund"),
       createdAt: r.created_at, actor: personNames.get(r.requested_by) || "Akun tidak diketahui",
-      ownerId: r.requested_by || null, handlerId: r.reviewed_by || null, reviewerId: r.reviewed_by || null, reviewedBy: personNames.get(r.reviewed_by) || "Belum disetujui", processedBy: personNames.get(r.reviewed_by) || "Belum ditangani", amount: Number(r.amount || 0), description: r.reason, sourceStatus: r.status, sourceTable: "product_refunds"
+      ownerId: r.requested_by || null, handlerId: r.reviewed_by || null, reviewerId: r.reviewed_by || null, reviewedBy: personNames.get(r.reviewed_by) || "Belum disetujui", processedBy: personNames.get(r.reviewed_by) || "Belum ditangani", amount: Number(r.amount || 0), description: [r.reason || "", orderById.get(r.order_id)?.order_code ? `Order: ${orderById.get(r.order_id).order_code}` : "", orderItemById.get(r.order_item_id) ? `Barang: ${productNames.get(orderItemById.get(r.order_item_id).product_id) || "Produk"} × ${orderItemById.get(r.order_item_id).quantity}` : ""].filter(Boolean).join(" · "), sourceStatus: r.status, sourceTable: "product_refunds"
     }));
     (reports.data ?? []).forEach((r: any) => result.push({
       id: r.id, code: r.report_code || `FIN-${r.id.slice(0, 8)}`, category: "Keuangan",
