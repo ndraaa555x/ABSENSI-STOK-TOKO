@@ -39,7 +39,7 @@ const isOpenStatus = (row: Trx) => {
   if (row.category === "Pesanan") return ["pending", "approved", "menunggu", "disetujui"].includes(s);
   if (row.category === "Refund") return ["pending", "under_review", "requested", "approved", "menunggu", "disetujui"].includes(s);
   if (row.category === "Pengajuan Toko") return ["requested", "shipped", "pending", "diproses", "dikirim", "received"].includes(s);
-  if (row.category === "Produk Toko") return ["pending", "requested", "submitted", "under_review"].includes(s);
+  if (row.category === "Produk Toko") return ["pending", "requested", "submitted", "under_review", "needs_revision", "perlu_perbaikan"].includes(s);
   if (row.category === "Penerimaan Stok") return ["pending", "requested", "draft", "processing"].includes(s);
   if (row.category === "Cuti" || row.category === "Keuangan") return ["pending", "requested", "submitted", "menunggu", "pending_approval"].includes(s);
   return false;
@@ -258,7 +258,7 @@ export default function TransactionsPage() {
   useEffect(() => { setPage(1); }, [category, viewFilter, statusFilter, search]);
 
 
-  async function processSelected(action: "approve" | "reject" | "fulfill" | "ship" | "receive" | "pay") {
+  async function processSelected(action: "approve" | "reject" | "fulfill" | "ship" | "receive" | "pay" | "revise") {
     if (!selected || !profile || loading) return;
     const canAdmin = profile.role === "owner" || profile.role === "admin";
     const canReviewLeave = canAdmin || profile.role === "hrd";
@@ -296,10 +296,10 @@ export default function TransactionsPage() {
     } else if (selected.sourceTable === "offline_stock_receipts" && action === "receive") {
       const { error: rpcError } = await supabase.rpc("receive_offline_stock", { p_receipt_id: selected.id });
       if (rpcError) { window.alert("Penerimaan stok gagal: " + rpcError.message); return; }
-    } else if (selected.sourceTable === "offline_product_submissions" && (action === "approve" || action === "reject")) {
-      const note = action === "reject" ? (window.prompt("Alasan penolakan:") || "").trim() : (window.prompt("Catatan persetujuan (opsional):") || "").trim();
-      if (action === "reject" && !note) return;
-      const { error: rpcError } = await supabase.rpc("review_offline_product_submission", { p_submission_id: selected.id, p_decision: action === "approve" ? "approved" : "rejected", p_review_note: note || null, p_create_category: true });
+    } else if (selected.sourceTable === "offline_product_submissions" && (action === "approve" || action === "revise")) {
+      const note = action === "revise" ? (window.prompt("Catatan perbaikan yang wajib dilengkapi:") || "").trim() : (window.prompt("Catatan persetujuan (opsional):") || "").trim();
+      if (action === "revise" && !note) return;
+      const { error: rpcError } = await supabase.rpc("review_offline_product_submission", { p_submission_id: selected.id, p_decision: action === "approve" ? "approved" : "needs_revision", p_review_note: note || null, p_create_category: true });
       if (rpcError) { window.alert("Pengajuan produk gagal diproses: " + rpcError.message); return; }
     } else if (selected.sourceTable === "offline_store_purchase_orders" && action === "ship") {
       const { error: rpcError } = await supabase.rpc("ship_offline_store_purchase", { p_order_id: selected.id });
@@ -410,7 +410,7 @@ export default function TransactionsPage() {
           {selected.sourceStatus === "received" && selected.sourceTable === "offline_store_purchase_orders" && <button className="trx-btn" onClick={() => void processSelected("pay")}>Catat pembayaran</button>
           }
           {selected.sourceStatus === "draft" && selected.sourceTable === "offline_stock_receipts" && <button className="trx-btn" onClick={() => void processSelected("receive")}>Konfirmasi stok diterima</button>}
-          {["pending","under_review","requested"].includes(normalize(selected.sourceStatus)) && selected.sourceTable === "offline_product_submissions" && <><button className="trx-btn" onClick={() => void processSelected("approve")}>Setujui produk</button><button className="trx-btn" onClick={() => void processSelected("reject")}>Tolak pengajuan</button></> }
+          {["pending","under_review","requested"].includes(normalize(selected.sourceStatus)) && selected.sourceTable === "offline_product_submissions" && <><button className="trx-btn" onClick={() => void processSelected("approve")}>Setujui produk</button><button className="trx-btn" onClick={() => void processSelected("revise")}>Minta perbaikan</button><button className="trx-btn" onClick={() => void processSelected("reject")}>Tolak pengajuan</button></> }
           {selected.sourceStatus === "pending" && selected.sourceTable === "leave_requests" && <><button className="trx-btn" onClick={() => void processSelected("approve")}>Setujui cuti</button><button className="trx-btn" onClick={() => void processSelected("reject")}>Tolak cuti</button></>}
           {selected.sourceStatus === "approved" && selected.sourceTable === "product_orders" && <button className="trx-btn" onClick={() => void processSelected("fulfill")}>Tandai dipenuhi</button>}
         </div>}
