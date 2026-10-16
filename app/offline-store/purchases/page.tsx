@@ -130,7 +130,7 @@ export default function OfflineStorePurchasesPage() {
   if (!session || !profile) return <main className="main"><section className="panel"><h1>Pembelian Toko Offline</h1><p>Silakan login dari aplikasi utama terlebih dahulu.</p><Link href="/" className="btn btn-primary">Kembali ke aplikasi</Link></section></main>;
 
   return <main className="main">
-    <div className="topbar"><div><div className="eyebrow">SMART BUSINESS MANAGEMENT</div><h1>Pembelian Toko Offline</h1><p className="subtle">Permintaan stok dari kantor pusat dengan pencatatan keuangan terpisah per toko.</p></div><div className="business-actions"><Link href="/offline-store" className="btn">← Toko Offline</Link><Link href="/" className="btn">Dashboard</Link></div></div>
+    <div className="topbar"><div><div className="eyebrow">NDRAAAID</div><h1>Pembelian Toko Offline</h1><p className="subtle">Permintaan stok dari kantor pusat dengan pencatatan keuangan terpisah per toko.</p></div><div className="business-actions"><Link href="/offline-store" className="btn">← Toko Offline</Link><Link href="/" className="btn">Dashboard</Link></div></div>
     {notice && <div className="info-box" role="status">{notice}</div>}{error && <div className="error-box" role="alert">{error}</div>}
     <section className="panel">
       <div className="section-head"><div><h2>Pilih toko</h2><p className="subtle">Setiap toko memiliki tagihan dan catatan keuangan pembeliannya sendiri.</p></div><button className="btn" onClick={() => void load()} disabled={busy}>Muat ulang</button></div>
@@ -164,6 +164,6 @@ export default function OfflineStorePurchasesPage() {
         {entries.length === 0 && <p className="subtle">Belum ada transaksi keuangan pembelian.</p>}
       </section>}
     </div>}
-    <p className="footer">SMART BUSINESS MANAGEMENT · Pembelian toko offline · Stok dan keuangan dicatat terpisah</p>
+    <p className="footer">NDRAAAID · Pembelian toko offline · Stok dan keuangan dicatat terpisah</p>
   </main>;
 }
