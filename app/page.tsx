@@ -817,7 +817,7 @@ export default function HomePage() {
 
   if (setupPasswordMode && session) return (
     <main className="login-wrap">
-      <section className="login-hero"><div><div className="brand"><div className="brand-mark">SB</div><div><div className="brand-title">SMART BUSINESS</div><div className="brand-sub">MANAGEMENT SYSTEM</div></div></div><div style={{marginTop:"clamp(50px,12vh,120px)"}}><div className="eyebrow">AKTIVASI ANGGOTA TOKO</div><div className="hero-big">Amankan akun <span className="gradient-text">Anda.</span></div><p className="subtle" style={{maxWidth:440}}>Buat kata sandi pribadi untuk mulai menggunakan akun Toko Offline.</p></div></div></section>
+      <section className="login-hero"><div><div className="brand"><div className="brand-mark"><AppIcon name="dashboard" size={22} /></div><div><div className="brand-title">NDRAAAID</div><div className="brand-sub">BUSINESS OPERATING SYSTEM</div></div></div><div style={{marginTop:"clamp(50px,12vh,120px)"}}><div className="eyebrow">AKTIVASI ANGGOTA TOKO</div><div className="hero-big">Amankan akun <span className="gradient-text">Anda.</span></div><p className="subtle" style={{maxWidth:440}}>Buat kata sandi pribadi untuk mulai menggunakan akun Toko Offline.</p></div></div></section>
       <section className="login-side"><div className="login-card"><div className="eyebrow">PENGATURAN KATA SANDI</div><h2>Buat kata sandi</h2><p className="subtle">Gunakan minimal 8 karakter. Kata sandi hanya diketahui oleh Anda.</p><form onSubmit={handleSetPassword}><div className="field"><label htmlFor="new-password">Kata sandi baru</label><input id="new-password" type="password" autoComplete="new-password" minLength={8} required value={newPassword} onChange={e=>setNewPassword(e.target.value)} placeholder="Minimal 8 karakter"/></div>{error&&<div className="error-box" role="alert">{error}</div>}<button className="btn btn-primary" type="submit" disabled={busy||!isSupabaseConfigured}>{busy?"Menyimpan…":"Simpan kata sandi dan lanjutkan"}</button></form></div></section>
     </main>
   );
@@ -826,21 +826,21 @@ export default function HomePage() {
     <main className="login-wrap">
       <section className="login-hero">
         <div>
-          <div className="brand"><div className="brand-mark">SB</div><div><div className="brand-title">SMART BUSINESS</div><div className="brand-sub">MANAGEMENT SYSTEM</div></div></div>
+          <div className="brand"><div className="brand-mark"><AppIcon name="dashboard" size={22} /></div><div><div className="brand-title">NDRAAAID</div><div className="brand-sub">BUSINESS OPERATING SYSTEM</div></div></div>
           <div style={{ marginTop: "clamp(50px,12vh,120px)" }}>
-            <div className="eyebrow">Satu sistem. Kendali penuh.</div>
-            <div className="hero-big">Kelola bisnis lebih <span className="gradient-text">cerdas.</span></div>
-            <p className="subtle" style={{ maxWidth: 440 }}>Satu ruang kerja untuk mengelola karyawan, absensi, inventaris, dan keuangan dengan kontrol akses yang terstruktur.</p>
+            <div className="eyebrow">OPERASIONAL BISNIS, DALAM SATU KENDALI</div>
+            <div className="hero-big">Bangun bisnis yang <span className="gradient-text">terkendali.</span></div>
+            <p className="subtle" style={{ maxWidth: 440 }}>Pantau tim, stok, penjualan, absensi, dan keuangan dari satu ruang kerja yang dirancang untuk keputusan lebih cepat dan operasional yang rapi.</p>
             <div className="feature-pills"><span className="feature-pill"><AppIcon name="attendance" size={14} /> Absensi</span><span className="feature-pill"><AppIcon name="inventory" size={14} /> Inventaris</span><span className="feature-pill"><AppIcon name="finance" size={14} /> Keuangan</span><span className="feature-pill"><AppIcon name="barcode" size={14} /> Barcode</span><span className="feature-pill"><AppIcon name="security" size={14} /> Role OWNER / ADMIN</span></div>
           </div>
         </div>
-        <div className="subtle" style={{ fontSize: 11 }}>Akses aman · Terhubung ke Supabase · Tampilan responsif</div>
+        <div className="subtle" style={{ fontSize: 11 }}>RUANG KERJA TERPADU  ·  AKSES BERBASIS PERAN  ·  SIAP DI BERBAGAI PERANGKAT</div>
       </section>
       <section className="login-side">
         <div className="login-card">
           <div className="eyebrow">{resetMode ? "PEMULIHAN AKUN" : "SELAMAT DATANG KEMBALI"}</div>
           <h2>{resetMode ? "Reset kata sandi" : "Masuk ke akun Anda"}</h2>
-          <p className="subtle">{resetMode ? "Masukkan email akun untuk meminta instruksi pemulihan." : "Masuk untuk melanjutkan ke dashboard bisnis Anda."}</p>
+          <p className="subtle">{resetMode ? "Masukkan email akun untuk meminta instruksi pemulihan." : "Masuk ke ruang kerja NDRAAAID untuk melanjutkan aktivitas Anda."}</p>
           {!isSupabaseConfigured && <div className="error-box">Konfigurasi Supabase belum dipasang. Admin deployment perlu mengisi NEXT_PUBLIC_SUPABASE_URL dan NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.</div>}
           <form onSubmit={resetMode ? handleReset : handleLogin}>
             <div className="field"><label htmlFor="email">{resetMode ? "Email akun" : "Email atau nomor HP"}</label><input id="email" type="text" inputMode="text" autoComplete="username" required placeholder={resetMode ? "nama@bisnis.com" : "nama@bisnis.com atau +628123456789"} value={email} onChange={(event) => setEmail(event.target.value)} /></div>
@@ -967,7 +967,7 @@ export default function HomePage() {
       footer{text-align:center;border-top:1px solid #cfe0f4;padding-top:10px;margin-top:22px;font-size:10px;color:#526b8a}
       .actions{text-align:center;margin:18px}@media print{.actions{display:none}.receipt{border:0;padding:0;max-width:none}.signatures{break-inside:avoid}}
       @media(max-width:600px){header,.doc-heading{grid-template-columns:1fr}.company-info{border-left:0;border-top:1px solid #9bbbe1;padding:10px 0 0}.grid{grid-template-columns:1fr}.signatures{gap:4px}.sign{padding:0 4px}.label{width:100px}}
-    </style></head><body><div class="actions"><button onclick="window.print()">Cetak struk</button> <button onclick="window.close()">Tutup</button></div><main class="receipt"><header><div class="brand-wrap"><svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 3 57 17v30L32 61 7 47V17Z" fill="none" stroke="#163f70" stroke-width="4"/><path d="m42 20-10-6-15 9v6l15 9 8-5-15-8 7-4 10 6Z M22 44l10 6 15-9v-6l-15-9-8 5 15 8-7 4-10-6Z" fill="#163f70"/></svg><div><div class="brand">SMART BUSINESS</div><div class="subtitle">MANAGEMENT</div><div style="font-size:10px;color:#58708c;margin-top:5px">Kelola bisnis lebih mudah, lebih profesional</div></div></div><div class="company-info"><strong>SMART BUSINESS MANAGEMENT</strong><br>Kantor Pusat<br>Dokumen transaksi internal</div></header><section class="doc-heading"><div><h1>${receiptEscape(title)}</h1><div class="doc-number">Bukti transaksi / administrasi</div></div><div class="meta-box"><strong>BUKTI TRANSAKSI</strong><br>SMART BUSINESS MANAGEMENT<br><span style="color:#58708c">Simpan sebagai bukti administrasi</span></div></section>${body}<footer>Dokumen dibuat dari catatan sistem. Periksa data transaksi sebelum ditandatangani atau diarsipkan.</footer></main></body></html>`);
+    </style></head><body><div class="actions"><button onclick="window.print()">Cetak struk</button> <button onclick="window.close()">Tutup</button></div><main class="receipt"><header><div class="brand-wrap"><svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 3 57 17v30L32 61 7 47V17Z" fill="none" stroke="#163f70" stroke-width="4"/><path d="m42 20-10-6-15 9v6l15 9 8-5-15-8 7-4 10 6Z M22 44l10 6 15-9v-6l-15-9-8 5 15 8-7 4-10-6Z" fill="#163f70"/></svg><div><div class="brand">SMART BUSINESS</div><div class="subtitle">MANAGEMENT</div><div style="font-size:10px;color:#58708c;margin-top:5px">Kelola bisnis lebih mudah, lebih profesional</div></div></div><div class="company-info"><strong>NDRAAAID — Business Operating System</strong><br>Kantor Pusat<br>Dokumen transaksi internal</div></header><section class="doc-heading"><div><h1>${receiptEscape(title)}</h1><div class="doc-number">Bukti transaksi / administrasi</div></div><div class="meta-box"><strong>BUKTI TRANSAKSI</strong><br>SMART BUSINESS MANAGEMENT<br><span style="color:#58708c">Simpan sebagai bukti administrasi</span></div></section>${body}<footer>Dokumen dibuat dari catatan sistem. Periksa data transaksi sebelum ditandatangani atau diarsipkan.</footer></main></body></html>`);
     printWindow.document.close();
   }
 
@@ -1180,7 +1180,7 @@ export default function HomePage() {
     <main className={`app-shell role-${profile?.role ?? "employee"} ${mobileMenuOpen ? "mobile-menu-open" : ""}`}>
       {mobileMenuOpen && <button type="button" className="mobile-menu-backdrop" aria-label="Tutup menu navigasi" onClick={() => setMobileMenuOpen(false)} />}
       <aside id="mobile-navigation" className="sidebar" aria-label="Navigasi utama">
-        <div className="brand"><div className="brand-mark">SB</div><div><div className="brand-title">SMART BUSINESS</div><div className="brand-sub">MANAGEMENT SYSTEM</div></div></div>
+        <div className="brand"><div className="brand-mark"><AppIcon name="dashboard" size={22} /></div><div><div className="brand-title">NDRAAAID</div><div className="brand-sub">BUSINESS OPERATING SYSTEM</div></div></div>
         {["UTAMA", "OPERASIONAL", "TRANSAKSI", "MANAJEMEN", "AKUN"].filter((group) => navItems.some((item) => item.group === group && canAccessCurrentModule(item.key) && item.label.toLowerCase().includes(menuSearch.trim().toLowerCase()))).map((group) => (
           <div key={group}>
             <div className="nav-label">{group}</div>
