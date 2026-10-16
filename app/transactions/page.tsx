@@ -149,7 +149,7 @@ export default function TransactionsPage() {
       readAllRows("leave_requests", "id,employee_id,leave_type,start_date,end_date,reason,status,reviewed_by,created_at", "created_at"),
       readAllRows("offline_stores", "id,name,store_code"),
       readAllRows("employees", "id,full_name,profile_id"),
-      readAllRows("profiles", "id,full_name,role"),
+      supabase.rpc("list_transaction_people"),
       readAllRows("products", "id,name,sku"),
       readAllRows("offline_store_products", "id,store_id,name,sku"),
       readAllRows("business_customers", "id,store_name,customer_code")
