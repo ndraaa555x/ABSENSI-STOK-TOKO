@@ -57,6 +57,7 @@ const navItems: { key: ModuleKey; icon: AppIconName; label: string; group: strin
   { key: "barcode", icon: "barcode", label: "Barcode", group: "KATALOG" },
   { key: "finance", icon: "finance", label: "Keuangan", group: "MANAJEMEN" },
   { key: "settings", icon: "settings", label: "Pengaturan", group: "MANAJEMEN" }
+];
 
 const descriptions: Record<ModuleKey, string> = {
   dashboard: "Pantau ringkasan data bisnis Anda.",
@@ -1167,7 +1168,7 @@ export default function HomePage() {
               <button type="button" className={`nav-item catalog-parent ${["products","categories","barcode"].includes(activePage) ? "active" : ""}`} onClick={() => { setActivePage("products"); setMobileMenuOpen(false); }}>
                 <span className="nav-icon"><AppIcon name="products" /></span>Katalog
               </button>
-              {([{key:"categories",label:"Kategori",icon: "employees"},{key:"products",label:"Produk",icon: "orders"},{key:"barcode",label:"Barcode",icon: "barcode"}] as const).filter((item) => canAccessCurrentModule(item.key) && item.label.toLowerCase().includes(menuSearch.trim().toLowerCase())).map((item) => (
+              {([{key:"categories",label:"Kategori",icon: "categories"},{key:"products",label:"Produk",icon: "products"},{key:"barcode",label:"Barcode",icon: "barcode"}] as const).filter((item) => canAccessCurrentModule(item.key) && item.label.toLowerCase().includes(menuSearch.trim().toLowerCase())).map((item) => (
                 <button type="button" key={item.key} className={`nav-item nav-subitem ${activePage === item.key ? "active" : ""}`} onClick={() => { setActivePage(item.key); setMobileMenuOpen(false); }}>
                   <span className="nav-icon"><AppIcon name={item.icon} /></span>{item.label}
                 </button>
@@ -1195,7 +1196,7 @@ export default function HomePage() {
             <div className="stat-card"><div className="stat-top"><span>Produk tersedia</span><span className="stat-icon"><AppIcon name="notifications" size={17} /></span></div><div className="stat-value">{dataLoading?"—":counts.products}</div><div className="stat-note">Katalog sesuai ruang akses</div></div>
             {!storeScopedAccount&&<div className="stat-card"><div className="stat-top"><span>Order produk</span><span className="stat-icon"><AppIcon name="orders" size={17} /></span></div><div className="stat-value">{dataLoading?"—":counts.orders}</div><div className="stat-note">Total order tercatat</div></div>}
             {profile?.role==="owner"&&<div className="stat-card"><div className="stat-top"><span>Transaksi resmi</span><span className="stat-icon"><AppIcon name="finance" size={17} /></span></div><div className="stat-value">{dataLoading?"—":counts.finances}</div><div className="stat-note">Buku besar bisnis</div></div>}
-            {profile?.role==="admin"&&<div className="stat-card"><div className="stat-top"><span>Refund</span><span className="stat-icon"><AppIcon name="notifications" size={17} /></span></div><div className="stat-value">{dataLoading?"—":counts.refunds}</div><div className="stat-note">Permintaan tercatat</div></div>}
+            {profile?.role==="admin"&&<div className="stat-card"><div className="stat-top"><span>Refund</span><span className="stat-icon"><AppIcon name="refunds" size={17} /></span></div><div className="stat-value">{dataLoading?"—":counts.refunds}</div><div className="stat-note">Permintaan tercatat</div></div>}
             {profile?.role==="employee"&&!storeScopedAccount&&<div className="stat-card"><div className="stat-top"><span>Laporan uang</span><span className="stat-icon"><AppIcon name="inventory" size={17} /></span></div><div className="stat-value">{dataLoading?"—":counts.reports}</div><div className="stat-note">Laporan yang dapat diakses</div></div>}
           </div>
           {["owner","admin"].includes(profile?.role ?? "") && <section className="panel" style={{marginBottom:18,border:"1px solid rgba(74,144,226,.45)"}}>
@@ -1208,12 +1209,12 @@ export default function HomePage() {
                 {(storeScopedAccount
                   ? [{key:"attendance" as ModuleKey,icon: "attendance",label:"Absensi",desc:"Kehadiran dan shift"},{key:"leave" as ModuleKey,icon: "leave",label:"Izin / cuti",desc:"Ajukan dan pantau"},{key:"notifications" as ModuleKey,icon: "notifications",label:"Notifikasi",desc:"Pembaruan akun"}]
                   : profile?.role==="owner"
-                    ? [{key:"products" as ModuleKey,icon: "notifications",label:"Katalog",desc:"Kategori, produk, stok, dan barcode"},{key:"employees" as ModuleKey,icon: "employees",label:"Karyawan",desc:"Kelola akun dan tim"},{key:"finance" as ModuleKey,icon: "finance",label:"Keuangan",desc:"Buku besar resmi"}]
+                    ? [{key:"products" as ModuleKey,icon: "products",label:"Katalog",desc:"Kategori, produk, stok, dan barcode"},{key:"employees" as ModuleKey,icon: "employees",label:"Karyawan",desc:"Kelola akun dan tim"},{key:"finance" as ModuleKey,icon: "finance",label:"Keuangan",desc:"Buku besar resmi"}]
                     : profile?.role==="admin"
-                      ? [{key:"products" as ModuleKey,icon: "notifications",label:"Produk",desc:"Kelola katalog"},{key:"orders" as ModuleKey,icon: "orders",label:"Order Produk",desc:"Tinjau permintaan"},{key:"products" as ModuleKey,icon: "notifications",label:"Katalog",desc:"Kategori, produk, stok, barcode"},{key:"attendance" as ModuleKey,icon: "attendance",label:"Absensi",desc:"Pantau kehadiran"}]
+                      ? [{key:"products" as ModuleKey,icon: "products",label:"Produk",desc:"Kelola katalog"},{key:"orders" as ModuleKey,icon: "orders",label:"Order Produk",desc:"Tinjau permintaan"},{key:"products" as ModuleKey,icon: "notifications",label:"Katalog",desc:"Kategori, produk, stok, barcode"},{key:"attendance" as ModuleKey,icon: "attendance",label:"Absensi",desc:"Pantau kehadiran"}]
                       : profile?.role==="hrd"
                         ? [{key:"employees" as ModuleKey,icon: "employees",label:"Karyawan",desc:"Data pekerja"},{key:"attendance" as ModuleKey,icon: "attendance",label:"Absensi",desc:"Kehadiran tim"},{key:"leave" as ModuleKey,icon: "leave",label:"Izin / cuti",desc:"Tinjau permohonan"}]
-                        : [{key:"attendance" as ModuleKey,icon: "attendance",label:"Absensi",desc:"Kehadiran saya"},{key:"orders" as ModuleKey,icon: "orders",label:"Order Produk",desc:"Ajukan kebutuhan"},{key:"finance-reports" as ModuleKey,icon: "inventory",label:"Laporan uang",desc:"Catat transaksi"},{key:"leave" as ModuleKey,icon: "leave",label:"Izin / cuti",desc:"Permohonan hari kerja"}]
+                        : [{key:"attendance" as ModuleKey,icon: "attendance",label:"Absensi",desc:"Kehadiran saya"},{key:"orders" as ModuleKey,icon: "orders",label:"Order Produk",desc:"Ajukan kebutuhan"},{key:"finance-reports" as ModuleKey,icon: "finance-reports",label:"Laporan uang",desc:"Catat transaksi"},{key:"leave" as ModuleKey,icon: "leave",label:"Izin / cuti",desc:"Permohonan hari kerja"}]
                 ).filter(item=>canAccessCurrentModule(item.key)).map(item=><button className="quick-card" key={item.key} onClick={()=>setActivePage(item.key)}><span><AppIcon name={item.icon} /></span><strong>{item.label}</strong><small>{item.desc}</small></button>)}
                 {!storeScopedAccount&&(profile?.role==="owner"||profile?.role==="admin")&&<Link href="/offline-store" className="quick-card"><span><AppIcon name="store" /></span><strong>Toko Offline</strong><small>Operasional toko terpisah</small></Link>}
               </div>
