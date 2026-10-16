@@ -214,7 +214,7 @@ export default function AttendanceCameraPage() {
 
   return <main className={`login-side attendance-workspace ${isManager ? "attendance-manager" : "attendance-employee"}`} style={{ alignItems: "flex-start", paddingTop: 28 }}>
     <section className="login-card" style={{ width: "min(100%, 980px)" }}>
-      <div className="eyebrow">SMART BUSINESS / ABSENSI WAJAH</div>
+      <div className="eyebrow">NDRAAAID / ABSENSI WAJAH</div>
       <h1 style={{ marginTop: 10 }}>Absensi karyawan</h1>
       <p className="subtle">{isManager ? "Mode pengelola: pilih karyawan untuk membantu pendaftaran awal atau pencatatan absensi." : "Pilih Check-in atau Check-out. Pendaftaran wajah hanya dilakukan satu kali pada penggunaan awal."} Pencocokan wajah adalah pemeriksaan bantu, bukan jaminan anti-spoofing.</p>
       {isManager && <div className="field"><label htmlFor="employee">Pilih karyawan aktif</label><select id="employee" value={employeeId} onChange={e => setEmployeeId(e.target.value)}><option value="">Pilih karyawan…</option>{employees.map(emp => <option key={emp.id} value={emp.id}>{emp.full_name} ({emp.employee_code})</option>)}</select></div>}{!isManager && employees[0] && <div className="info-box">Akun: <strong>{employees[0].full_name}</strong> · {employees[0].employee_code}</div>}
