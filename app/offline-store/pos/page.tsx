@@ -172,7 +172,7 @@ export default function OfflineStorePOSPage() {
       <section className="pos-catalog panel">
         <div className="pos-section-head"><div><div className="eyebrow">{currentStore.store_code}</div><h2>{currentStore.name}</h2><p className="subtle">Cari atau scan produk, lalu masukkan beberapa produk ke satu order.</p></div><span className="status">{activeProducts.length} produk</span></div>
         <div className="pos-search-row">
-          <label className="field pos-search"><span>Cari / scan produk</span><input autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Nama produk, SKU, atau barcode…" /></label>
+          <label className="field pos-search"><span>Cari / scan produk</span><input value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { const code = search.trim().toLocaleLowerCase("id-ID"); const match = activeProducts.find((p) => p.sku.toLocaleLowerCase("id-ID") === code || (p.barcode_value || "").toLocaleLowerCase("id-ID") === code); if (match) { event.preventDefault(); addProduct(match); setSearch(""); } } }} placeholder="Nama produk, SKU, atau barcode…" /></label>
           <label className="field pos-add-quantity"><span>Jumlah</span><input type="number" min="0.001" step="0.001" value={quantityToAdd} onChange={(e) => setQuantityToAdd(e.target.value)} /></label>
         </div>
         {loadingProducts ? <p className="subtle">Memuat produk…</p> : filteredProducts.length === 0 ? <div className="pos-empty">Produk tidak ditemukan. Pastikan produk aktif dan memiliki stok.</div> : <div className="pos-product-grid">
