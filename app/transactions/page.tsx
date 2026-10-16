@@ -23,6 +23,8 @@ type Trx = {
   handlerId?: string | null;
   processedBy: string;
   amount?: number | null;
+  paidAmount?: number | null;
+  dueAmount?: number | null;
   description?: string | null;
   sourceStatus: string;
   sourceTable: "product_orders" | "product_refunds" | "financial_reports" | "financial_transactions" | "offline_store_purchase_orders" | "offline_product_submissions" | "offline_stock_receipts" | "offline_store_sales" | "offline_store_finance_entries" | "audit_logs" | "stock_movements" | "attendance_records" | "leave_requests";
@@ -191,7 +193,7 @@ export default function TransactionsPage() {
     (requests.data ?? []).forEach((r: any) => result.push({
       id: r.id, code: r.order_code || `PO-${r.id.slice(0, 8)}`, category: "Pengajuan Toko", storeId: r.store_id,
       activity: "Pengajuan pembelian barang dari toko", location: storeNames.get(r.store_id) || "Toko Offline",
-      status: r.status === "received" && Number(r.paid_amount || 0) < Number(r.subtotal || 0) ? "Diproses" : statusLabel(r.status, "Pengajuan Toko"), createdAt: r.created_at || r.requested_at,
+      status: r.status === "received" && Number(r.paid_amount || 0) < Number(r.subtotal || 0) ? "Diproses" : statusLabel(r.status, "Pengajuan Toko"), paidAmount: Number(r.paid_amount || 0), dueAmount: Math.max(0, Number(r.subtotal || 0) - Number(r.paid_amount || 0)), createdAt: r.created_at || r.requested_at,
       actor: personNames.get(r.requested_by) || "Akun tidak diketahui", ownerId: r.requested_by || null, handlerId: r.received_by || r.shipped_by || r.reviewed_by || null, processedBy: personNames.get(r.received_by || r.shipped_by || r.reviewed_by) || "Belum ditangani",
       amount: Number(r.subtotal || 0), description: [r.notes || "", r.status === "received" ? `Pembayaran: ${money(Number(r.paid_amount || 0))} dari ${money(Number(r.subtotal || 0))}` : ""].filter(Boolean).join(" · "), sourceStatus: r.status, sourceTable: "offline_store_purchase_orders"
     }));
@@ -218,14 +220,14 @@ export default function TransactionsPage() {
       id: r.id, code: `ABS-${String(r.work_date || "").replaceAll("-", "")}-${r.id.slice(0, 4).toUpperCase()}`, category: "Absensi",
       activity: `Catatan absensi: ${r.status || "tercatat"}`, location: "Lokasi kerja",
       status: "Selesai", createdAt: r.created_at || r.check_in_at || r.work_date,
-      actor: employeeNames.get(r.employee_id) || "Karyawan", ownerId: employeeProfileIds.get(r.employee_id) || null, processedBy: personNames.get(r.recorded_by) || "—",
+      actor: employeeNames.get(r.employee_id) || "Karyawan", ownerId: employeeProfileIds.get(r.employee_id) || null, handlerId: r.recorded_by || null, processedBy: personNames.get(r.recorded_by) || "—",
       description: r.work_date ? `Tanggal kerja ${r.work_date}` : "", sourceStatus: r.status, sourceTable: "attendance_records"
     }));
     (leaves.data ?? []).forEach((r: any) => result.push({
       id: r.id, code: `CUT-${r.id.slice(0, 8).toUpperCase()}`, category: "Cuti",
       activity: `Pengajuan ${r.leave_type || "izin/cuti"}`, location: "Kantor / penempatan kerja",
       status: statusLabel(r.status, "Cuti"), createdAt: r.created_at,
-      actor: employeeNames.get(r.employee_id) || "Karyawan", ownerId: employeeProfileIds.get(r.employee_id) || null,
+      actor: employeeNames.get(r.employee_id) || "Karyawan", ownerId: employeeProfileIds.get(r.employee_id) || null, handlerId: r.reviewed_by || null, processedBy: personNames.get(r.reviewed_by) || "Belum diputuskan",
       description: `${r.start_date || "—"} s.d. ${r.end_date || "—"} · ${r.reason || "Tanpa catatan"}`, sourceStatus: r.status, sourceTable: "leave_requests"
     }));
 
@@ -243,10 +245,11 @@ export default function TransactionsPage() {
     return rows.filter((r) => {
       const categoryOk = category === "Semua" || r.category === category;
       const viewOk = viewFilter === "Perlu Ditindaklanjuti" ? isOpenStatus(r)
-        : viewFilter === "Tugas Saya" ? (r.ownerId === profile?.id || r.handlerId === profile?.id)
+         : viewFilter === "Tugas Saya" ? (r.ownerId === profile?.id || r.handlerId === profile?.id || Boolean(r.storeId && storeMemberships.some((m) => m.store_id === r.storeId && ((r.sourceTable === "offline_store_purchase_orders" && ((r.sourceStatus === "shipped" && ["manager","store_admin","inventory"].includes(m.store_role)) || (r.sourceStatus === "received" && Number(r.dueAmount || 0) > 0 && ["manager","store_admin"].includes(m.store_role)))) || (r.sourceTable === "offline_stock_receipts" && r.sourceStatus === "pending" && ["manager","store_admin","inventory"].includes(m.store_role))))))
         : viewFilter === "Selesai" ? r.status === "Selesai" : true;
       const statusOk = statusFilter === "all" || r.status === statusFilter;
-      const permissionOk = canSeeFinance || r.category !== "Keuangan";
+      const hasStoreFinanceAccess = Boolean(r.storeId && storeMemberships.some((m) => m.store_id === r.storeId && ["manager","store_admin"].includes(m.store_role)));
+      const permissionOk = canSeeFinance || r.category !== "Keuangan" || hasStoreFinanceAccess;
       const searchOk = !q || [r.code, r.category, r.activity, r.location, r.actor, r.status, r.description].some((v) => normalize(v).includes(q));
       return categoryOk && viewOk && statusOk && permissionOk && searchOk;
     });
@@ -407,9 +410,9 @@ export default function TransactionsPage() {
           {selected.sourceStatus === "pending" && selected.sourceTable === "financial_reports" && <><button className="trx-btn" onClick={() => void processSelected("approve")}>Setujui & catat</button><button className="trx-btn" onClick={() => void processSelected("reject")}>Tolak laporan</button></>}
           {selected.sourceStatus === "requested" && selected.sourceTable === "offline_store_purchase_orders" && <><button className="trx-btn" onClick={() => void processSelected("ship")}>Setujui & proses pengiriman</button><button className="trx-btn" onClick={() => void processSelected("reject")}>Tolak pengajuan</button></>}
           {selected.sourceStatus === "shipped" && selected.sourceTable === "offline_store_purchase_orders" && <button className="trx-btn" onClick={() => void processSelected("receive")}>Konfirmasi barang diterima</button>}
-          {selected.sourceStatus === "received" && selected.sourceTable === "offline_store_purchase_orders" && <button className="trx-btn" onClick={() => void processSelected("pay")}>Catat pembayaran</button>
+          {selected.sourceStatus === "received" && selected.sourceTable === "offline_store_purchase_orders" && Number(selected.dueAmount || 0) > 0 && <button className="trx-btn" onClick={() => void processSelected("pay")}>Catat pembayaran · {money(Number(selected.dueAmount || 0))}</button>
           }
-          {selected.sourceStatus === "draft" && selected.sourceTable === "offline_stock_receipts" && <button className="trx-btn" onClick={() => void processSelected("receive")}>Konfirmasi stok diterima</button>}
+          {selected.sourceStatus === "pending" && selected.sourceTable === "offline_stock_receipts" && <button className="trx-btn" onClick={() => void processSelected("receive")}>Konfirmasi stok diterima</button>}
           {["pending","under_review","requested"].includes(normalize(selected.sourceStatus)) && selected.sourceTable === "offline_product_submissions" && <><button className="trx-btn" onClick={() => void processSelected("approve")}>Setujui produk</button><button className="trx-btn" onClick={() => void processSelected("revise")}>Minta perbaikan</button><button className="trx-btn" onClick={() => void processSelected("reject")}>Tolak pengajuan</button></> }
           {selected.sourceStatus === "pending" && selected.sourceTable === "leave_requests" && <><button className="trx-btn" onClick={() => void processSelected("approve")}>Setujui cuti</button><button className="trx-btn" onClick={() => void processSelected("reject")}>Tolak cuti</button></>}
           {selected.sourceStatus === "approved" && selected.sourceTable === "product_orders" && <button className="trx-btn" onClick={() => void processSelected("fulfill")}>Tandai dipenuhi</button>}
