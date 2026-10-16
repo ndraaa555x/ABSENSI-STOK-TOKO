@@ -1216,7 +1216,7 @@ export default function HomePage() {
                       : profile?.role==="hrd"
                         ? [{key:"employees" as ModuleKey,icon: "employees",label:"Karyawan",desc:"Data pekerja"},{key:"attendance" as ModuleKey,icon: "attendance",label:"Absensi",desc:"Kehadiran tim"},{key:"leave" as ModuleKey,icon: "leave",label:"Izin / cuti",desc:"Tinjau permohonan"}]
                         : [{key:"attendance" as ModuleKey,icon: "attendance",label:"Absensi",desc:"Kehadiran saya"},{key:"orders" as ModuleKey,icon: "orders",label:"Order Produk",desc:"Ajukan kebutuhan"},{key:"finance-reports" as ModuleKey,icon: "finance-reports",label:"Laporan uang",desc:"Catat transaksi"},{key:"leave" as ModuleKey,icon: "leave",label:"Izin / cuti",desc:"Permohonan hari kerja"}]
-                ) as { key: ModuleKey; icon: string; label: string; desc: string }[]).filter(item=>canAccessCurrentModule(item.key)).map(item=><button className="quick-card" key={item.key} onClick={()=>setActivePage(item.key)}><span><AppIcon name={item.icon} /></span><strong>{item.label}</strong><small>{item.desc}</small></button>)}
+                ) as { key: ModuleKey; icon: AppIconName; label: string; desc: string }[]).filter(item=>canAccessCurrentModule(item.key)).map(item=><button className="quick-card" key={item.key} onClick={()=>setActivePage(item.key)}><span><AppIcon name={item.icon} /></span><strong>{item.label}</strong><small>{item.desc}</small></button>)}
                 {!storeScopedAccount&&(profile?.role==="owner"||profile?.role==="admin")&&<Link href="/offline-store" className="quick-card"><span><AppIcon name="store" /></span><strong>Toko Offline</strong><small>Operasional toko terpisah</small></Link>}
               </div>
             </section>
