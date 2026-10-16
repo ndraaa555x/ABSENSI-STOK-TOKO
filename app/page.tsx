@@ -101,6 +101,10 @@ export default function HomePage() {
   const [resetMode, setResetMode] = useState(false);
   const [setupPasswordMode, setSetupPasswordMode] = useState(false);
   const [newPassword, setNewPassword] = useState("");
+  const [profileNewPassword, setProfileNewPassword] = useState("");
+  const [profileConfirmPassword, setProfileConfirmPassword] = useState("");
+  const [profilePasswordNotice, setProfilePasswordNotice] = useState("");
+  const [profilePasswordError, setProfilePasswordError] = useState("");
   const [activePage, setActivePage] = useState<ModuleKey>("dashboard");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [menuSearch, setMenuSearch] = useState("");
@@ -705,6 +709,35 @@ export default function HomePage() {
     if (resetError) setError("Permintaan reset gagal. Periksa email dan konfigurasi URL redirect Supabase.");
     else setMessage("Jika email terdaftar, instruksi pemulihan akan dikirim. Periksa kotak masuk dan spam.");
     setBusy(false);
+  }
+
+  async function handleProfilePasswordChange(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setProfilePasswordNotice("");
+    setProfilePasswordError("");
+    if (profileNewPassword.length < 8) {
+      setProfilePasswordError("Password baru harus minimal 8 karakter.");
+      return;
+    }
+    if (profileNewPassword !== profileConfirmPassword) {
+      setProfilePasswordError("Konfirmasi password belum sama.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const { error: passwordError } = await supabase.auth.updateUser({ password: profileNewPassword });
+      if (passwordError) {
+        setProfilePasswordError("Password gagal diperbarui: " + passwordError.message);
+      } else {
+        setProfilePasswordNotice("Password berhasil diperbarui. Gunakan password baru pada login berikutnya.");
+        setProfileNewPassword("");
+        setProfileConfirmPassword("");
+      }
+    } catch {
+      setProfilePasswordError("Layanan autentikasi tidak dapat dihubungi. Coba lagi.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function handleLogout() {
@@ -1337,7 +1370,7 @@ export default function HomePage() {
             <article className="panel profile-detail-card"><div className="eyebrow">INFORMASI PEKERJAAN</div><h2>Data karyawan</h2><dl><div><dt>Kode karyawan</dt><dd>{myEmployeeProfile?.employee_code || "Belum ditautkan"}</dd></div><div><dt>Jabatan kantor</dt><dd>{myEmployeeProfile?.job_title || (storePlacementInfo?.job_title || (storePlacementInfo?.store_role === "manager" ? "Manajer Toko" : storePlacementInfo?.store_role === "store_admin" ? "Admin Toko" : storePlacementInfo?.store_role === "inventory" ? "Petugas Gudang" : storePlacementInfo?.store_role === "cashier" ? "Kasir" : roleName(profile?.role)))}</dd></div><div><dt>Status kerja</dt><dd>{myEmployeeProfile ? (myEmployeeProfile.employment_status === "active" ? "Aktif bekerja" : "Nonaktif") : "Data belum tersedia"}</dd></div><div><dt>Tanggal bergabung</dt><dd>{myEmployeeProfile?.joined_on || "Belum diatur"}</dd></div></dl><p className="subtle profile-note">Jika kode, jabatan, atau tanggal bergabung belum benar, hubungi administrator untuk memperbarui data karyawan.</p></article>
             {storePlacementInfo && <article className="panel profile-detail-card"><div className="eyebrow">PENEMPATAN KERJA AKTIF</div><h2>{storePlacementInfo.store_code} — {storePlacementInfo.name}</h2><dl><div><dt>Jabatan toko</dt><dd>{storePlacementInfo.job_title || (storePlacementInfo.store_role === "manager" ? "Manajer Toko" : storePlacementInfo.store_role === "store_admin" ? "Admin Toko" : storePlacementInfo.store_role === "inventory" ? "Petugas Gudang" : "Kasir")}</dd></div><div><dt>Ruang lingkup akses</dt><dd>Data operasional toko yang ditugaskan</dd></div></dl></article>}
           </div>
-          <div className="panel profile-security"><div><h2>Keamanan akun</h2><p className="subtle">Jaga kata sandi Anda dan keluar setelah menggunakan perangkat bersama.</p></div><button className="btn" type="button" onClick={() => void handleLogout()} disabled={busy}>{busy ? "Memproses…" : "Keluar dari akun"}</button></div>
+          <div className="panel profile-security"><div><h2>Keamanan akun</h2><p className="subtle">Ubah password akun Anda kapan saja. Password baru minimal 8 karakter.</p></div>{profilePasswordNotice&&<div className="info-box" role="status">{profilePasswordNotice}</div>}{profilePasswordError&&<div className="error-box" role="alert">{profilePasswordError}</div>}<form className="business-form" onSubmit={handleProfilePasswordChange}><div className="business-columns"><div className="field"><label>Password baru</label><input type="password" autoComplete="new-password" minLength={8} value={profileNewPassword} onChange={e=>setProfileNewPassword(e.target.value)} required/></div><div className="field"><label>Konfirmasi password baru</label><input type="password" autoComplete="new-password" minLength={8} value={profileConfirmPassword} onChange={e=>setProfileConfirmPassword(e.target.value)} required/></div></div><div className="business-actions"><button className="btn btn-primary" type="submit" disabled={busy}>{busy?"Menyimpan…":"Reset / Ganti Password"}</button><button className="btn" type="button" onClick={() => void handleLogout()} disabled={busy}>{busy ? "Memproses…" : "Keluar dari akun"}</button></div></form></div>
         </section> : <section className="panel" style={{ maxWidth: 900 }}>
           <div className="eyebrow">MODUL / {activePage.toUpperCase()}</div><h1 style={{ marginTop: 12 }}>{moduleTitle}</h1><p className="subtle">{descriptions[activePage]}</p>
           {activePage === "settings" ? <><div className="info-box">Pilih aturan absensi yang akan berlaku untuk semua akun karyawan. Mode tersimpan di database dan tetap aktif sampai diubah lagi.</div><div className="panel" style={{marginTop:16,background:"rgba(10,20,38,.45)"}}><h2>Aturan Check-in / Check-out</h2><p className="subtle">Owner dan Admin dapat mengubah pilihan ini. Perubahan tidak menghapus riwayat absensi yang sudah tersimpan.</p><div className="field"><label htmlFor="attendance-mode">Mode absensi</label><select id="attendance-mode" value={attendanceMode} disabled={attendanceModeLoading||attendanceModeSaving} onChange={e=>void saveAttendanceMode(e.target.value as AttendanceMode)}><option value="once_daily">Sekali sehari — 1 Check-in dan 1 Check-out</option><option value="multiple_sessions">Berulang — boleh Check-in lagi setelah Check-out</option></select></div><div className="subtle">{attendanceMode==="once_daily"?"Karyawan tidak bisa memulai sesi kedua pada tanggal yang sama.":"Karyawan boleh memulai sesi baru setelah sesi sebelumnya selesai Check-out."}</div>{attendanceModeLoading&&<p className="subtle">Memuat pengaturan…</p>}{attendanceModeSaving&&<p className="subtle">Menyimpan mode…</p>}{attendanceModeNotice&&<div className="info-box" role="status" style={{marginTop:12}}>{attendanceModeNotice}</div>}{attendanceModeError&&<div className="error-box" role="alert" style={{marginTop:12}}>{attendanceModeError}</div>}</div>
