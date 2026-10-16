@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import AppIcon from "@/components/app-icon";
 
 type Employee = { id: string; employee_code: string; full_name: string; employment_status: string; profile_id?: string | null };
 type FaceApi = {
@@ -208,8 +209,8 @@ export default function AttendanceCameraPage() {
     } finally { setBusy(false); }
   }
 
-  if (!session) return <main className="login-side"><div className="login-card"><h1>Absensi kamera</h1><p>Silakan login terlebih dahulu.</p><Link href="/">Kembali ke login</Link></div></main>;
-  if (!profile || !profile.is_active) return <main className="login-side"><div className="login-card"><h1>Akses terbatas</h1><p>Akun belum aktif atau profil tidak dapat dibaca. Hubungi Owner/Admin.</p><Link href="/">Kembali ke dashboard</Link></div></main>;
+  if (!session) return <main className="login-side"><div className="login-card"><h1>Absensi kamera</h1><p>Silakan login terlebih dahulu.</p><Link href="/"><AppIcon name="back" size={15} /> Kembali ke login</Link></div></main>;
+  if (!profile || !profile.is_active) return <main className="login-side"><div className="login-card"><h1>Akses terbatas</h1><p>Akun belum aktif atau profil tidak dapat dibaca. Hubungi Owner/Admin.</p><Link href="/"><AppIcon name="back" size={15} /> Kembali ke dashboard</Link></div></main>;
   if (employees.length === 0 && !isManager) return <main className="login-side"><div className="login-card"><h1>Akun belum terhubung</h1><p>{error || "Akun login Anda belum terhubung ke data karyawan aktif. Minta Owner/Admin menghubungkannya di menu Karyawan."}</p><Link href="/">Kembali ke dashboard</Link></div></main>;
 
   return <main className={`login-side attendance-workspace ${isManager ? "attendance-manager" : "attendance-employee"}`} style={{ alignItems: "flex-start", paddingTop: 28 }}>
@@ -224,7 +225,7 @@ export default function AttendanceCameraPage() {
           <video ref={videoRef} muted playsInline autoPlay style={{ width: "100%", aspectRatio: "4/3", background: "#0b1220", borderRadius: 14, objectFit: "cover" }} />
           <canvas ref={canvasRef} hidden />
           <div className="subtle" style={{ marginTop: 8 }}>Kamera: {cameraReady ? "aktif" : "belum dinyalakan"} · Model wajah: {modelReady ? "siap" : "memuat…"}</div>
-          <button className="btn" style={{ width: "100%", marginTop: 12 }} type="button" onClick={startCamera} disabled={busy}>Aktifkan kamera</button>
+          <button className="btn" style={{ width: "100%", marginTop: 12 }} type="button" onClick={startCamera} disabled={busy}><AppIcon name="attendance" size={16} /> Aktifkan kamera</button>
         </div>
         <div>
           <div className="info-box"><strong>Persetujuan & privasi</strong><p>Jelaskan tujuan kepada karyawan sebelum melanjutkan. Template numerik wajah disimpan di database dengan pembatasan akses. Foto bukti absensi disimpan di bucket privat dan dijadwalkan untuk dihapus setelah 7 hari. Jangan mendaftarkan wajah tanpa persetujuan nyata.</p></div>
