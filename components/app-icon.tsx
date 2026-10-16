@@ -1,8 +1,9 @@
 "use client";
 
-import type { ComponentType } from "react";
+import type { ComponentType, SVGProps } from "react";
 import {
   Activity,
+  ArrowLeft,
   AlertCircle,
   ArrowLeftRight,
   Bell,
@@ -45,14 +46,14 @@ export const appIconNames = [
   "dashboard", "profile", "employees", "attendance", "orders", "refunds",
   "finance-reports", "customers", "leave", "inventory", "notifications",
   "products", "categories", "barcode", "finance", "settings", "transactions",
-  "store", "pos", "logout", "search", "requests", "database", "activity",
+  "store", "pos", "logout", "search", "requests", "database", "activity", "back",
   "check", "close", "next", "security", "filter", "print", "credit-card",
   "truck", "reports"
 ] as const;
 
 export type AppIconName = (typeof appIconNames)[number];
 
-const iconMap: Record<AppIconName, ComponentType<{ size?: number; strokeWidth?: number; className?: string; "aria-hidden"?: boolean }>> = {
+const iconMap: Record<AppIconName, ComponentType<SVGProps<SVGSVGElement> & { size?: number; strokeWidth?: number }>> = {
   dashboard: IconDashboard,
   profile: UserRound,
   employees: UsersRound,
@@ -77,6 +78,7 @@ const iconMap: Record<AppIconName, ComponentType<{ size?: number; strokeWidth?: 
   requests: ClipboardList,
   database: Database,
   activity: Activity,
+  back: ArrowLeft,
   check: CheckCircle2,
   close: X,
   next: ChevronRight,
