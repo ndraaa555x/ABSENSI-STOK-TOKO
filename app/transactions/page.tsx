@@ -7,7 +7,7 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type Role = "owner" | "admin" | "hrd" | "employee";
 type Profile = { id: string; full_name: string | null; role: Role; is_active: boolean };
-type TrxCategory = "Pesanan" | "Refund" | "Pengajuan Toko" | "Produk Toko" | "Penerimaan Stok" | "Penjualan Toko" | "Keuangan" | "Stok" | "Absensi" | "Cuti";
+type TrxCategory = "Pesanan" | "Refund" | "Pengajuan Toko" | "Produk Toko" | "Penerimaan Stok" | "Penjualan Toko" | "Aktivitas Sistem" | "Keuangan" | "Stok" | "Absensi" | "Cuti";
 type TrxStatus = "Menunggu" | "Belum diproses" | "Diproses" | "Menunggu persetujuan" | "Disetujui" | "Ditolak" | "Selesai" | "Perlu diperiksa" | "Kendala";
 type Trx = {
   id: string;
@@ -25,11 +25,11 @@ type Trx = {
   amount?: number | null;
   description?: string | null;
   sourceStatus: string;
-  sourceTable: "product_orders" | "product_refunds" | "financial_reports" | "financial_transactions" | "offline_store_purchase_orders" | "offline_product_submissions" | "offline_stock_receipts" | "offline_store_sales" | "offline_store_finance_entries" | "stock_movements" | "attendance_records" | "leave_requests";
+  sourceTable: "product_orders" | "product_refunds" | "financial_reports" | "financial_transactions" | "offline_store_purchase_orders" | "offline_product_submissions" | "offline_stock_receipts" | "offline_store_sales" | "offline_store_finance_entries" | "audit_logs" | "stock_movements" | "attendance_records" | "leave_requests";
 };
 
 const PAGE_SIZE = 20;
-const CATEGORIES = ["Semua", "Pesanan", "Refund", "Pengajuan Toko", "Produk Toko", "Penerimaan Stok", "Penjualan Toko", "Keuangan", "Stok", "Absensi", "Cuti"] as const;
+const CATEGORIES = ["Semua", "Pesanan", "Refund", "Pengajuan Toko", "Produk Toko", "Penerimaan Stok", "Penjualan Toko", "Aktivitas Sistem", "Keuangan", "Stok", "Absensi", "Cuti"] as const;
 const VIEWS = ["Perlu Ditindaklanjuti", "Tugas Saya", "Selesai", "Semua Transaksi"] as const;
 const money = (value: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(value);
 const dateTime = (value: string) => new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
@@ -195,6 +195,18 @@ export default function TransactionsPage() {
       actor: personNames.get(r.requested_by) || "Akun tidak diketahui", ownerId: r.requested_by || null, handlerId: r.received_by || r.shipped_by || r.reviewed_by || null, processedBy: personNames.get(r.received_by || r.shipped_by || r.reviewed_by) || "Belum ditangani",
       amount: Number(r.subtotal || 0), description: [r.notes || "", r.status === "received" ? `Pembayaran: ${money(Number(r.paid_amount || 0))} dari ${money(Number(r.subtotal || 0))}` : ""].filter(Boolean).join(" · "), sourceStatus: r.status, sourceTable: "offline_store_purchase_orders"
     }));
+    if (current.role === "owner") {
+      const { data: auditRows, error: auditError } = await supabase.from("audit_logs").select("id,actor_id,action,entity_table,entity_id,details,created_at").order("created_at", { ascending: false }).limit(500);
+      if (auditError) errors.push("audit sistem");
+      (auditRows ?? []).forEach((r: any) => result.push({
+        id: r.id, code: `AUD-${r.id.slice(0, 8).toUpperCase()}`, category: "Aktivitas Sistem",
+        activity: String(r.action || "Aktivitas sistem").replaceAll("_", " "), location: String(r.entity_table || "Sistem"),
+        status: "Selesai", createdAt: r.created_at, actor: personNames.get(r.actor_id) || "Akun tidak diketahui", ownerId: r.actor_id || null,
+        handlerId: r.actor_id || null, processedBy: personNames.get(r.actor_id) || "—",
+        description: `${r.entity_table || "Data"} · ${r.entity_id || "Tanpa ID"} · ${typeof r.details === "string" ? r.details : JSON.stringify(r.details || {})}`,
+        sourceStatus: "logged", sourceTable: "audit_logs"
+      }));
+    }
     (movements.data ?? []).forEach((r: any) => result.push({
       id: r.id, code: r.reference_code || `STK-${r.id.slice(0, 8)}`, category: "Stok",
       activity: `Pergerakan stok: ${String(r.movement_type || "perubahan").replaceAll("_", " ")}`, location: "Kantor Pusat",
@@ -377,7 +389,7 @@ export default function TransactionsPage() {
         <p className="trx-muted" style={{marginTop:10}}>Catatan: data asli tetap tersimpan di modul sumber. Daftar ini menyatukan riwayat yang dapat dibaca akun Anda; beberapa alur operasional khusus masih memerlukan validasi sebelum tombol tindakan dipindahkan seluruhnya ke sini.</p>
       </div>
       {selected && <div className="trx-modal-backdrop" onClick={() => setSelected(null)}><section className="trx-modal" role="dialog" aria-modal="true" aria-label="Detail transaksi" onClick={(e) => e.stopPropagation()}>
-        <div style={{display:"flex",justifyContent:"space-between",gap:12,alignItems:"flex-start"}}><div><div className="trx-eyebrow">DETAIL TRANSAKSI</div><h2 style={{fontSize:19,margin:"7px 0"}}>{selected.code}</h2><div className="trx-muted">{selected.activity}</div></div><button className="trx-btn" onClick={() => setSelected(null)}>Tutup</button></div>
+        <div style={{display:"flex",justifyContent:"space-between",gap:12,alignItems:"flex-start"}}><div><div className="trx-eyebrow">DETAIL TRANSAKSI</div><h2 style={{fontSize:19,margin:"7px 0"}}>{selected.code}</h2><div className="trx-muted">{selected.activity}</div></div><div style={{display:"flex",gap:7,flexWrap:"wrap"}}>{["owner","admin"].includes(profile?.role ?? "") && ["Pesanan","Refund","Pengajuan Toko","Produk Toko","Penerimaan Stok","Penjualan Toko","Keuangan"].includes(selected.category) && <button className="trx-btn" onClick={() => window.print()}>Cetak bukti transaksi</button>}<button className="trx-btn" onClick={() => setSelected(null)}>Tutup</button></div></div>
         <div style={{marginTop:12}}><span className={badgeClass(selected.status)}>{selected.status}</span></div>
         <div className="trx-detail-grid">
           <div className="trx-detail"><label>Kategori</label><strong>{selected.category}</strong></div><div className="trx-detail"><label>Lokasi / penempatan</label><strong>{selected.location}</strong></div>
@@ -385,6 +397,7 @@ export default function TransactionsPage() {
           <div className="trx-detail"><label>Status pada sumber</label><strong>{selected.sourceStatus || "—"}</strong></div><div className="trx-detail"><label>Nominal</label><strong>{selected.amount != null ? money(selected.amount) : "Tidak berlaku"}</strong></div>
         </div>
         <div className="trx-detail" style={{marginTop:12}}><label>Catatan / rincian</label><strong>{selected.description || "Tidak ada catatan tambahan."}</strong></div>
+        <div className="trx-print-signatures"><div>Dibuat oleh<strong>{selected.actor}</strong></div><div>Pelanggan / unit<strong>{selected.location}</strong></div><div>Karyawan<strong>{selected.actor}</strong></div><div>Owner<strong>INDRA SAPUTRA</strong></div></div>
         {((profile?.role === "owner" || profile?.role === "admin") || (profile?.role === "hrd" && selected.category === "Cuti") || (selected.storeId && storeMemberships.some((m) => m.store_id === selected.storeId && ["manager","store_admin","inventory"].includes(m.store_role)) && ["offline_store_purchase_orders","offline_stock_receipts"].includes(selected.sourceTable))) && <div style={{display:"flex",gap:7,flexWrap:"wrap",marginTop:14}}>
           {selected.sourceStatus === "pending" && selected.sourceTable === "product_orders" && <><button className="trx-btn" onClick={() => void processSelected("approve")}>Setujui pesanan</button><button className="trx-btn" onClick={() => void processSelected("reject")}>Tolak</button></>}
           {["pending","under_review"].includes(normalize(selected.sourceStatus)) && selected.sourceTable === "product_refunds" && <><button className="trx-btn" onClick={() => void processSelected("approve")}>Setujui refund</button><button className="trx-btn" onClick={() => void processSelected("reject")}>Tolak</button></>}
