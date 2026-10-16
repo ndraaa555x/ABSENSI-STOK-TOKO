@@ -147,7 +147,7 @@ export default function OfflineStorePurchasesPage() {
         <button className="btn btn-primary" disabled={busy || !productId}>{busy ? "Mengirim…" : "Kirim permintaan pembelian"}</button>
       </form>}
       <div className="info-box">Riwayat pengajuan, pengiriman, penerimaan, dan pembayaran pembelian toko kini dipusatkan di <Link href="/transactions">Transaksi (TRX) <AppIcon name="next" size={14} /></Link>. Form pengajuan pembelian tetap tersedia di halaman ini.</div>
-      <section className="panel business-history" style={{display:"none"}}><h2>Pesanan pembelian</h2><p className="subtle">Alur: pengajuan disetujui, barang dikirim kantor (stok kantor berkurang), lalu diterima toko (stok toko bertambah dan biaya masuk ke keuangan toko).</p>
+      <section className="panel business-history"><h2>Pesanan pembelian</h2><p className="subtle">Alur: pengajuan disetujui, barang dikirim kantor (stok kantor berkurang), lalu diterima toko (stok toko bertambah dan biaya masuk ke keuangan toko).</p>
         {orderItems.map(o => <article className="business-record" key={o.id}>
           <div className="business-record-head"><div><strong>{o.order_code}</strong><small>{new Date(o.requested_at).toLocaleString("id-ID")} · {o.lines.length} item</small></div><span className={"status-pill " + (o.status === "received" ? "status-approved" : o.status === "rejected" ? "status-rejected" : "")}>{fmtStatus(o.status)}</span></div>
           {o.lines.map(i => <div className="business-line" key={i.id}><span>{i.product?.name || "Produk kantor"} · {Number(i.quantity_requested).toLocaleString("id-ID")} {i.product?.unit || ""} × {money(Number(i.unit_cost))}</span><strong>{money(Number(i.line_total))}</strong></div>)}
@@ -160,7 +160,7 @@ export default function OfflineStorePurchasesPage() {
         </article>)}
         {orderItems.length === 0 && <p className="subtle">Belum ada pesanan pembelian.</p>}
       </section>
-      {canFinance && <section className="panel business-history" style={{display:"none"}}><h2>Keuangan toko · pembelian dari kantor</h2><p className="subtle">Catatan ini terpisah dari keuangan kantor dan tersedia untuk Owner/Admin, Manajer Toko, serta Admin Toko.</p>
+      {canFinance && <section className="panel business-history"><h2>Keuangan toko · pembelian dari kantor</h2><p className="subtle">Catatan ini terpisah dari keuangan kantor dan tersedia untuk Owner/Admin, Manajer Toko, serta Admin Toko.</p>
         {entries.map(e => <article className="business-record" key={e.id}><div className="business-record-head"><div><strong>{e.entry_type === "purchase_expense" ? "Beban pembelian stok" : "Pembayaran ke kantor"}</strong><small>{e.reference_code || "Tanpa referensi"} · {new Date(e.created_at).toLocaleString("id-ID")}</small></div><strong>{money(Number(e.amount))}</strong></div><p className="subtle">{e.description}{e.payment_method ? " · " + e.payment_method : ""}</p></article>)}
         {entries.length === 0 && <p className="subtle">Belum ada transaksi keuangan pembelian.</p>}
       </section>}
