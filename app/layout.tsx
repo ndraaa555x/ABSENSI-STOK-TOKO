@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./ndraaaid-detail-polish.css";
+import "./ndraaaid-graphite-theme.css";
 
 export const metadata: Metadata = {
   title: "NDRAAAID — Business Operating System",
