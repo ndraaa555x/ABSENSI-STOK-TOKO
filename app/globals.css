@@ -752,3 +752,28 @@ hr,.divider{border-color:#393E46!important}
   .app-shell .main-content,.app-shell main{background:transparent!important}
   .panel,.card,.stat-card,.module-card{border-radius:14px!important}
 }
+
+
+/* Unified catalog navigation and responsive inventory controls */
+.catalog-tabs{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 20px;padding:7px;border:1px solid var(--line);border-radius:14px;background:rgba(10,17,29,.82)}
+.catalog-tab{appearance:none;border:1px solid transparent;border-radius:9px;background:transparent;color:var(--muted);padding:11px 18px;min-height:42px;font-size:13px;font-weight:700;transition:background .18s ease,border-color .18s ease,color .18s ease;cursor:pointer}
+.catalog-tab:hover{color:var(--text);background:#17243a;border-color:#2b4261}
+.catalog-tab.active{color:#fff;background:linear-gradient(110deg,#263b56,#182a40);border-color:#3b536f;box-shadow:inset 0 -2px #cbd5e1}
+.product-management-page .business-hero{margin-bottom:18px}
+.product-management-page .business-form,.product-management-page .business-history{margin-bottom:16px}
+.product-management-page .business-form{padding:clamp(16px,2.2vw,24px)}
+.product-management-page .section-head{align-items:flex-start}
+.product-management-page .table-wrap{border:1px solid var(--line);border-radius:12px}
+.product-management-page table{min-width:850px}
+.business-page .grid-cards{align-items:stretch}
+.business-page .grid-cards>.panel{height:100%;min-width:0}
+@media(max-width:640px){
+  .catalog-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;padding:5px;margin-bottom:14px}
+  .catalog-tab{padding:10px 5px;min-height:40px;font-size:11px;text-align:center;white-space:normal}
+  .product-management-page .business-hero{align-items:flex-start;gap:12px}
+  .product-management-page .business-form,.product-management-page .business-history{border-radius:13px}
+  .product-management-page .section-head{flex-wrap:wrap}
+  .product-management-page .business-actions{flex-wrap:wrap}
+  .product-management-page .business-actions .btn{max-width:100%}
+  .business-page .table-wrap{-webkit-overflow-scrolling:touch}
+}
