@@ -99,6 +99,8 @@ export default function HomePage() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [resetMode, setResetMode] = useState(false);
+  const [setupPasswordMode, setSetupPasswordMode] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
   const [activePage, setActivePage] = useState<ModuleKey>("dashboard");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [menuSearch, setMenuSearch] = useState("");
@@ -319,6 +321,8 @@ export default function HomePage() {
     });
     return () => { alive = false; subscription.unsubscribe(); };
   }, [loadProfileAndCounts]);
+
+  useEffect(() => { if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("setup-password") === "1") setSetupPasswordMode(true); }, []);
 
   useEffect(() => {
     if (!session || !profile?.is_active || !["orders","refunds","finance-reports","customers"].includes(activePage)) return;
@@ -675,6 +679,23 @@ export default function HomePage() {
     } finally { setBusy(false); }
   }
 
+  async function handleSetPassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true); setError(""); setMessage("");
+    if (newPassword.length < 8) { setError("Kata sandi harus minimal 8 karakter."); setBusy(false); return; }
+    const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+    if (updateError) setError("Kata sandi gagal disimpan. Pastikan tautan undangan masih berlaku, lalu coba buka ulang email undangan.");
+    else {
+      setNewPassword("");
+      setSetupPasswordMode(false);
+      if (typeof window !== "undefined") window.history.replaceState({}, "", window.location.pathname);
+      await supabase.auth.signOut({ scope: "local" });
+      setSession(null); setProfile(null);
+      setMessage("Kata sandi berhasil dibuat. Silakan masuk menggunakan email dan kata sandi baru.");
+    }
+    setBusy(false);
+  }
+
   async function handleReset(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true); setError(""); setMessage("");
@@ -741,6 +762,13 @@ export default function HomePage() {
   }
 
   if (pageLoading) return <main className="login-side"><div className="subtle">Memeriksa sesi aman…</div></main>;
+
+  if (setupPasswordMode && session) return (
+    <main className="login-wrap">
+      <section className="login-hero"><div><div className="brand"><div className="brand-mark">SB</div><div><div className="brand-title">SMART BUSINESS</div><div className="brand-sub">MANAGEMENT SYSTEM</div></div></div><div style={{marginTop:"clamp(50px,12vh,120px)"}}><div className="eyebrow">AKTIVASI ANGGOTA TOKO</div><div className="hero-big">Amankan akun <span className="gradient-text">Anda.</span></div><p className="subtle" style={{maxWidth:440}}>Buat kata sandi pribadi untuk mulai menggunakan akun Toko Offline.</p></div></div></section>
+      <section className="login-side"><div className="login-card"><div className="eyebrow">PENGATURAN KATA SANDI</div><h2>Buat kata sandi</h2><p className="subtle">Gunakan minimal 8 karakter. Kata sandi hanya diketahui oleh Anda.</p><form onSubmit={handleSetPassword}><div className="field"><label htmlFor="new-password">Kata sandi baru</label><input id="new-password" type="password" autoComplete="new-password" minLength={8} required value={newPassword} onChange={e=>setNewPassword(e.target.value)} placeholder="Minimal 8 karakter"/></div>{error&&<div className="error-box" role="alert">{error}</div>}<button className="btn btn-primary" type="submit" disabled={busy||!isSupabaseConfigured}>{busy?"Menyimpan…":"Simpan kata sandi dan lanjutkan"}</button></form></div></section>
+    </main>
+  );
 
   if (!session) return (
     <main className="login-wrap">
