@@ -205,7 +205,7 @@ export default function OfflineStorePOSPage() {
           {payment === "cash" && <label className="field"><span>Uang diterima (Rp)</span><input type="number" min={total} step="1" value={cashReceived} onChange={(e) => setCashReceived(e.target.value)} placeholder="Masukkan uang dari pelanggan" disabled={busy}/><small className="subtle">Kembalian perkiraan: {money(changeDue)}</small></label>}
         </div>
         <div className="pos-totals"><div><span>Subtotal</span><strong>{money(subtotal)}</strong></div><div><span>Diskon manual</span><strong>− {money(discountAmount)}</strong></div><div className="pos-grand-total"><span>Total sementara</span><strong>{money(total)}</strong></div><p className="subtle">Total final dapat menyesuaikan promo aktif yang divalidasi server saat checkout.</p></div>
-        <button type="submit" className="btn btn-primary pos-checkout-button" disabled={busy || !canCashier || !cartRows.length || loadingProducts}>{busy ? "Memproses pembayaran…" : "✓ Selesaikan checkout"}</button>
+        <button type="submit" className="btn btn-primary pos-checkout-button" disabled={busy || !canCashier || !cartRows.length || loadingProducts}>{busy ? "Memproses pembayaran…" : "OK Selesaikan checkout"}</button>
         <p className="pos-safe-note">Stok dan harga pokok hanya diperbarui setelah server menerima transaksi.</p>
       </form>
     </div>}
