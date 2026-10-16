@@ -165,9 +165,9 @@ export default function TransactionsPage() {
     (reports.data ?? []).forEach((r: any) => result.push({
       id: r.id, code: r.report_code || `FIN-${r.id.slice(0, 8)}`, category: "Keuangan",
       activity: r.report_type === "income" ? "Laporan pemasukan" : r.report_type === "expense" ? "Laporan pengeluaran" : "Laporan keuangan",
-      location: "Kantor Pusat", status: statusLabel(r.status, "Keuangan"), createdAt: r.created_at,
+      location: "Kantor Pusat", status: r.posted_transaction_id ? "Selesai" : statusLabel(r.status, "Keuangan"), createdAt: r.created_at,
       actor: personNames.get(r.submitted_by) || "Akun tidak diketahui", ownerId: r.submitted_by || null, handlerId: r.reviewed_by || null, processedBy: personNames.get(r.reviewed_by) || "Belum ditangani",
-      amount: Number(r.amount || 0), description: r.description, status: r.posted_transaction_id ? "Selesai" : statusLabel(r.status, "Keuangan"), sourceStatus: r.posted_transaction_id ? "posted" : r.status, sourceTable: "financial_reports"
+      amount: Number(r.amount || 0), description: r.description, sourceStatus: r.posted_transaction_id ? "posted" : r.status, sourceTable: "financial_reports"
     }));
     (ledger.data ?? []).forEach((r: any) => result.push({
       id: r.id, code: r.transaction_code || `LED-${r.id.slice(0, 8)}`, category: "Keuangan",
@@ -259,6 +259,7 @@ export default function TransactionsPage() {
 
   const canSeeAll = profile?.role === "owner" || profile?.role === "admin";
   const canSeeFinance = canSeeAll || profile?.role === "hrd";
+  const canViewRow = useCallback((r: Trx) => canSeeFinance || r.category !== "Keuangan" || Boolean(r.storeId && storeMemberships.some((m) => m.store_id === r.storeId && ["manager","store_admin"].includes(m.store_role))), [canSeeFinance, storeMemberships]);
   const visibleRows = useMemo(() => {
     const q = normalize(search);
     return rows.filter((r) => {
@@ -267,13 +268,11 @@ export default function TransactionsPage() {
          : viewFilter === "Tugas Saya" ? (r.ownerId === profile?.id || r.handlerId === profile?.id || Boolean(r.storeId && storeMemberships.some((m) => m.store_id === r.storeId && ((r.sourceTable === "offline_store_purchase_orders" && ((r.sourceStatus === "shipped" && ["manager","store_admin","inventory"].includes(m.store_role)) || (r.sourceStatus === "received" && Number(r.dueAmount || 0) > 0 && ["manager","store_admin"].includes(m.store_role)))) || (r.sourceTable === "offline_stock_receipts" && r.sourceStatus === "pending" && ["manager","store_admin","inventory"].includes(m.store_role))))))
         : viewFilter === "Selesai" ? r.status === "Selesai" : true;
       const statusOk = statusFilter === "all" || r.status === statusFilter;
-      const hasStoreFinanceAccess = Boolean(r.storeId && storeMemberships.some((m) => m.store_id === r.storeId && ["manager","store_admin"].includes(m.store_role)));
-      const permissionOk = canViewRow(r) && (canSeeFinance || r.category !== "Keuangan" || hasStoreFinanceAccess);
+      const permissionOk = canViewRow(r);
       const searchOk = !q || [r.code, r.category, r.activity, r.location, r.actor, r.status, r.description].some((v) => normalize(v).includes(q));
       return categoryOk && viewOk && statusOk && permissionOk && searchOk;
     });
-  }, [rows, category, viewFilter, profile, statusFilter, search, canSeeFinance, canViewRow]);
-  const canViewRow = useCallback((r: Trx) => canSeeFinance || r.category !== "Keuangan" || Boolean(r.storeId && storeMemberships.some((m) => m.store_id === r.storeId && ["manager","store_admin"].includes(m.store_role))), [canSeeFinance, storeMemberships]);
+  }, [rows, category, viewFilter, profile, statusFilter, search, canViewRow]);
   const openRows = useMemo(() => rows.filter((r) => canViewRow(r) && isOpenStatus(r)), [rows, canViewRow]);
   const pendingApproval = useMemo(() => rows.filter((r) => canViewRow(r) && ["Menunggu", "Menunggu persetujuan", "Belum diproses", "Perlu diperiksa"].includes(r.status)), [rows, canViewRow]);
   const pages = Math.max(1, Math.ceil(visibleRows.length / PAGE_SIZE));
