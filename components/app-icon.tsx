@@ -1,6 +1,6 @@
 "use client";
 
-import type { ComponentType, SVGProps } from "react";
+import type { ElementType } from "react";
 import {
   Activity,
   ArrowLeft,
@@ -56,7 +56,8 @@ export const appIconNames = [
 
 export type AppIconName = (typeof appIconNames)[number];
 
-const iconMap: Record<AppIconName, ComponentType<SVGProps<SVGSVGElement> & { size?: number; strokeWidth?: number }>> = {
+// Lucide and Tabler components expose different ref types; ElementType supports both icon libraries.
+const iconMap: Record<AppIconName, ElementType> = {
   dashboard: IconDashboard,
   profile: UserRound,
   employees: UsersRound,
