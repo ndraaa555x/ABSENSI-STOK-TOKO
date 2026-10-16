@@ -17,6 +17,7 @@ import {
   LogOut,
   PackageSearch,
   Printer,
+  RotateCw,
   Search,
   Settings,
   ShieldCheck,
@@ -45,7 +46,7 @@ export const appIconNames = [
   "finance-reports", "customers", "leave", "inventory", "notifications",
   "products", "categories", "barcode", "finance", "settings", "transactions",
   "store", "pos", "logout", "search", "requests", "database", "activity", "back",
-  "check", "close", "next", "security", "filter", "print", "credit-card",
+  "check", "close", "next", "refresh", "security", "filter", "print", "credit-card",
   "truck", "reports"
 ] as const;
 
@@ -80,6 +81,7 @@ const iconMap: Record<AppIconName, ComponentType<SVGProps<SVGSVGElement> & { siz
   check: CheckCircle2,
   close: X,
   next: ChevronRight,
+  refresh: RotateCw,
   security: ShieldCheck,
   filter: Filter,
   print: Printer,
