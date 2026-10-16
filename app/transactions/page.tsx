@@ -21,6 +21,8 @@ type Trx = {
   actor: string;
   ownerId: string | null;
   handlerId?: string | null;
+  reviewerId?: string | null;
+  reviewedBy?: string;
   processedBy: string;
   amount?: number | null;
   paidAmount?: number | null;
@@ -185,19 +187,19 @@ export default function TransactionsPage() {
       id: r.id, code: r.order_code || `ORD-${r.id.slice(0, 8)}`, category: "Pesanan",
       activity: "Pesanan produk", location: "Kantor Pusat", status: statusLabel(r.status, "Pesanan"),
       createdAt: r.created_at || r.requested_at, actor: personNames.get(r.ordered_by) || "Akun tidak diketahui",
-      ownerId: r.ordered_by || null, handlerId: r.reviewed_by || null, processedBy: personNames.get(r.reviewed_by) || "Belum ditangani", description: [r.notes || "", ...(orderLines.get(r.id) || [])].filter(Boolean).join(" · "), sourceStatus: r.status, sourceTable: "product_orders"
+      ownerId: r.ordered_by || null, handlerId: r.reviewed_by || null, reviewerId: r.reviewed_by || null, reviewedBy: personNames.get(r.reviewed_by) || "Belum disetujui", processedBy: personNames.get(r.reviewed_by) || "Belum ditangani", description: [r.notes || "", ...(orderLines.get(r.id) || [])].filter(Boolean).join(" · "), sourceStatus: r.status, sourceTable: "product_orders"
     }));
     (refunds.data ?? []).forEach((r: any) => result.push({
       id: r.id, code: r.refund_code || `REF-${r.id.slice(0, 8)}`, category: "Refund",
       activity: "Permintaan pengembalian dana", location: "Kantor Pusat", status: statusLabel(r.status, "Refund"),
       createdAt: r.created_at, actor: personNames.get(r.requested_by) || "Akun tidak diketahui",
-      ownerId: r.requested_by || null, handlerId: r.reviewed_by || null, processedBy: personNames.get(r.reviewed_by) || "Belum ditangani", amount: Number(r.amount || 0), description: r.reason, sourceStatus: r.status, sourceTable: "product_refunds"
+      ownerId: r.requested_by || null, handlerId: r.reviewed_by || null, reviewerId: r.reviewed_by || null, reviewedBy: personNames.get(r.reviewed_by) || "Belum disetujui", processedBy: personNames.get(r.reviewed_by) || "Belum ditangani", amount: Number(r.amount || 0), description: r.reason, sourceStatus: r.status, sourceTable: "product_refunds"
     }));
     (reports.data ?? []).forEach((r: any) => result.push({
       id: r.id, code: r.report_code || `FIN-${r.id.slice(0, 8)}`, category: "Keuangan",
       activity: r.report_type === "income" ? "Laporan pemasukan" : r.report_type === "expense" ? "Laporan pengeluaran" : "Laporan keuangan",
       location: "Kantor Pusat", status: r.posted_transaction_id ? "Selesai" : statusLabel(r.status, "Keuangan"), createdAt: r.created_at,
-      actor: personNames.get(r.submitted_by) || "Akun tidak diketahui", ownerId: r.submitted_by || null, handlerId: r.reviewed_by || null, processedBy: personNames.get(r.reviewed_by) || "Belum ditangani",
+      actor: personNames.get(r.submitted_by) || "Akun tidak diketahui", ownerId: r.submitted_by || null, handlerId: r.reviewed_by || null, reviewerId: r.reviewed_by || null, reviewedBy: personNames.get(r.reviewed_by) || "Belum disetujui", processedBy: personNames.get(r.reviewed_by) || "Belum ditangani",
       amount: Number(r.amount || 0), description: r.description, sourceStatus: r.posted_transaction_id ? "posted" : r.status, sourceTable: "financial_reports"
     }));
     (ledger.data ?? []).forEach((r: any) => result.push({
@@ -213,7 +215,7 @@ export default function TransactionsPage() {
       id: r.id, code: `PROD-${r.id.slice(0, 8).toUpperCase()}`, category: "Produk Toko", storeId: r.store_id,
       activity: `Pengajuan produk toko: ${r.proposed_name || "Produk baru"}`, location: storeNames.get(r.store_id) || "Toko Offline",
       status: statusLabel(r.status, "Produk Toko"), createdAt: r.requested_at, actor: personNames.get(r.requested_by) || "Akun tidak diketahui",
-      ownerId: r.requested_by || null, handlerId: r.reviewed_by || null, processedBy: personNames.get(r.reviewed_by) || "Belum ditangani",
+      ownerId: r.requested_by || null, handlerId: r.reviewed_by || null, reviewerId: r.reviewed_by || null, reviewedBy: personNames.get(r.reviewed_by) || "Belum disetujui", processedBy: personNames.get(r.reviewed_by) || "Belum ditangani",
       description: [r.proposed_category_name ? `Kategori: ${r.proposed_category_name}` : "", r.review_note || ""].filter(Boolean).join(" · "),
       sourceStatus: r.status, sourceTable: "offline_product_submissions"
     }));
@@ -244,7 +246,7 @@ export default function TransactionsPage() {
       id: r.id, code: r.order_code || `PO-${r.id.slice(0, 8)}`, category: "Pengajuan Toko", storeId: r.store_id,
       activity: "Pengajuan pembelian barang dari toko", location: storeNames.get(r.store_id) || "Toko Offline",
       status: r.status === "received" && Number(r.paid_amount || 0) < Number(r.subtotal || 0) ? "Diproses" : statusLabel(r.status, "Pengajuan Toko"), paidAmount: Number(r.paid_amount || 0), dueAmount: Math.max(0, Number(r.subtotal || 0) - Number(r.paid_amount || 0)), createdAt: r.created_at || r.requested_at,
-      actor: personNames.get(r.requested_by) || "Akun tidak diketahui", ownerId: r.requested_by || null, handlerId: r.received_by || r.shipped_by || r.reviewed_by || null, processedBy: personNames.get(r.received_by || r.shipped_by || r.reviewed_by) || "Belum ditangani",
+      actor: personNames.get(r.requested_by) || "Akun tidak diketahui", ownerId: r.requested_by || null, handlerId: r.received_by || r.shipped_by || r.reviewed_by || null, reviewerId: r.reviewed_by || null, reviewedBy: personNames.get(r.reviewed_by) || "Belum disetujui", processedBy: personNames.get(r.received_by || r.shipped_by || r.reviewed_by) || "Belum ditangani",
       amount: Number(r.subtotal || 0), description: [r.notes || "", ...(purchaseLines.get(r.id) || []), r.status === "received" ? `Pembayaran: ${money(Number(r.paid_amount || 0))} dari ${money(Number(r.subtotal || 0))}` : ""].filter(Boolean).join(" · "), sourceStatus: r.status, sourceTable: "offline_store_purchase_orders"
     }));
     if (current.role === "owner") {
@@ -277,7 +279,7 @@ export default function TransactionsPage() {
       id: r.id, code: `CUT-${r.id.slice(0, 8).toUpperCase()}`, category: "Cuti",
       activity: `Pengajuan ${r.leave_type || "izin/cuti"}`, location: "Kantor / penempatan kerja",
       status: statusLabel(r.status, "Cuti"), createdAt: r.created_at,
-      actor: employeeNames.get(r.employee_id) || "Karyawan", ownerId: employeeProfileIds.get(r.employee_id) || null, handlerId: r.reviewed_by || null, processedBy: personNames.get(r.reviewed_by) || "Belum diputuskan",
+      actor: employeeNames.get(r.employee_id) || "Karyawan", ownerId: employeeProfileIds.get(r.employee_id) || null, handlerId: r.reviewed_by || null, reviewerId: r.reviewed_by || null, reviewedBy: personNames.get(r.reviewed_by) || "Belum diputuskan", processedBy: personNames.get(r.reviewed_by) || "Belum diputuskan",
       description: `${r.start_date || "—"} s.d. ${r.end_date || "—"} · ${r.reason || "Tanpa catatan"}`, sourceStatus: r.status, sourceTable: "leave_requests"
     }));
 
@@ -306,7 +308,7 @@ export default function TransactionsPage() {
     return rows.filter((r) => {
       const categoryOk = category === "Semua" || r.category === category;
       const viewOk = viewFilter === "Perlu Ditindaklanjuti" ? isOpenStatus(r)
-         : viewFilter === "Tugas Saya" ? (r.ownerId === profile?.id || r.handlerId === profile?.id || Boolean(r.storeId && storeMemberships.some((m) => m.store_id === r.storeId && ((r.sourceTable === "offline_store_purchase_orders" && ((r.sourceStatus === "shipped" && ["manager","store_admin","inventory"].includes(m.store_role)) || (r.sourceStatus === "received" && Number(r.dueAmount || 0) > 0 && ["manager","store_admin"].includes(m.store_role)))) || (r.sourceTable === "offline_stock_receipts" && r.sourceStatus === "pending" && ["manager","store_admin","inventory"].includes(m.store_role))))))
+         : viewFilter === "Tugas Saya" ? ((["owner","admin"].includes(profile?.role ?? "") && isOpenStatus(r) && ["Pesanan","Refund","Pengajuan Toko","Produk Toko","Keuangan"].includes(r.category) && ["pending","requested","under_review"].includes(normalize(r.sourceStatus))) || r.ownerId === profile?.id || r.handlerId === profile?.id || Boolean(r.storeId && storeMemberships.some((m) => m.store_id === r.storeId && ((r.sourceTable === "offline_store_purchase_orders" && ((r.sourceStatus === "shipped" && ["manager","store_admin","inventory"].includes(m.store_role)) || (r.sourceStatus === "received" && Number(r.dueAmount || 0) > 0 && ["manager","store_admin"].includes(m.store_role)))) || (r.sourceTable === "offline_stock_receipts" && r.sourceStatus === "pending" && ["manager","store_admin","inventory"].includes(m.store_role))))))
         : viewFilter === "Selesai" ? r.status === "Selesai" : true;
       const statusOk = statusFilter === "all" || r.status === statusFilter;
       const permissionOk = canViewRow(r);
@@ -459,7 +461,7 @@ export default function TransactionsPage() {
         <div style={{marginTop:12}}><span className={badgeClass(selected.status)}>{selected.status}</span></div>
         <div className="trx-detail-grid">
           <div className="trx-detail"><label>Kategori</label><strong>{selected.category}</strong></div><div className="trx-detail"><label>Lokasi / penempatan</label><strong>{selected.location}</strong></div>
-          <div className="trx-detail"><label>Dibuat / diajukan oleh</label><strong>{selected.actor}</strong></div><div className="trx-detail"><label>Diproses / ditangani oleh</label><strong>{selected.processedBy}</strong></div><div className="trx-detail"><label>Waktu tercatat</label><strong>{dateTime(selected.createdAt)}</strong></div>
+          <div className="trx-detail"><label>Dibuat / diajukan oleh</label><strong>{selected.actor}</strong></div><div className="trx-detail"><label>Diproses / ditangani oleh</label><strong>{selected.processedBy}</strong></div><div className="trx-detail"><label>Disetujui / diputuskan oleh</label><strong>{selected.reviewedBy || "Belum dicatat"}</strong></div><div className="trx-detail"><label>Waktu tercatat</label><strong>{dateTime(selected.createdAt)}</strong></div>
           <div className="trx-detail"><label>Status pada sumber</label><strong>{selected.sourceStatus || "—"}</strong></div><div className="trx-detail"><label>Nominal</label><strong>{selected.amount != null ? money(selected.amount) : "Tidak berlaku"}</strong></div>
         </div>
         <div className="trx-detail" style={{marginTop:12}}><label>Catatan / rincian</label><strong>{selected.description || "Tidak ada catatan tambahan."}</strong></div>
