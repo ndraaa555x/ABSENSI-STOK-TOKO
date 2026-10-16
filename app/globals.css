@@ -869,3 +869,72 @@ hr,.divider{border-color:#393E46!important}
 .feature-pill svg{width:14px;height:14px}
 .side-foot-title{align-items:center;gap:8px}
 .pos-cart-empty>span svg{display:block;margin:0 auto 8px}
+
+
+/* NDRAAAID responsive audit: consistent navigation, forms, cards and tables */
+:root{--radius-card:14px;--control-height:42px}
+button,a,input,select,textarea{ -webkit-tap-highlight-color:transparent }
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+input,select,textarea{max-width:100%;min-width:0}
+table{border-collapse:collapse}
+th{font-size:11px;letter-spacing:.035em;font-weight:700;color:#aebbd0}
+td{font-size:12px;line-height:1.5;vertical-align:top}
+th,td{overflow-wrap:anywhere}
+.table-wrap,[class*="table-wrap"],.table-responsive{width:100%;max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;border-radius:12px}
+.table-wrap table,[class*="table-wrap"] table,.table-responsive table{width:100%;border-collapse:separate;border-spacing:0}
+.btn,.catalog-tab,.nav-item{min-height:40px}
+.panel,.stat-card,.module-card,.business-form,.business-history{min-width:0}
+.field input,.field select,.field textarea,.field input[type="text"],.field input[type="number"],.field input[type="email"],.field input[type="password"],.field input[type="search"],select,textarea{width:100%;min-height:42px;border:1px solid var(--line);border-radius:10px;background:#101827;color:var(--text);padding:10px 12px}
+.field textarea,textarea{min-height:88px;resize:vertical}
+@media(max-width:900px){
+ .app-shell{grid-template-columns:minmax(0,1fr)!important}
+ .app-shell>.sidebar{position:fixed!important;z-index:1002;inset:0 auto 0 0;width:min(84vw,320px)!important;max-width:calc(100vw - 48px);height:100dvh;overflow-y:auto;overscroll-behavior:contain;padding:18px 14px!important;gap:20px!important;border-right:1px solid var(--line);box-shadow:18px 0 55px #0008;transform:translateX(-110%);visibility:hidden;transition:transform .22s ease,visibility .22s ease}
+ .app-shell.mobile-menu-open>.sidebar{transform:translateX(0);visibility:visible}
+ .mobile-menu-backdrop{position:fixed!important;inset:0!important;z-index:1001!important;width:100vw!important;height:100dvh!important;border:0!important;border-radius:0!important;background:rgba(0,0,0,.62)!important;backdrop-filter:blur(3px)}
+ .app-shell>.main{grid-column:1/-1;min-width:0;width:100%;padding:18px 16px 30px!important}
+ .app-shell .topbar{gap:10px;margin-bottom:22px;flex-wrap:wrap}
+ .app-shell .welcome{align-items:flex-start;flex-wrap:wrap}
+ .app-shell .stats-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .app-shell .content-grid{grid-template-columns:minmax(0,1fr)}
+ .app-shell .module-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .app-shell .panel{padding:16px}
+ .app-shell .stat-card{padding:13px}
+ .app-shell .stat-value{font-size:clamp(20px,5vw,28px)}
+ .app-shell .user-menu{max-width:100%}
+}
+@media(max-width:600px){
+ h1{font-size:clamp(23px,6vw,29px);line-height:1.2}
+ h2{font-size:16px}
+ .subtle{font-size:12px;line-height:1.55}
+ .app-shell>.main{padding:14px 12px 26px!important}
+ .app-shell .panel{padding:13px;border-radius:12px}
+ .app-shell .panel-head,.app-shell .section-head{align-items:flex-start;flex-wrap:wrap;gap:9px}
+ .app-shell .stats-grid{gap:8px}
+ .app-shell .stat-card{padding:11px}
+ .app-shell .stat-top{font-size:11px;align-items:flex-start}
+ .app-shell .stat-icon{width:30px;height:30px}
+ .app-shell .stat-value{margin:12px 0 4px;font-size:22px}
+ .app-shell .stat-note{font-size:10px;line-height:1.4}
+ .app-shell .module-grid,.app-shell .quick-grid{grid-template-columns:minmax(0,1fr)}
+ .app-shell .module-card{padding:13px}
+ .app-shell .user-menu{padding:6px 8px;gap:8px}
+ .app-shell .user-email{max-width:45vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .app-shell .btn{min-height:40px;padding:9px 11px;font-size:12px}
+ .app-shell .btn-compact{min-height:32px;padding:6px 8px;font-size:11px}
+ .app-shell .field{min-width:0}
+ .app-shell .field label{font-size:12px}
+ .app-shell .field input,.app-shell .field select,.app-shell .field textarea,.app-shell select,.app-shell textarea{font-size:16px}
+ .app-shell .catalog-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .app-shell .category-summary-grid,.app-shell .inventory-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .app-shell .product-card-grid,.app-shell .category-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .app-shell table{font-size:12px}
+ .app-shell th,.app-shell td{padding:9px 8px!important;white-space:normal}
+ .app-shell .table-wrap table,.app-shell [class*="table-wrap"] table,.app-shell .table-responsive table{min-width:620px}
+}
+@media(max-width:380px){
+ .app-shell .product-card-grid,.app-shell .category-card-grid{grid-template-columns:minmax(0,1fr)}
+ .app-shell .stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .app-shell .catalog-tabs{grid-template-columns:minmax(0,1fr)}
+ .app-shell .user-role{letter-spacing:.06em}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
