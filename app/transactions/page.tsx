@@ -40,7 +40,7 @@ const isOpenStatus = (row: Trx) => {
   const s = normalize(row.sourceStatus);
   if (row.category === "Pesanan") return ["pending", "approved", "menunggu", "disetujui"].includes(s);
   if (row.category === "Refund") return ["pending", "under_review", "requested", "approved", "menunggu", "disetujui"].includes(s);
-  if (row.category === "Pengajuan Toko") return ["requested", "shipped", "pending", "diproses", "dikirim", "received"].includes(s);
+  if (row.category === "Pengajuan Toko") return ["requested", "shipped", "pending", "diproses", "dikirim"].includes(s) || (s === "received" && Number(row.dueAmount || 0) > 0);
   if (row.category === "Produk Toko") return ["pending", "requested", "submitted", "under_review", "needs_revision", "perlu_perbaikan"].includes(s);
   if (row.category === "Penerimaan Stok") return ["pending", "requested", "draft", "processing"].includes(s);
   if (row.category === "Cuti" || row.category === "Keuangan") return ["pending", "requested", "submitted", "menunggu", "pending_approval"].includes(s);
@@ -103,7 +103,7 @@ export default function TransactionsPage() {
     const [orders, refunds, reports, ledger, requests, submissions, receipts, sales, storeLedger, movements, attendance, leaves, stores, employees, people] = await Promise.all([
       supabase.from("product_orders").select("id,order_code,status,ordered_by,reviewed_by,requested_at,created_at,notes").order("created_at", { ascending: false }).limit(500),
       supabase.from("product_refunds").select("id,refund_code,order_id,requested_by,reviewed_by,status,amount,reason,created_at").order("created_at", { ascending: false }).limit(500),
-      supabase.from("financial_reports").select("id,report_code,report_type,amount,description,status,submitted_by,reviewed_by,created_at").order("created_at", { ascending: false }).limit(500),
+      supabase.from("financial_reports").select("id,report_code,report_type,amount,description,status,submitted_by,reviewed_by,posted_transaction_id,created_at").order("created_at", { ascending: false }).limit(500),
       supabase.from("financial_transactions").select("id,transaction_code,transaction_type,amount,description,status,created_by,transaction_at,created_at,reference_code").order("transaction_at", { ascending: false }).limit(500),
       supabase.from("offline_store_purchase_orders").select("id,order_code,store_id,status,subtotal,paid_amount,notes,requested_by,reviewed_by,shipped_by,received_by,requested_at,created_at").order("created_at", { ascending: false }).limit(500),
       supabase.from("offline_product_submissions").select("id,store_id,proposed_name,proposed_category_name,status,review_note,requested_by,reviewed_by,requested_at,reviewed_at,created_product_id,created_store_product_id").order("requested_at", { ascending: false }).limit(500),
@@ -148,7 +148,7 @@ export default function TransactionsPage() {
       activity: r.report_type === "income" ? "Laporan pemasukan" : r.report_type === "expense" ? "Laporan pengeluaran" : "Laporan keuangan",
       location: "Kantor Pusat", status: statusLabel(r.status, "Keuangan"), createdAt: r.created_at,
       actor: personNames.get(r.submitted_by) || "Akun tidak diketahui", ownerId: r.submitted_by || null, handlerId: r.reviewed_by || null, processedBy: personNames.get(r.reviewed_by) || "Belum ditangani",
-      amount: Number(r.amount || 0), description: r.description, sourceStatus: r.status, sourceTable: "financial_reports"
+      amount: Number(r.amount || 0), description: r.description, status: r.posted_transaction_id ? "Selesai" : statusLabel(r.status, "Keuangan"), sourceStatus: r.posted_transaction_id ? "posted" : r.status, sourceTable: "financial_reports"
     }));
     (ledger.data ?? []).forEach((r: any) => result.push({
       id: r.id, code: r.transaction_code || `LED-${r.id.slice(0, 8)}`, category: "Keuangan",
@@ -267,7 +267,7 @@ export default function TransactionsPage() {
     const canReviewLeave = canAdmin || profile.role === "hrd";
     const selectedMembership = selected.storeId ? storeMemberships.find((m) => m.store_id === selected.storeId) : undefined;
     const canStoreReceive = Boolean(selectedMembership && ["manager","store_admin","inventory"].includes(selectedMembership.store_role));
-    const canStorePay = Boolean(selectedMembership && ["manager","store_admin"].includes(selectedMembership.store_role));
+    const canStorePay = Boolean(selectedMembership && selectedMembership.store_role === "manager");
     const allowed = selected.category === "Cuti" ? canReviewLeave
       : selected.sourceTable === "offline_product_submissions" ? canAdmin
       : selected.sourceTable === "offline_store_purchase_orders" ? (action === "ship" || action === "reject" ? canAdmin : action === "receive" ? canStoreReceive : action === "pay" ? canStorePay : false)
@@ -404,7 +404,7 @@ export default function TransactionsPage() {
         </div>
         <div className="trx-detail" style={{marginTop:12}}><label>Catatan / rincian</label><strong>{selected.description || "Tidak ada catatan tambahan."}</strong></div>
         <div className="trx-print-signatures"><div>Dibuat oleh<strong>{selected.actor}</strong></div><div>Pelanggan / unit<strong>{selected.location}</strong></div><div>Karyawan<strong>{selected.actor}</strong></div><div>Owner<strong>INDRA SAPUTRA</strong></div></div>
-        {((profile?.role === "owner" || profile?.role === "admin") || (profile?.role === "hrd" && selected.category === "Cuti") || (selected.storeId && storeMemberships.some((m) => m.store_id === selected.storeId && ["manager","store_admin","inventory"].includes(m.store_role)) && ["offline_store_purchase_orders","offline_stock_receipts"].includes(selected.sourceTable))) && <div style={{display:"flex",gap:7,flexWrap:"wrap",marginTop:14}}>
+        {((profile?.role === "owner" || profile?.role === "admin") || (profile?.role === "hrd" && selected.category === "Cuti") || (selected.storeId && storeMemberships.some((m) => m.store_id === selected.storeId && (selected.sourceTable === "offline_store_purchase_orders" ? ["manager","store_admin","inventory"].includes(m.store_role) : ["manager","store_admin","inventory"].includes(m.store_role))) && ["offline_store_purchase_orders","offline_stock_receipts"].includes(selected.sourceTable))) && <div style={{display:"flex",gap:7,flexWrap:"wrap",marginTop:14}}>
           {selected.sourceStatus === "pending" && selected.sourceTable === "product_orders" && <><button className="trx-btn" onClick={() => void processSelected("approve")}>Setujui pesanan</button><button className="trx-btn" onClick={() => void processSelected("reject")}>Tolak</button></>}
           {["pending","under_review"].includes(normalize(selected.sourceStatus)) && selected.sourceTable === "product_refunds" && <><button className="trx-btn" onClick={() => void processSelected("approve")}>Setujui refund</button><button className="trx-btn" onClick={() => void processSelected("reject")}>Tolak</button></>}
           {selected.sourceStatus === "pending" && selected.sourceTable === "financial_reports" && <><button className="trx-btn" onClick={() => void processSelected("approve")}>Setujui & catat</button><button className="trx-btn" onClick={() => void processSelected("reject")}>Tolak laporan</button></>}
