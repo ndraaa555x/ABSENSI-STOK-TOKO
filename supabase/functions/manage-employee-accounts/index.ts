@@ -67,7 +67,8 @@ Deno.serve(async(req:Request)=>{
   }
   const {data:title,error:titleError}=await admin.from("offline_store_job_titles").select("id,title,permission_role,store_id,is_active").eq("id",titleId).eq("store_id",storeId).eq("is_active",true).maybeSingle();
   if(titleError||!title) return reply(400,{error:"Jabatan tidak aktif atau bukan milik toko ini."});
-  if(!["store_admin","inventory","cashier"].includes(title.permission_role)) return reply(403,{error:"Manajer hanya dapat menambahkan anggota dengan jabatan bawahan."});
+  if(!["manager","store_admin","inventory","cashier"].includes(title.permission_role)) return reply(400,{error:"Jabatan toko tidak valid."});
+   if(actor.role==="employee" && !["store_admin","inventory","cashier"].includes(title.permission_role)) return reply(403,{error:"Manajer hanya dapat menambahkan anggota dengan jabatan bawahan."});
   const {data:existingProfile,error:existingError}=await admin.from("profiles").select("id").ilike("email",email).maybeSingle();
   if(existingError) return reply(500,{error:"Status email akun gagal diperiksa."});
   if(existingProfile) return reply(409,{error:"Email sudah terdaftar di sistem. Untuk akun yang sudah ada, minta Owner/Admin melakukan penempatan dari menu Anggota Toko."});
