@@ -23,7 +23,6 @@ import {
   Settings,
   ShieldCheck,
   ShoppingCart,
-  Tags,
   UserRound,
   UsersRound,
   Wallet,
