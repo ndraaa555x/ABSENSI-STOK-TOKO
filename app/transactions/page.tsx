@@ -68,6 +68,7 @@ function badgeClass(status: TrxStatus) {
 export default function TransactionsPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [storeMemberships, setStoreMemberships] = useState<{store_id:string;store_role:string;user_id?:string}[]>([]);
+  const [teamMemberships, setTeamMemberships] = useState<{store_id:string;store_role:string;user_id?:string}[]>([]);
   const [rows, setRows] = useState<Trx[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -97,13 +98,15 @@ export default function TransactionsPage() {
     const current = profileData as Profile;
     setProfile(current);
     const { data: memberRows } = await supabase.from("offline_store_memberships").select("store_id,user_id,store_role").eq("user_id", current.id).eq("is_active", true);
-    let activeMemberships = (memberRows || []) as {store_id:string;store_role:string;user_id?:string}[];
-    if (activeMemberships.length && !["owner","admin"].includes(current.role)) {
-      const storeIds = activeMemberships.map((m) => m.store_id);
-      const { data: teamRows } = await supabase.from("offline_store_memberships").select("store_id,user_id,store_role").in("store_id", storeIds).eq("is_active", true);
-      if (teamRows?.length) activeMemberships = teamRows as {store_id:string;store_role:string;user_id?:string}[];
+    const ownMemberships = (memberRows || []) as {store_id:string;store_role:string;user_id?:string}[];
+    setStoreMemberships(ownMemberships);
+    let teamRows = ownMemberships;
+    if (ownMemberships.length && !["owner","admin"].includes(current.role)) {
+      const storeIds = ownMemberships.map((m) => m.store_id);
+      const { data } = await supabase.from("offline_store_memberships").select("store_id,user_id,store_role").in("store_id", storeIds).eq("is_active", true);
+      if (data?.length) teamRows = data as {store_id:string;store_role:string;user_id?:string}[];
     }
-    setStoreMemberships(activeMemberships);
+    setTeamMemberships(teamRows);
     const result: Trx[] = [];
     const errors: string[] = [];
     const [orders, orderItems, refunds, reports, ledger, requests, purchaseItems, submissions, receipts, receiptItems, sales, saleItems, storeLedger, movements, attendance, leaves, stores, employees, people, products, storeProducts] = await Promise.all([
@@ -274,11 +277,11 @@ export default function TransactionsPage() {
     const hasStoreScope = assignedStoreIds.size > 0;
     if (hasStoreScope) {
       if (r.storeId && assignedStoreIds.has(r.storeId)) return true;
-      if (["Absensi", "Cuti"].includes(r.category) && r.ownerId && storeMemberships.some((m) => m.user_id === r.ownerId)) return true;
+      if (["Absensi", "Cuti"].includes(r.category) && r.ownerId && teamMemberships.some((m) => m.user_id === r.ownerId)) return true;
       return false;
     }
     return r.ownerId === profile.id && ["Pesanan", "Refund", "Keuangan", "Absensi", "Cuti"].includes(r.category);
-  }, [profile, storeMemberships]);
+  }, [profile, storeMemberships, teamMemberships]);
   const visibleRows = useMemo(() => {
     const q = normalize(search);
     return rows.filter((r) => {
