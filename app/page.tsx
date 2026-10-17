@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, ReactNode, useCallback, useEffect, useState } from "react";
-import { LayoutDashboard, UserRound, Users, CalendarCheck, ShoppingCart, RotateCcw, Banknote, Store, CalendarDays, Bell, Boxes, Settings, ArrowLeftRight, Hand, Inbox } from "lucide-react";
+import { LayoutDashboard, UserRound, Users, CalendarCheck, ShoppingCart, RotateCcw, Banknote, Store, CalendarDays, Bell, Boxes, Settings, ArrowLeftRight, Hand, Inbox, Menu, X } from "lucide-react";
 import { IconCategory, IconBarcode, IconCashRegister, IconPackage } from "@tabler/icons-react";
 import Link from "next/link";
 import { Session } from "@supabase/supabase-js";
@@ -1160,7 +1160,7 @@ export default function HomePage() {
       </aside>
       <section className="main">
         <header className="topbar">
-          <button type="button" className="mobile-menu-toggle" onClick={() => setMobileMenuOpen((open) => !open)} aria-expanded={mobileMenuOpen} aria-controls="mobile-navigation"><span className="mobile-menu-toggle-icon">{mobileMenuOpen ? "" : ""}</span><span>Menu</span></button>
+          <button type="button" className="mobile-menu-toggle" onClick={() => setMobileMenuOpen((open) => !open)} aria-expanded={mobileMenuOpen} aria-controls="mobile-navigation"><span className="mobile-menu-toggle-icon">{mobileMenuOpen ? <X size={17}/> : <Menu size={17}/>}</span><span>Menu</span></button>
           <div className="topbar-heading"><div><div className="eyebrow">{profile?.role === "owner" ? "OWNER CONTROL CENTER" : profile?.role === "admin" ? "ADMIN OPERATIONS" : profile?.role === "hrd" ? "HRD PEOPLE OPERATIONS" : "MY WORKSPACE"} / {moduleTitle.toUpperCase()}</div><div className="subtle workspace-caption" style={{ marginTop: 5 }}>{profile?.role === "owner" ? "Visibilitas menyeluruh dan pengaturan bisnis." : profile?.role === "admin" ? "Pusat kegiatan dan pengelolaan operasional." : profile?.role === "hrd" ? "Pusat data karyawan, absensi, dan cuti." : "Kelola order, laporan uang, refund, dan absensi pribadi."}</div></div></div>
           <button type="button" className="user-menu user-menu-button" onClick={() => setActivePage("profile")} aria-label="Buka profil saya"><div className="avatar">{displayName.slice(0,1).toUpperCase()}</div><div className="user-copy"><div className="user-email">{displayName}</div><div className="user-role">{roleName(profile?.role)}{isActive ? " · AKTIF" : " · NONAKTIF"}</div></div><span className="profile-shortcut">Profil ↗</span></button>
         </header>
