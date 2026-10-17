@@ -42,7 +42,8 @@ export default function OfflineStorePage(){
  const [titleForm,setTitleForm]=useState({id:"",title:"",role:"cashier"});
  const [policy,setPolicy]=useState({cashier:5,manager:15,approval:false});
  const [tab,setTab]=useState(()=>typeof window!=="undefined"&&new URLSearchParams(window.location.search).get("tab")==="pos"?"pos":"overview");
- const [focusMode]=useState(()=>typeof window!=="undefined"&&new URLSearchParams(window.location.search).get("mode")==="focus");
+ const [focusMode,setFocusMode]=useState(false);
+ useEffect(()=>{setFocusMode(new URLSearchParams(window.location.search).get("mode")==="focus");},[]);
  const [loading,setLoading]=useState(true);
  const [busy,setBusy]=useState(false);
  const [notice,setNotice]=useState("");
