@@ -953,7 +953,7 @@ export default function HomePage() {
       table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #e2e8f0;padding:8px;text-align:left}th{background:#f8fafc;font-size:10px;color:#475569}td.num,th.num{text-align:right}
       .total{display:flex;justify-content:flex-end;gap:24px;font-size:14px;font-weight:800;margin:14px 0;color:#172b4d}
       .note{background:#f8fafc;border:1px solid #e2e8f0;padding:10px;border-radius:4px;white-space:pre-wrap;overflow-wrap:anywhere}
-      .signatures{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:32px;break-inside:avoid}
+      .signatures{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:32px;break-inside:avoid}.receipt-refund .signatures{grid-template-columns:repeat(4,minmax(0,1fr))}
       .sign{border-top:1px solid #dbe3ec;padding:8px 6px 0;text-align:left;min-width:0;font-size:10px}.sign-title{font-weight:700;color:#172b4d;min-height:16px}.sign-role{color:#64748b;margin-top:3px;min-height:22px}
       .sign-space{height:48px;border-bottom:1px solid #9aa8b8;margin-bottom:7px}.sign-name{font-weight:700;overflow-wrap:anywhere}.sign-date{margin-top:4px;color:#64748b;font-size:9px}
       footer{text-align:center;border-top:1px solid #e2e8f0;padding-top:10px;margin-top:22px;font-size:10px;color:#64748b;line-height:1.5}
