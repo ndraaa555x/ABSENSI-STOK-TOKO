@@ -31,7 +31,7 @@ export default function TrxPage(){
   const canEmployee=currentRole==="employee";
   const canPeople=canAll||canEmployee||currentRole==="hrd";
   const skip=()=>Promise.resolve({data:[],error:null});
-  const [orders,refunds,reports,attendance,leaves,movements,finances,submissions,receipts,sales,storeFinances]=await Promise.all([
+  const [orders,refunds,reports,attendance,leaves,movements,finances,submissions,receipts,sales,storeFinances,purchaseOrders]=await Promise.all([
    (canAll||canEmployee)?supabase.from("product_orders").select("id,order_code,status,notes,created_at,ordered_by,ordered_by_profile:profiles!product_orders_ordered_by_fkey(full_name,email)").order("created_at",{ascending:false}).limit(300):skip(),
    (canAll||canEmployee)?supabase.from("product_refunds").select("id,refund_code,status,reason,amount,created_at,requested_by,requested_by_profile:profiles!product_refunds_requested_by_fkey(full_name,email)").order("created_at",{ascending:false}).limit(300):skip(),
    (canAll||canEmployee)?supabase.from("financial_reports").select("id,report_code,report_type,status,description,amount,created_at,submitted_by,submitted_by_profile:profiles!financial_reports_submitted_by_fkey(full_name,email)").order("created_at",{ascending:false}).limit(300):skip(),
@@ -42,7 +42,8 @@ export default function TrxPage(){
    canAll?supabase.from("offline_product_submissions").select("id,proposed_name,proposed_sku,proposed_category_name,status,review_note,requested_at,requested_by").order("requested_at",{ascending:false}).limit(300):skip(),
    canAll?supabase.from("offline_stock_receipts").select("id,receipt_code,status,supplier_name,created_at").order("created_at",{ascending:false}).limit(300):skip(),
    canAll?supabase.from("offline_store_sales").select("id,sale_code,subtotal,discount_total,total,payment_method,cashier_id,created_at,status").order("created_at",{ascending:false}).limit(300):skip(),
-   canAll?supabase.from("offline_store_finance_entries").select("id,entry_type,amount,payment_method,description,reference_code,created_at").order("created_at",{ascending:false}).limit(300):skip()
+   canAll?supabase.from("offline_store_finance_entries").select("id,entry_type,amount,payment_method,description,reference_code,created_at").order("created_at",{ascending:false}).limit(300):skip(),
+   canAll?supabase.from("offline_store_purchase_orders").select("id,order_code,store_id,status,subtotal,paid_amount,notes,requested_at,requested_by,reviewed_by,reviewed_at").order("requested_at",{ascending:false}).limit(300):skip()
   ]);
   const next:Item[]=[];
   const actor=(p:any,id:any)=>p?.full_name||p?.email||(id?String(id).slice(0,8):"Tidak tercatat");
@@ -57,8 +58,9 @@ export default function TrxPage(){
   (receipts.data||[]).forEach((r:any)=>next.push({id:"receipt-"+r.id,code:r.receipt_code||r.id,kind:"Penerimaan stok toko",title:"Penerimaan barang",detail:r.supplier_name||"Pemasok tidak dicatat",status:r.status||"—",at:r.created_at,actor:"Catatan toko",origin:"Toko offline"}));
   (sales.data||[]).forEach((r:any)=>next.push({id:"sale-"+r.id,code:r.sale_code||r.id,kind:"Penjualan toko",title:"Penjualan kasir",detail:"Total "+money(r.total)+" · Diskon "+money(r.discount_total)+" · "+label(r.payment_method),status:r.status||"—",at:r.created_at,actor:actor(null,r.cashier_id),origin:"Toko offline"}));
   (storeFinances.data||[]).forEach((r:any)=>next.push({id:"store-finance-"+r.id,code:r.reference_code||"TOKO-"+String(r.id).slice(0,8),kind:"Keuangan toko",title:label(r.entry_type),detail:(r.description||"Tanpa keterangan")+" · "+money(r.amount)+(r.payment_method?" · "+label(r.payment_method):""),status:"Tercatat",at:r.created_at,actor:"Catatan toko",origin:"Toko offline"}));
+  (purchaseOrders.data||[]).forEach((r:any)=>next.push({id:"purchase-order-"+r.id,code:r.order_code||r.id,kind:"Pembelian toko",title:"Pengajuan pembelian dari toko",detail:["Toko "+String(r.store_id||"—").slice(0,8),"Total "+money(r.subtotal),"Dibayar "+money(r.paid_amount),r.notes].filter(Boolean).join(" · "),status:r.status||"—",at:r.requested_at,actor:actor(null,r.requested_by),origin:"Pengadaan toko"}));
   setItems(next.sort((a,b)=>new Date(b.at||0).getTime()-new Date(a.at||0).getTime()));
-  setErrors([orders,refunds,reports,attendance,leaves,movements,finances,submissions,receipts,sales,storeFinances].filter((x:any)=>x.error).map((x:any)=>x.error.message||"Sebagian sumber tidak dapat dibaca."));
+  setErrors([orders,refunds,reports,attendance,leaves,movements,finances,submissions,receipts,sales,storeFinances,purchaseOrders].filter((x:any)=>x.error).map((x:any)=>x.error.message||"Sebagian sumber tidak dapat dibaca."));
   setRefreshing(false);setLoading(false);
  },[]);
  useEffect(()=>{let alive=true;supabase.auth.getSession().then(async({data})=>{if(!alive)return;if(!data.session){router.replace("/");return;}const {data:account}=await supabase.from("profiles").select("role,is_active").eq("id",data.session.user.id).maybeSingle();if(!alive)return;if(!account?.is_active){router.replace("/");return;}setRole(account.role||"employee");void load(account.role||"employee");});const {data:{subscription}}=supabase.auth.onAuthStateChange((_e,s)=>{if(!s)router.replace("/");});return()=>{alive=false;subscription.unsubscribe();};},[load,router]);
