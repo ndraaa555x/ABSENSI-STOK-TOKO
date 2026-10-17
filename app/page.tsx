@@ -798,7 +798,7 @@ export default function HomePage() {
 
   if (setupPasswordMode && session) return (
     <main className="login-wrap">
-      <section className="login-hero"><div><div className="brand"><div className="brand-mark">N</div><div><div className="brand-title">NDRANEXA</div><div className="brand-sub">BUSINESS PLATFORM</div></div></div><div style={{marginTop:"clamp(50px,12vh,120px)"}}><div className="eyebrow">AKTIVASI ANGGOTA TOKO</div><div className="hero-big">Amankan akun <span className="gradient-text">Anda.</span></div><p className="subtle" style={{maxWidth:440}}>Buat kata sandi pribadi untuk mulai menggunakan akun Toko Offline.</p></div></div></section>
+      <section className="login-hero"><div><div className="brand"><div className="brand-mark"><img src="/ndranexa-web.svg" alt="Logo NDRANEXA" style={{width:"100%",height:"100%",objectFit:"contain",display:"block"}} /></div><div><div className="brand-title">NDRANEXA</div><div className="brand-sub">BUSINESS PLATFORM</div></div></div><div style={{marginTop:"clamp(50px,12vh,120px)"}}><div className="eyebrow">AKTIVASI ANGGOTA TOKO</div><div className="hero-big">Amankan akun <span className="gradient-text">Anda.</span></div><p className="subtle" style={{maxWidth:440}}>Buat kata sandi pribadi untuk mulai menggunakan akun Toko Offline.</p></div></div></section>
       <section className="login-side"><div className="login-card"><div className="eyebrow">PENGATURAN KATA SANDI</div><h2>Buat kata sandi</h2><p className="subtle">Gunakan minimal 8 karakter. Kata sandi hanya diketahui oleh Anda.</p><form onSubmit={handleSetPassword}><div className="field"><label htmlFor="new-password">Kata sandi baru</label><input id="new-password" type="password" autoComplete="new-password" minLength={8} required value={newPassword} onChange={e=>setNewPassword(e.target.value)} placeholder="Minimal 8 karakter"/></div>{error&&<div className="error-box" role="alert">{error}</div>}<button className="btn btn-primary" type="submit" disabled={busy||!isSupabaseConfigured}>{busy?"Menyimpan…":"Simpan kata sandi dan lanjutkan"}</button></form></div></section>
     </main>
   );
@@ -807,7 +807,7 @@ export default function HomePage() {
     <main className="login-wrap">
       <section className="login-hero">
         <div>
-          <div className="brand"><div className="brand-mark">N</div><div><div className="brand-title">NDRANEXA</div><div className="brand-sub">BUSINESS PLATFORM</div></div></div>
+          <div className="brand"><div className="brand-mark"><img src="/ndranexa-web.svg" alt="Logo NDRANEXA" style={{width:"100%",height:"100%",objectFit:"contain",display:"block"}} /></div><div><div className="brand-title">NDRANEXA</div><div className="brand-sub">BUSINESS PLATFORM</div></div></div>
           <div style={{ marginTop: "clamp(50px,12vh,120px)" }}>
             <div className="eyebrow">Satu sistem. Kendali penuh.</div>
             <div className="hero-big">Kelola bisnis lebih <span className="gradient-text">cerdas.</span></div>
@@ -953,7 +953,7 @@ export default function HomePage() {
       footer{text-align:center;border-top:1px solid #cfe0f4;padding-top:10px;margin-top:22px;font-size:10px;color:#526b8a}
       .actions{text-align:center;margin:18px}@media print{.actions{display:none!important}body{background:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.receipt{border:0!important;border-radius:0;padding:0;max-width:none;overflow:visible}.receipt-refund,.receipt-finance,.receipt-order,.receipt-general{background:#fff!important}.receipt header{break-inside:avoid}.receipt table{break-inside:auto}.receipt tr{break-inside:avoid;break-after:auto}.signatures{break-inside:avoid}.sign{font-size:9px}.owner-sign svg{width:88px;height:42px}}
       @media(max-width:600px){header,.doc-heading{grid-template-columns:1fr}.company-info{border-left:0;border-top:1px solid #9bbbe1;padding:10px 0 0}.grid{grid-template-columns:1fr}.signatures{gap:4px}.sign{padding:0 4px}.label{width:100px}}
-    </style></head><body><div class="actions"><button onclick="window.print()">Cetak struk</button> <button onclick="window.close()">Tutup</button></div><main class="receipt ${documentClass}"><header><div class="brand-wrap"><img src="/ndranexa-company.svg" alt="Logo NDRANEXA NIAGA NUSANTARA" style="display:block;width:104px;max-width:100%;height:auto;object-fit:contain"/></div><div class="company-info"><strong>NDRANEXA NIAGA NUSANTARA</strong><br>Kantor Pusat<br>Dokumen transaksi internal</div></header><section class="doc-heading"><div><h1>${receiptEscape(title)}</h1><div class="doc-number">${documentSubtitle}</div></div><div class="meta-box"><strong>${documentLabel}</strong><br>NDRANEXA NIAGA NUSANTARA<br><span style="color:#58708c">Nomor dan status mengikuti catatan sistem</span></div></section>${body}<footer>${documentFooter}</footer></main></body></html>`);
+    </style></head><body><div class="actions"><button onclick="window.print()">Cetak struk</button> <button onclick="window.close()">Tutup</button></div><main class="receipt ${documentClass}"><header><div class="brand-wrap"><img src="${window.location.origin}/ndranexa-company.svg" alt="Logo NDRANEXA NIAGA NUSANTARA" style="display:block;width:104px;max-width:100%;height:auto;object-fit:contain"/></div><div class="company-info"><strong>NDRANEXA NIAGA NUSANTARA</strong><br>Kantor Pusat<br>Dokumen transaksi internal</div></header><section class="doc-heading"><div><h1>${receiptEscape(title)}</h1><div class="doc-number">${documentSubtitle}</div></div><div class="meta-box"><strong>${documentLabel}</strong><br>NDRANEXA NIAGA NUSANTARA<br><span style="color:#58708c">Nomor dan status mengikuti catatan sistem</span></div></section>${body}<footer>${documentFooter}</footer></main></body></html>`);
     printWindow.document.close();
   }
 
@@ -1134,7 +1134,7 @@ export default function HomePage() {
     <main className={`app-shell role-${profile?.role ?? "employee"} ${mobileMenuOpen ? "mobile-menu-open" : ""}`}>
       {mobileMenuOpen && <button type="button" className="mobile-menu-backdrop" aria-label="Tutup menu navigasi" onClick={() => setMobileMenuOpen(false)} />}
       <aside id="mobile-navigation" className="sidebar" aria-label="Navigasi utama">
-        <div className="brand"><div className="brand-mark">N</div><div><div className="brand-title">NDRANEXA</div><div className="brand-sub">BUSINESS PLATFORM</div></div></div>
+        <div className="brand"><div className="brand-mark"><img src="/ndranexa-web.svg" alt="Logo NDRANEXA" style={{width:"100%",height:"100%",objectFit:"contain",display:"block"}} /></div><div><div className="brand-title">NDRANEXA</div><div className="brand-sub">BUSINESS PLATFORM</div></div></div>
         {["UTAMA", "OPERASIONAL", "TRANSAKSI", "MANAJEMEN", "AKUN"].filter((group) => navItems.some((item) => item.group === group && (canAccessCurrentModule(item.key)) && item.label.toLowerCase().includes(menuSearch.trim().toLowerCase()))).map((group) => (
           <div key={group}>
             <div className="nav-label">{group}</div>
