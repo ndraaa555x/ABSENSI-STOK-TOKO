@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { ArrowLeftRight, RefreshCw, Search, ClipboardList, ShieldCheck } from "lucide-react";
 import { IconClockHour4 } from "@tabler/icons-react";
 import Link from "next/link";
@@ -15,8 +15,6 @@ const label=(v:string)=>String(v||"—").replaceAll("_"," ").replace(/\b\w/g,c=>
 
 export default function TrxPage(){
  const router=useRouter();
- const searchParams=useSearchParams();
- const storeId=searchParams.get("storeId");
  const [verifiedStoreId,setVerifiedStoreId]=useState<string|null>(null);
  const [role,setRole]=useState("employee");
  const [loading,setLoading]=useState(true);
@@ -67,7 +65,7 @@ export default function TrxPage(){
   setErrors([orders,refunds,reports,attendance,leaves,movements,finances,submissions,receipts,sales,storeFinances,purchaseOrders].filter((x:any)=>x.error).map((x:any)=>x.error.message||"Sebagian sumber tidak dapat dibaca."));
   setRefreshing(false);setLoading(false);
  },[]);
- useEffect(()=>{let alive=true;supabase.auth.getSession().then(async({data})=>{if(!alive)return;if(!data.session){router.replace("/");return;}const {data:account}=await supabase.from("profiles").select("role,is_active").eq("id",data.session.user.id).maybeSingle();if(!alive)return;if(!account?.is_active){router.replace("/");return;}const currentRole=account.role||"employee";setRole(currentRole);if(currentRole==="employee"){const {data:membership,error:membershipError}=await supabase.from("offline_store_memberships").select("store_id").eq("user_id",data.session.user.id).eq("is_active",true).maybeSingle();if(!alive)return;if(membershipError){setErrors(["Penempatan toko tidak dapat diverifikasi; riwayat dibatasi demi keamanan."]);setLoading(false);setRefreshing(false);return;}const actualStoreId=membership?.store_id||null;if(storeId&&actualStoreId&&storeId!==actualStoreId){setErrors(["Penempatan toko pada tautan tidak cocok dengan akun."]);setLoading(false);setRefreshing(false);return;}setVerifiedStoreId(actualStoreId);void load(currentRole,actualStoreId);}else{setVerifiedStoreId(null);void load(currentRole,null);}});const {data:{subscription}}=supabase.auth.onAuthStateChange((_e,s)=>{if(!s)router.replace("/");});return()=>{alive=false;subscription.unsubscribe();};},[load,router,storeId]);
+ useEffect(()=>{let alive=true;const requestedStoreId=typeof window!=="undefined"?new URLSearchParams(window.location.search).get("storeId"):null;supabase.auth.getSession().then(async({data})=>{if(!alive)return;if(!data.session){router.replace("/");return;}const {data:account}=await supabase.from("profiles").select("role,is_active").eq("id",data.session.user.id).maybeSingle();if(!alive)return;if(!account?.is_active){router.replace("/");return;}const currentRole=account.role||"employee";setRole(currentRole);if(currentRole==="employee"){const {data:membership,error:membershipError}=await supabase.from("offline_store_memberships").select("store_id").eq("user_id",data.session.user.id).eq("is_active",true).maybeSingle();if(!alive)return;if(membershipError){setErrors(["Penempatan toko tidak dapat diverifikasi; riwayat dibatasi demi keamanan."]);setLoading(false);setRefreshing(false);return;}const actualStoreId=membership?.store_id||null;if(requestedStoreId&&actualStoreId&&requestedStoreId!==actualStoreId){setErrors(["Penempatan toko pada tautan tidak cocok dengan akun."]);setLoading(false);setRefreshing(false);return;}setVerifiedStoreId(actualStoreId);void load(currentRole,actualStoreId);}else{setVerifiedStoreId(null);void load(currentRole,null);}});const {data:{subscription}}=supabase.auth.onAuthStateChange((_e,s)=>{if(!s)router.replace("/");});return()=>{alive=false;subscription.unsubscribe();};},[load,router]);
  const allowedKinds=useMemo<string[]|null>(()=>role==="owner"||role==="admin"?null:role==="hrd"?["Absensi","Izin/Cuti"]:verifiedStoreId?["Pengajuan produk toko","Penerimaan stok toko","Penjualan toko","Keuangan toko","Pembelian toko"]:["Order","Refund","Laporan uang","Absensi","Izin/Cuti"],[role,verifiedStoreId]);
  const kinds=useMemo(()=>Array.from(new Set(items.map(i=>i.kind))).filter(k=>!allowedKinds||allowedKinds.includes(k)).sort(),[items,allowedKinds]);
  const filtered=useMemo(()=>items.filter(i=>(!allowedKinds||allowedKinds.includes(i.kind))&&(kind==="all"||i.kind===kind)&&(status==="all"||i.status===status)&&(!from||String(i.at||"").slice(0,10)>=from)&&(!to||String(i.at||"").slice(0,10)<=to)&&[i.code,i.kind,i.title,i.detail,i.status,i.actor,i.origin].join(" ").toLowerCase().includes(search.toLowerCase())),[items,kind,status,from,to,search,allowedKinds]);
