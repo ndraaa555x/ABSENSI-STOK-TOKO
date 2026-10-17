@@ -114,14 +114,44 @@ export default function CashierWorkspacePage(){
   finally{setBusy(false);}
  }
  async function printReceipt(s:Sale){
-  const {data:detail,error:detailError}=await supabase.from("offline_store_sales").select("id,sale_code,total,discount_total,payment_method,created_at,offline_store_sale_items(product_name,quantity,unit_price,line_total)").eq("id",s.id).maybeSingle();
-  if(detailError){setError("Rincian struk tidak dapat dibaca: "+detailError.message);return;}
-  const esc=(v:unknown)=>String(v??"—").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]||c));
-  const w=window.open("","_blank","width=460,height=700");if(!w){setError("Izinkan pop-up browser untuk mencetak struk.");return;}
-  const items=(detail?.offline_store_sale_items||[]) as Array<{product_name:string;quantity:number;unit_price:number;line_total:number}>;
-  const rows=items.map(line=>`<tr><td>${esc(line.product_name)} × ${Number(line.quantity)||0}<small style="display:block;color:#666">${esc(money(Number(line.unit_price)||0))} / unit</small></td><td style="text-align:right">${esc(money(Number(line.line_total)||0))}</td></tr>`).join("");
-  w.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Struk ${esc(s.sale_code)}</title><style>body{font:12px Arial,sans-serif;color:#222;padding:16px}h2{text-align:center;font-size:17px;margin:0 0 6px}.muted{color:#666;text-align:center}table{width:100%;border-collapse:collapse;margin:16px 0}td{padding:7px 0;border-bottom:1px dashed #ccc;vertical-align:top}.total{display:flex;justify-content:space-between;font-weight:bold;font-size:15px;border-top:1px solid #222;padding-top:10px}button{padding:8px 14px}@media print{button{display:none}}</style></head><body><h2>${esc(activeStore?.name||"TOKO OFFLINE")}</h2><div class="muted">${esc(activeStore?.store_code||"")}</div><p>No: <strong>${esc(s.sale_code)}</strong><br/>Tanggal: ${esc(dateLabel(s.created_at))}<br/>Kasir: ${esc(profile?.full_name||profile?.email||"—")}</p><table>${rows||"<tr><td>Rincian barang tidak tersedia.</td></tr>"}</table><p>Diskon: ${esc(money(s.discount_total))}</p><div class="total"><span>Total</span><span>${esc(money(s.total))}</span></div><p>Metode: ${esc(s.payment_method)}</p><p class="muted">Terima kasih atas kunjungan Anda.</p><div style="text-align:center"><button onclick="window.print()">Cetak struk</button></div></body></html>`);
+  // Buka jendela langsung dari klik pengguna sebelum await agar tidak diblokir browser.
+  const w=window.open("","_blank","width=460,height=760");
+  if(!w){setError("Pop-up diblokir browser. Izinkan pop-up untuk situs ini, lalu klik Cetak Struk kembali.");return;}
+  w.document.write("<!doctype html><html lang='id'><head><meta charset='utf-8'><title>Menyiapkan struk…</title></head><body style='font:14px Arial;padding:24px'>Menyiapkan struk transaksi…</body></html>");
   w.document.close();
+  try{
+   const {data:detail,error:detailError}=await supabase.from("offline_store_sales").select("id,sale_code,total,discount_total,payment_method,created_at,offline_store_sale_items(product_name,quantity,unit_price,line_total)").eq("id",s.id).maybeSingle();
+   if(detailError)throw detailError;
+   if(!detail){throw new Error("Transaksi tidak ditemukan atau tidak dapat dibaca.");}
+   const esc=(v:unknown)=>String(v??"—").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]||c));
+   const items=(detail.offline_store_sale_items||[]) as Array<{product_name:string;quantity:number;unit_price:number;line_total:number}>;
+   const rows=items.map(line=>`<tr><td class="item">${esc(line.product_name)}<small>${Number(line.quantity)||0} × ${esc(money(Number(line.unit_price)||0))}</small></td><td class="amount">${esc(money(Number(line.line_total)||0))}</td></tr>`).join("");
+   const paymentLabels:Record<string,string>={cash:"Tunai",transfer:"Transfer bank",qris:"QRIS",debit:"Kartu debit",credit:"Kartu kredit"};
+   const storeName=activeStore?.name||"TOKO OFFLINE";
+   const storeCode=activeStore?.store_code||"";
+   const cashier=profile?.full_name||profile?.email||"—";
+   w.document.open();
+   w.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Struk ${esc(s.sale_code)}</title><style>
+    *{box-sizing:border-box}body{font:12px/1.45 Arial,Helvetica,sans-serif;color:#171717;width:100%;max-width:320px;margin:0 auto;padding:18px 14px}
+    .brand{text-align:center;border-bottom:1px dashed #777;padding-bottom:12px}.brand h1{font-size:18px;line-height:1.2;margin:0 0 5px;overflow-wrap:anywhere}.muted{color:#555}.center{text-align:center}
+    .meta{margin:12px 0}.meta div{display:flex;justify-content:space-between;gap:12px;margin:3px 0}.meta span:last-child{text-align:right;overflow-wrap:anywhere}
+    table{width:100%;border-collapse:collapse;margin:12px 0}td{padding:7px 0;vertical-align:top;border-bottom:1px dashed #ddd}.item{padding-right:8px;overflow-wrap:anywhere}.item small{display:block;color:#555;margin-top:3px}.amount{text-align:right;white-space:nowrap}
+    .summary{border-top:1px dashed #777;padding-top:9px}.sumline{display:flex;justify-content:space-between;gap:12px;margin:5px 0}.grand{font-size:16px;font-weight:700;border-top:1px solid #222;margin-top:8px;padding-top:9px}
+    .thanks{text-align:center;border-top:1px dashed #777;margin-top:14px;padding-top:12px}.actions{display:flex;gap:8px;margin:16px auto 0;justify-content:center}.actions button{padding:9px 13px;border:1px solid #aaa;background:#fff;border-radius:5px;cursor:pointer}
+    @page{size:80mm auto;margin:3mm}@media print{body{max-width:none;width:100%;padding:0}.actions{display:none}}
+   </style></head><body><header class="brand"><h1>${esc(storeName)}</h1><div class="muted">${esc(storeCode)}</div><div style="margin-top:6px;font-weight:700">STRUK PEMBELIAN</div></header>
+   <section class="meta"><div><span class="muted">No. Transaksi</span><span>${esc(detail.sale_code)}</span></div><div><span class="muted">Tanggal</span><span>${esc(dateLabel(detail.created_at))}</span></div><div><span class="muted">Kasir</span><span>${esc(cashier)}</span></div></section>
+   <table><tbody>${rows||'<tr><td colspan="2">Rincian barang tidak tersedia.</td></tr>'}</tbody></table>
+   <section class="summary"><div class="sumline"><span>Subtotal</span><span>${esc(money(items.reduce((sum,line)=>sum+(Number(line.line_total)||0),0)))}</span></div><div class="sumline"><span>Diskon</span><span>− ${esc(money(Number(detail.discount_total)||0))}</span></div><div class="sumline grand"><span>TOTAL</span><span>${esc(money(Number(detail.total)||0))}</span></div><div class="sumline" style="margin-top:9px"><span>Metode bayar</span><span>${esc(paymentLabels[String(detail.payment_method).toLowerCase()]||detail.payment_method||"—")}</span></div></section>
+   <footer class="thanks"><strong>Terima kasih atas kunjungan Anda.</strong><div class="muted">Barang yang sudah dibeli mohon disimpan struk ini.</div><div class="muted" style="margin-top:8px">Semoga hari Anda menyenangkan!</div></footer>
+   <div class="actions"><button onclick="window.print()">Cetak / Print</button><button onclick="window.close()">Tutup</button></div>
+   <script>window.addEventListener("load",()=>{setTimeout(()=>{if(window.matchMedia&&window.matchMedia("print").matches)return;},250)});</script></body></html>`);
+   w.document.close();
+   setError("");
+  }catch(e){
+   w.document.body.innerHTML=`<div style="font:14px Arial;padding:20px;color:#a00">Struk gagal dimuat: ${String(e instanceof Error?e.message:e)}</div>`;
+   setError("Struk gagal dimuat. Periksa izin akses transaksi dan coba lagi.");
+  }
  }
  if(!isSupabaseConfigured)return <main className="main"><section className="panel"><h1>Kasir / POS</h1><p>Konfigurasi Supabase belum tersedia.</p></section></main>;
  if(loading)return <main className="main"><section className="panel"><p>Memuat ruang kerja kasir…</p></section></main>;
