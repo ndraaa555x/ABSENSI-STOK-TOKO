@@ -1147,7 +1147,7 @@ export default function HomePage() {
             <div className="nav-label">{group}</div>
             <nav className="nav-list">
               {navItems.filter((item) => item.group === group && (canAccessCurrentModule(item.key)) && item.label.toLowerCase().includes(menuSearch.trim().toLowerCase())).map((item) => (
-                <button key={item.key} className={`nav-item ${activePage === item.key || (["categories","products"].includes(item.key) && activePage === "inventory") ? "active" : ""}`} onClick={() => { if (item.key === "cashier") { window.location.href = "/offline-store?tab=pos"; return; } if (item.key === "transactions") { window.location.href = "/trx"; return; } if (item.key === "categories" || item.key === "products") setActivePage("inventory");; else setActivePage(item.key); setMobileMenuOpen(false); }}>
+                <button key={item.key} className={`nav-item ${activePage === item.key || (["categories","products"].includes(item.key) && activePage === "inventory") ? "active" : ""}`} onClick={() => { if (item.key === "cashier") { window.location.href = "/offline-store?tab=pos"; return; } if (item.key === "transactions") { window.location.href = "/trx"; return; } if (item.key === "categories" || item.key === "products") setActivePage("inventory"); else setActivePage(item.key); setMobileMenuOpen(false); }}>
                   <span className="nav-icon">{item.icon}</span>{item.label}
                 </button>
               ))}
