@@ -1277,6 +1277,7 @@ export default function HomePage() {
               <button className="btn btn-primary" type="submit" disabled={customerSubmitting}>{customerSubmitting?"Mendaftarkan…":"Daftarkan toko sebagai member →"}</button>
             </form>
             <div className="panel trx-module-link"><h2>Riwayat aktivitas toko ada di TRX</h2><p className="subtle">Aktivitas order pelanggan ditelusuri dari pusat riwayat agar tidak tersebar di modul.</p><Link className="btn" href="/trx">Buka TRX</Link></div>
+           </div>
         </section> : activePage === "refunds" ? <section className="business-page">
           <div className="business-hero"><div><div className="eyebrow">PENGEMBALIAN PRODUK</div><h1>Refund Produk</h1><p>{profile?.role==="employee"?"Refund hanya dapat diajukan untuk order milik akun Anda yang sudah disetujui atau dipenuhi. Jika order masih menunggu Admin/Owner, tunggu keputusan terlebih dahulu.":"Owner/Admin dapat mengajukan refund untuk order toko yang sudah disetujui atau dipenuhi, termasuk order yang dibuat oleh akun lain."}</p></div><div className="business-hero-icon"><RotateCcw size={24}/></div></div>
           {refundNotice && <div className="info-box" role="status">{refundNotice}</div>}{refundError && <div className="error-box" role="alert">{refundError}</div>}
