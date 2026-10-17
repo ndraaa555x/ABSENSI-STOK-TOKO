@@ -38,7 +38,7 @@ export default function OfflineStorePage(){
  const [memberEdits,setMemberEdits]=useState<Record<string,string>>({});
  const [titleForm,setTitleForm]=useState({id:"",title:"",role:"cashier"});
  const [policy,setPolicy]=useState({cashier:5,manager:15,approval:false});
- const [tab,setTab]=useState("overview");
+ const [tab,setTab]=useState(()=>typeof window!=="undefined"&&new URLSearchParams(window.location.search).get("tab")==="pos"?"pos":"overview");
  const [loading,setLoading]=useState(true);
  const [busy,setBusy]=useState(false);
  const [notice,setNotice]=useState("");
