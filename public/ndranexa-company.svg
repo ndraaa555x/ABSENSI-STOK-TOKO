@@ -1,13 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 360" role="img" aria-labelledby="title desc">
-<title id="title">NDRANEXA NIAGA NUSANTARA</title><desc id="desc">Logo perusahaan dengan monogram N geometris navy dan copper di atas latar ivory.</desc>
-<rect width="900" height="360" rx="18" fill="#F7F4ED"/>
-<g transform="translate(52 48)">
-<path d="M0 18H132M0 18V148M0 148H132" fill="none" stroke="#B77B4B" stroke-width="2"/>
-<path d="M22 124V42L110 124V42" fill="none" stroke="#142B49" stroke-width="15" stroke-linecap="square" stroke-linejoin="miter"/>
-<path d="M91 42H110V61" fill="none" stroke="#B77B4B" stroke-width="6"/>
-</g>
-<text x="230" y="145" font-family="Georgia,serif" font-size="67" font-weight="bold" letter-spacing="4" fill="#142B49">NDRANEXA</text>
-<path d="M232 177H775" stroke="#B77B4B" stroke-width="2"/><rect x="495" y="171" width="12" height="12" fill="#B77B4B" transform="rotate(45 501 177)"/>
-<text x="232" y="220" font-family="Arial,sans-serif" font-size="26" letter-spacing="7" fill="#142B49">NIAGA NUSANTARA</text>
-<text x="232" y="270" font-family="Arial,sans-serif" font-size="17" letter-spacing="5" fill="#7B817F">TRUST • GROWTH • INTEGRITY</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 520" role="img" aria-labelledby="title desc"><title id="title">NDRANEXA NIAGA NUSANTARA</title><desc id="desc">Monogram geometris N berwarna navy dan emas untuk identitas perusahaan.</desc><rect width="480" height="520" fill="#fff"/><g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="22"><path d="M104 238V92Q104 76 120 88L280 224V142" stroke="#293744"/><path d="M280 142V286L136 174V254" stroke="#293744"/><path d="M280 286L374 360Q390 372 390 352V218" stroke="#293744"/><path d="M282 72H354Q370 72 370 88V156" stroke="#D9A02E"/><path d="M104 310V382Q104 398 120 398H206" stroke="#D9A02E"/></g><text x="240" y="450" text-anchor="middle" font-family="Arial,sans-serif" font-size="27" font-weight="700" letter-spacing="2.8" fill="#293744">NDRANEXA</text><text x="240" y="481" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="600" letter-spacing="3" fill="#293744">NIAGA NUSANTARA</text></svg>
