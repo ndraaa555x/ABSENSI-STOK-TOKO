@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, ReactNode, useCallback, useEffect, useState } from "react";
-import { LayoutDashboard, UserRound, Users, CalendarCheck, ShoppingCart, RotateCcw, Banknote, Store, CalendarDays, Bell, Boxes, Settings, ArrowLeftRight, Hand } from "lucide-react";
+import { LayoutDashboard, UserRound, Users, CalendarCheck, ShoppingCart, RotateCcw, Banknote, Store, CalendarDays, Bell, Boxes, Settings, ArrowLeftRight, Hand, Inbox } from "lucide-react";
 import { IconCategory, IconBarcode, IconCashRegister, IconPackage } from "@tabler/icons-react";
 import Link from "next/link";
 import { Session } from "@supabase/supabase-js";
@@ -119,7 +119,6 @@ export default function HomePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [menuSearch, setMenuSearch] = useState("");
   const [employeeSearch, setEmployeeSearch] = useState("");
-  const [attendanceSearch, setAttendanceSearch] = useState("");
   const [accountSearch, setAccountSearch] = useState("");
   const [businessRefresh, setBusinessRefresh] = useState(0);
   const [orderProducts, setOrderProducts] = useState<OrderProduct[]>([]);
@@ -153,8 +152,6 @@ export default function HomePage() {
   const [moneyHistoryFrom,setMoneyHistoryFrom]=useState("");
   const [moneyHistoryTo,setMoneyHistoryTo]=useState("");
   const [selectedCustomerProfileId, setSelectedCustomerProfileId] = useState<string|null>(null);
-  const [customerProfileFromDate,setCustomerProfileFromDate]=useState("");
-  const [customerProfileToDate,setCustomerProfileToDate]=useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<string|null>(null);
   const [grossProfit, setGrossProfit] = useState(0);
   const [grossProfitMissingCostCount,setGrossProfitMissingCostCount]=useState(0);
@@ -1157,7 +1154,7 @@ export default function HomePage() {
             </nav>
           </div>
         ))}
-        {(profile?.role === "owner" || profile?.role === "admin" || storePlacementActive) && <div><div className="nav-label">TOKO</div><nav className="nav-list"><Link href="/offline-store" className="nav-item" onClick={() => setMobileMenuOpen(false)}><span className="nav-icon"></span>Toko Offline</Link>{(profile?.role === "owner" || profile?.role === "admin") && <Link href="/store-requests" className="nav-item" onClick={() => setMobileMenuOpen(false)}><span className="nav-icon"></span>Pengajuan Permintaan</Link>}</nav></div>}
+        {(profile?.role === "owner" || profile?.role === "admin" || storePlacementActive) && <div><div className="nav-label">TOKO</div><nav className="nav-list"><Link href="/offline-store" className="nav-item" onClick={() => setMobileMenuOpen(false)}><span className="nav-icon"><Store size={16}/></span>Toko Offline</Link>{(profile?.role === "owner" || profile?.role === "admin") && <Link href="/store-requests" className="nav-item" onClick={() => setMobileMenuOpen(false)}><span className="nav-icon"><Inbox size={16}/></span>Pengajuan Permintaan</Link>}</nav></div>}
         {profile?.role !== "employee" && <div className="field menu-search"><label htmlFor="menu-search">Cari menu</label><input id="menu-search" type="search" value={menuSearch} onChange={e=>setMenuSearch(e.target.value)} placeholder="Cari menu..." aria-label="Cari menu website"/></div>}
         <div className="sidebar-bottom"><div className="side-foot"><strong>{profile?.role === "owner" ? "Owner workspace" : profile?.role === "admin" ? "◈ Admin workspace" : profile?.role === "hrd" ? "HRD workspace" : "◷ Ruang kerja karyawan"}</strong><p>{profile?.role === "owner" ? "Kontrol penuh bisnis, pengguna, dan konfigurasi." : profile?.role === "admin" ? "Kelola kegiatan operasional sesuai kewenangan." : profile?.role === "hrd" ? "Kelola data pekerja, kehadiran, dan cuti." : "Order, laporan uang, refund, dan absensi pribadi."}</p></div><button className="logout-button" onClick={handleLogout} disabled={busy}><span className="logout-symbol">↪</span><span><strong>{busy ? "Memproses..." : "Keluar dari akun"}</strong><small>Akhiri sesi dengan aman</small></span></button></div>
       </aside>
@@ -1197,12 +1194,19 @@ export default function HomePage() {
         </> : activePage === "attendance" ? <section className="panel" style={{ maxWidth: 920 }}>
           <div className="eyebrow">MODUL / ABSENSI</div>
           <h1 style={{marginTop:10}}>Absensi</h1>
-          <p className="subtle">Catatan dan riwayat absensi terpusat di TRX. Gunakan halaman kamera untuk melakukan absensi; pengelolaan status tim tetap mengikuti kewenangan akun.</p>
+          <p className="subtle">Riwayat absensi tersedia di TRX. Gunakan kamera untuk melakukan absensi; pengelolaan status harian tim tetap tersedia untuk manajer toko yang berwenang.</p>
           <div className="business-actions" style={{marginTop:18,flexWrap:"wrap"}}>
             <button className="btn btn-primary" type="button" onClick={()=>{window.location.href="/trx";}}>Buka riwayat di TRX</button>
             <Link className="btn" href="/attendance-camera">Buka kamera & pendaftaran wajah</Link>
           </div>
-          {attendanceError&&<div className="error-box" role="alert" style={{marginTop:14}}>{attendanceError}</div>}
+          {isStoreManager&&<div className="panel" style={{marginTop:18}}>
+            <div className="section-head"><div><h2>Pengelolaan status tim hari ini</h2><p className="subtle">Perubahan status dibatasi pada anggota tim sesuai penempatan Anda.</p></div><span className="status">{dailyAttendanceRows.length} sesi</span></div>
+            {attendanceError&&<div className="error-box" role="alert">{attendanceError}</div>}
+            {attendanceLoading?<p className="subtle">Memuat status tim…</p>:attendanceRows.filter(row=>row.work_date===jakartaDateInput()).length===0?<p className="subtle">Belum ada catatan absensi tim hari ini.</p>:attendanceRows.filter(row=>row.work_date===jakartaDateInput()).map(row=><article className="business-record" key={row.id}>
+              <div className="business-record-head"><div><strong>{row.employees?.full_name||"Karyawan"}</strong><small>{row.employees?.employee_code||"—"} · {row.work_date}</small></div><span className="status-pill">{row.status}</span></div>
+              <div className="business-actions" style={{marginTop:10}}><select aria-label={"Status absensi "+(row.employees?.full_name||"karyawan")} value={attendanceStatusDrafts[row.id]||row.status} onChange={e=>setAttendanceStatusDrafts(prev=>({...prev,[row.id]:e.target.value}))}><option value="present">Hadir</option><option value="late">Terlambat</option><option value="leave">Izin</option><option value="sick">Sakit</option><option value="absent">Alpa</option><option value="holiday">Libur</option></select><button className="btn btn-primary" disabled={attendanceSavingId===row.id||(attendanceStatusDrafts[row.id]||row.status)===row.status} onClick={()=>void saveTeamAttendanceStatus(row)}>{attendanceSavingId===row.id?"Menyimpan…":"Simpan status"}</button></div>
+            </article>)}
+          </div>}
         </section> : activePage === "employees" ? <section className="panel" style={{ maxWidth: 1200 }}>
           <div className="eyebrow">MODUL / KARYAWAN</div>
           <div className="section-head" style={{marginTop:12}}>
@@ -1243,7 +1247,7 @@ export default function HomePage() {
           </div>}
           <div className="info-box" style={{marginTop:16}}>Ini adalah role akun kantor pusat, bukan jabatan toko. Akun Manajer Toko tetap menggunakan role akun “Karyawan”; tetapkan jabatan Manajer melalui Toko Offline → Tim & Jabatan. Role Owner tidak dapat diberikan dari daftar karyawan. Menghapus akun login tidak menghapus data karyawan atau riwayat absensi.</div>
         </section> : activePage === "orders" ? <section className="business-page">
-          <div className="business-hero"><div><div className="eyebrow">TRANSAKSI OPERASIONAL</div><h1>Order Produk</h1><p>Ajukan kebutuhan produk untuk aktivitas kerja dan pantau prosesnya dari satu tempat.</p></div><div className="business-hero-icon"></div></div>
+          <div className="business-hero"><div><div className="eyebrow">TRANSAKSI OPERASIONAL</div><h1>Order Produk</h1><p>Ajukan kebutuhan produk untuk aktivitas kerja dan pantau prosesnya dari satu tempat.</p></div><div className="business-hero-icon"><ShoppingCart size={24}/></div></div>
           {orderNotice && <div className="info-box" role="status">{orderNotice}</div>}{orderError && <div className="error-box" role="alert">{orderError}</div>}
           {["owner","admin"].includes(profile?.role??"")&&<div className="stats-grid"><div className="stat-card"><div className="stat-top">Order menunggu</div><div className="stat-value">{orderRows.filter(o=>o.status==="pending").length}</div><div className="stat-note">Perlu ditinjau Admin/Owner</div></div><div className="stat-card"><div className="stat-top">Nilai order tercatat</div><div className="stat-value">{new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(orderRows.reduce((sum,o)=>sum+o.product_order_items.reduce((n,it)=>n+Number(it.line_total),0),0))}</div><div className="stat-note">Nilai permintaan; bukan kas masuk resmi</div></div><div className="stat-card"><div className="stat-top">Unit stok dicadangkan</div><div className="stat-value">{orderRows.filter(o=>o.stock_reserved).reduce((sum,o)=>sum+o.product_order_items.reduce((n,it)=>n+Number(it.quantity),0),0).toLocaleString("id-ID")}</div><div className="stat-note">Order pending/disetujui yang belum dipenuhi</div></div></div>}
           <div className="business-columns">
@@ -1262,7 +1266,7 @@ export default function HomePage() {
             </div>
           </div>
         </section> : activePage === "customers" ? <section className="business-page">
-          <div className="business-hero"><div><div className="eyebrow">CRM & MEMBER TOKO</div><h1>Data Toko / Member</h1><p>Daftarkan pembeli/toko agar terhubung dengan order produk dan pantau aktivitas pembeliannya.</p></div><div className="business-hero-icon"></div></div>
+          <div className="business-hero"><div><div className="eyebrow">CRM & MEMBER TOKO</div><h1>Data Toko / Member</h1><p>Daftarkan pembeli/toko agar terhubung dengan order produk dan pantau aktivitas pembeliannya.</p></div><div className="business-hero-icon"><Store size={24}/></div></div>
           {customerNotice&&<div className="info-box" role="status">{customerNotice}</div>}{customerError&&<div className="error-box" role="alert">{customerError}</div>}
           <div className="business-columns">
             <form className="panel business-form" onSubmit={submitCustomer}><div className="eyebrow">REGISTRASI MEMBER BARU</div><h2>Data toko / pembeli</h2>
