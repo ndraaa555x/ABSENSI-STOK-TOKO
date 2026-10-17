@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./motion-system.css";
+import MotionSystem from "./motion-system";
 
 export const metadata: Metadata = {
   title: { default: "NDRANEXA", template: "%s | NDRANEXA" },
@@ -10,8 +12,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="id">
-      <body>{children}</body>
+    <html lang="id" suppressHydrationWarning>
+      <body>
+        {children}
+        <MotionSystem />
+      </body>
     </html>
   );
 }
