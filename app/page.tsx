@@ -817,7 +817,7 @@ export default function HomePage() {
 
   if (setupPasswordMode && session) return (
     <main className="login-wrap">
-      <section className="login-hero"><div><div className="brand"><div className="brand-mark" aria-label="Logo NDRANEXA"><svg viewBox="0 0 64 64" role="img" aria-hidden="true"><path d="M32 3 57 17v30L32 61 7 47V17Z" fill="#102b50"/><path d="M20 44V20h6l18 17V20h-6v12L26 20h-6v24Z" fill="#f4c66a"/><path d="M20 44h6V31l12 11h6v-5L26 20h-6Z" fill="#fff"/></svg></div><div><div className="brand-title">NDRANEXA</div><div className="brand-sub">BUSINESS OPERATING SYSTEM</div></div></div><div style={{marginTop:"clamp(50px,12vh,120px)"}}><div className="eyebrow">AKTIVASI ANGGOTA TOKO</div><div className="hero-big">Amankan akun <span className="gradient-text">Anda.</span></div><p className="subtle" style={{maxWidth:440}}>Buat kata sandi pribadi untuk mulai menggunakan akun Toko Offline.</p></div></div></section>
+      <section className="login-hero"><div><div className="brand"><div className="brand-mark"><img src="/ndranexa-logo.svg" alt="Logo NDRANEXA" /></div><div><div className="brand-title">NDRANEXA</div><div className="brand-sub">BUSINESS OPERATING SYSTEM</div></div></div><div style={{marginTop:"clamp(50px,12vh,120px)"}}><div className="eyebrow">AKTIVASI ANGGOTA TOKO</div><div className="hero-big">Amankan akun <span className="gradient-text">Anda.</span></div><p className="subtle" style={{maxWidth:440}}>Buat kata sandi pribadi untuk mulai menggunakan akun Toko Offline.</p></div></div></section>
       <section className="login-side"><div className="login-card"><div className="eyebrow">PENGATURAN KATA SANDI</div><h2>Buat kata sandi</h2><p className="subtle">Gunakan minimal 8 karakter. Kata sandi hanya diketahui oleh Anda.</p><form onSubmit={handleSetPassword}><div className="field"><label htmlFor="new-password">Kata sandi baru</label><input id="new-password" type="password" autoComplete="new-password" minLength={8} required value={newPassword} onChange={e=>setNewPassword(e.target.value)} placeholder="Minimal 8 karakter"/></div>{error&&<div className="error-box" role="alert">{error}</div>}<button className="btn btn-primary" type="submit" disabled={busy||!isSupabaseConfigured}>{busy?"Menyimpan…":"Simpan kata sandi dan lanjutkan"}</button></form></div></section>
     </main>
   );
@@ -826,7 +826,7 @@ export default function HomePage() {
     <main className="login-wrap">
       <section className="login-hero">
         <div>
-          <div className="brand"><div className="brand-mark" aria-label="Logo NDRANEXA"><svg viewBox="0 0 64 64" role="img" aria-hidden="true"><path d="M32 3 57 17v30L32 61 7 47V17Z" fill="#102b50"/><path d="M20 44V20h6l18 17V20h-6v12L26 20h-6v24Z" fill="#f4c66a"/><path d="M20 44h6V31l12 11h6v-5L26 20h-6Z" fill="#fff"/></svg></div><div><div className="brand-title">NDRANEXA</div><div className="brand-sub">BUSINESS OPERATING SYSTEM</div></div></div>
+          <div className="brand"><div className="brand-mark"><img src="/ndranexa-logo.svg" alt="Logo NDRANEXA" /></div><div><div className="brand-title">NDRANEXA</div><div className="brand-sub">BUSINESS OPERATING SYSTEM</div></div></div>
           <div style={{ marginTop: "clamp(50px,12vh,120px)" }}>
             <div className="eyebrow">OPERASIONAL BISNIS, DALAM SATU KENDALI</div>
             <div className="hero-big">Bangun bisnis yang <span className="gradient-text">terkendali.</span></div>
@@ -946,7 +946,7 @@ export default function HomePage() {
       @page{size:A4;margin:14mm}*{box-sizing:border-box}body{font:12px Arial,sans-serif;color:#17345b;margin:0;background:#fff}
       .receipt{max-width:760px;margin:auto;border:1px solid #cfe0f4;padding:24px;border-radius:8px}
       header{display:grid;grid-template-columns:1.2fr 1fr;gap:22px;align-items:center;border-bottom:2px solid #164b87;padding-bottom:14px;margin-bottom:16px}
-      .brand-wrap{display:flex;align-items:center;gap:12px}.brand-mark{width:48px;height:48px;flex-shrink:0}
+      .brand-wrap{display:flex;align-items:center;gap:12px}.brand-mark{width:58px;height:58px;flex-shrink:0;object-fit:contain}.brand-mark img{display:block;width:100%;height:100%;object-fit:contain}
       .brand{font-size:17px;font-weight:800;letter-spacing:1px;color:#16345c}.subtitle{font-size:10px;letter-spacing:2px;color:#526b8a;margin-top:3px}
       .company-info{border-left:1px solid #9bbbe1;padding-left:16px;font-size:10px;line-height:1.8;color:#254b78}
       .doc-heading{display:grid;grid-template-columns:1.05fr 1fr;gap:16px;align-items:start;margin:18px 0 22px}
@@ -967,7 +967,7 @@ export default function HomePage() {
       footer{text-align:center;border-top:1px solid #cfe0f4;padding-top:10px;margin-top:22px;font-size:10px;color:#526b8a}
       .actions{text-align:center;margin:18px}@media print{.actions{display:none}.receipt{border:0;padding:0;max-width:none}.signatures{break-inside:avoid}}
       @media(max-width:600px){header,.doc-heading{grid-template-columns:1fr}.company-info{border-left:0;border-top:1px solid #9bbbe1;padding:10px 0 0}.grid{grid-template-columns:1fr}.signatures{gap:4px}.sign{padding:0 4px}.label{width:100px}}
-    </style></head><body><div class="actions"><button onclick="window.print()">Cetak struk</button> <button onclick="window.close()">Tutup</button></div><main class="receipt"><header><div class="brand-wrap"><svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 3 57 17v30L32 61 7 47V17Z" fill="none" stroke="#163f70" stroke-width="4"/><path d="m42 20-10-6-15 9v6l15 9 8-5-15-8 7-4 10 6Z M22 44l10 6 15-9v-6l-15-9-8 5 15 8-7 4-10-6Z" fill="#163f70"/></svg><div><div class="brand">SMART BUSINESS</div><div class="subtitle">MANAGEMENT</div><div style="font-size:10px;color:#58708c;margin-top:5px">Kelola bisnis lebih mudah, lebih profesional</div></div></div><div class="company-info"><strong>NDRAAAID — Business Operating System</strong><br>Kantor Pusat<br>Dokumen transaksi internal</div></header><section class="doc-heading"><div><h1>${receiptEscape(title)}</h1><div class="doc-number">Bukti transaksi / administrasi</div></div><div class="meta-box"><strong>BUKTI TRANSAKSI</strong><br>SMART BUSINESS MANAGEMENT<br><span style="color:#58708c">Simpan sebagai bukti administrasi</span></div></section>${body}<footer>Dokumen dibuat dari catatan sistem. Periksa data transaksi sebelum ditandatangani atau diarsipkan.</footer></main></body></html>`);
+    </style></head><body><div class="actions"><button onclick="window.print()">Cetak struk</button> <button onclick="window.close()">Tutup</button></div><main class="receipt"><header><div class="brand-wrap"><img class="brand-mark" src="/ndranexa-logo.svg" alt="Logo NDRANEXA" /><div><div class="brand">NDRANEXA</div><div class="subtitle">NIAGA NUSANTARA</div><div style="font-size:10px;color:#58708c;margin-top:5px">Solusi Bisnis, Untuk Masa Depan</div></div></div><div class="company-info"><strong>NDRANEXA NIAGA NUSANTARA</strong><br>Kantor Pusat<br>Dokumen transaksi internal</div></header><section class="doc-heading"><div><h1>${receiptEscape(title)}</h1><div class="doc-number">Bukti transaksi / administrasi</div></div><div class="meta-box"><strong>BUKTI TRANSAKSI</strong><br>SMART BUSINESS MANAGEMENT<br><span style="color:#58708c">Simpan sebagai bukti administrasi</span></div></section>${body}<footer>Dokumen dibuat dari catatan sistem. Periksa data transaksi sebelum ditandatangani atau diarsipkan.</footer></main></body></html>`);
     printWindow.document.close();
   }
 
@@ -1180,7 +1180,7 @@ export default function HomePage() {
     <main className={`app-shell role-${profile?.role ?? "employee"} ${mobileMenuOpen ? "mobile-menu-open" : ""}`}>
       {mobileMenuOpen && <button type="button" className="mobile-menu-backdrop" aria-label="Tutup menu navigasi" onClick={() => setMobileMenuOpen(false)} />}
       <aside id="mobile-navigation" className="sidebar" aria-label="Navigasi utama">
-        <div className="brand"><div className="brand-mark" aria-label="Logo NDRANEXA"><svg viewBox="0 0 64 64" role="img" aria-hidden="true"><path d="M32 3 57 17v30L32 61 7 47V17Z" fill="#102b50"/><path d="M20 44V20h6l18 17V20h-6v12L26 20h-6v24Z" fill="#f4c66a"/><path d="M20 44h6V31l12 11h6v-5L26 20h-6Z" fill="#fff"/></svg></div><div><div className="brand-title">NDRANEXA</div><div className="brand-sub">BUSINESS OPERATING SYSTEM</div></div></div>
+        <div className="brand"><div className="brand-mark"><img src="/ndranexa-logo.svg" alt="Logo NDRANEXA" /></div><div><div className="brand-title">NDRANEXA</div><div className="brand-sub">BUSINESS OPERATING SYSTEM</div></div></div>
         {["UTAMA", "OPERASIONAL", "TRANSAKSI", "MANAJEMEN", "AKUN"].filter((group) => navItems.some((item) => item.group === group && canAccessCurrentModule(item.key) && item.label.toLowerCase().includes(menuSearch.trim().toLowerCase()))).map((group) => (
           <div key={group}>
             <div className="nav-label">{group}</div>
