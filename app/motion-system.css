@@ -1,0 +1,159 @@
+/* NDRAAAID Motion Design System — Premium Elegant / balanced motion */
+:root {
+  --motion-fast: 150ms;
+  --motion-base: 210ms;
+  --motion-slow: 270ms;
+  --motion-ease: cubic-bezier(.2,.75,.25,1);
+  --motion-accent: #8bbcff;
+}
+html { scroll-behavior: smooth; scroll-padding-top: 1.25rem; }
+body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+button, a, input, select, textarea, summary, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+button, a, input, select, textarea, summary, [role="button"] {
+  transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+  transition-duration: var(--motion-base);
+  transition-timing-function: var(--motion-ease);
+}
+button:active:not(:disabled), [role="button"]:active, .nav-item:active, .quick-card:active {
+  transform: scale(.985);
+}
+:where(button, a, input, select, textarea, [role="button"], summary):focus-visible {
+  outline: 2px solid var(--motion-accent);
+  outline-offset: 3px;
+}
+.app-shell .main > :first-child,
+.login-card,
+.attendance-workspace .login-card,
+.business-hero,
+.offline-store-shell .cashier-launch-card {
+  animation: ndraaaid-enter var(--motion-slow) var(--motion-ease) both;
+}
+.app-shell .stat-card,
+.app-shell .panel,
+.app-shell .module-card,
+.app-shell .quick-card,
+.offline-store-shell .pos-checkout {
+  animation: ndraaaid-enter var(--motion-slow) var(--motion-ease) both;
+}
+.app-shell .stat-card:nth-child(2),
+.app-shell .module-card:nth-child(2),
+.app-shell .quick-card:nth-child(2) { animation-delay: 35ms; }
+.app-shell .stat-card:nth-child(3),
+.app-shell .module-card:nth-child(3),
+.app-shell .quick-card:nth-child(3) { animation-delay: 65ms; }
+.app-shell .stat-card:nth-child(4),
+.app-shell .module-card:nth-child(4),
+.app-shell .quick-card:nth-child(4) { animation-delay: 90ms; }
+.app-shell .nav-item { transition: color var(--motion-fast), background-color var(--motion-fast), border-color var(--motion-fast), transform var(--motion-fast); }
+.app-shell .btn, .app-shell .logout-button, .offline-store-shell .pos-focus-exit {
+  transition: color var(--motion-fast), background-color var(--motion-fast), border-color var(--motion-fast), box-shadow var(--motion-fast), transform var(--motion-fast);
+}
+.app-shell .btn:hover:not(:disabled), .app-shell .module-card:hover, .app-shell .stat-card:hover {
+  box-shadow: 0 12px 30px rgba(0,0,0,.10);
+}
+.app-shell tbody tr { transition: background-color var(--motion-fast); }
+.app-shell input:not([type="checkbox"]):focus,
+.app-shell select:focus,
+.app-shell textarea:focus {
+  transition: border-color var(--motion-fast), box-shadow var(--motion-fast), background-color var(--motion-fast);
+}
+.ndraaaid-theme-control {
+  position: fixed; z-index: 80; right: max(14px, env(safe-area-inset-right));
+  bottom: max(14px, env(safe-area-inset-bottom)); display: inline-flex; align-items: center; gap: 8px;
+  min-height: 42px; padding: 9px 12px; border: 1px solid rgba(139,188,255,.28);
+  border-radius: 999px; background: rgba(13,23,39,.92); color: #edf5ff;
+  box-shadow: 0 8px 28px rgba(0,0,0,.2); backdrop-filter: blur(14px);
+  font-family: inherit; font-size: 11px; font-weight: 600; line-height: 1.2; cursor: pointer;
+}
+.ndraaaid-theme-control:hover { transform: translateY(-2px); border-color: rgba(139,188,255,.7); }
+.ndraaaid-theme-control:focus-visible { outline: 2px solid #8bbcff; outline-offset: 3px; }
+.ndraaaid-theme-control-symbol { font-size: 15px; line-height: 1; }
+@keyframes ndraaaid-enter {
+  from { opacity: 0; transform: translate3d(0, 8px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+/* Adaptive workspace theme. Login and POS focus retain their deliberately branded surfaces. */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f4f7fb; --panel: #ffffff; --panel2: #edf2f8; --line: #dce4ef;
+  --muted: #64748b; --text: #182438; --blue: #2563eb; --cyan: #0e7490;
+}
+:root[data-theme="light"] .login-wrap { background: #080d18; color: #f2f6ff; }
+:root[data-theme="light"] .login-wrap .login-card h2 { color: #f2f6ff; }
+:root[data-theme="light"] body {
+  background: radial-gradient(ellipse at 80% -10%, rgba(37,99,235,.07), transparent 38%), #f4f7fb;
+  color: #182438;
+}
+:root[data-theme="light"] .app-shell { background: #f4f7fb; color: #182438; }
+:root[data-theme="light"] .app-shell .sidebar {
+  background: rgba(255,255,255,.96); border-color: #dce4ef; box-shadow: 8px 0 30px rgba(25,45,75,.04);
+}
+:root[data-theme="light"] .app-shell .brand { border-color: #e3eaf3; }
+:root[data-theme="light"] .app-shell .brand-title,
+:root[data-theme="light"] .app-shell h1,
+:root[data-theme="light"] .app-shell h2,
+:root[data-theme="light"] .app-shell h3,
+:root[data-theme="light"] .app-shell .stat-value,
+:root[data-theme="light"] .app-shell .activity-copy strong,
+:root[data-theme="light"] .app-shell .module-card strong,
+:root[data-theme="light"] .app-shell .quick-card strong { color: #182438; }
+:root[data-theme="light"] .app-shell .nav-item { color: #526178; }
+:root[data-theme="light"] .app-shell .nav-item:hover,
+:root[data-theme="light"] .app-shell .nav-item.active { color: #15243a; }
+:root[data-theme="light"] .app-shell .main { color: #182438; }
+:root[data-theme="light"] .app-shell .topbar { border-color: #e1e8f1; }
+:root[data-theme="light"] .app-shell .user-menu,
+:root[data-theme="light"] .app-shell .date-pill,
+:root[data-theme="light"] .app-shell .stat-card,
+:root[data-theme="light"] .app-shell .panel,
+:root[data-theme="light"] .app-shell .module-card,
+:root[data-theme="light"] .app-shell .quick-card {
+  background: #fff; border-color: #dce4ef; box-shadow: 0 8px 26px rgba(30,50,80,.045);
+}
+:root[data-theme="light"] .app-shell .stat-top,
+:root[data-theme="light"] .app-shell .subtle,
+:root[data-theme="light"] .app-shell .stat-note,
+:root[data-theme="light"] .app-shell .activity-copy span,
+:root[data-theme="light"] .app-shell .module-card p,
+:root[data-theme="light"] .app-shell .quick-card small { color: #64748b; }
+:root[data-theme="light"] .app-shell .activity { border-color: #e8edf4; }
+:root[data-theme="light"] .app-shell .activity-icon,
+:root[data-theme="light"] .app-shell .stat-icon { color: #24436b; }
+:root[data-theme="light"] .app-shell .btn { background: #edf3fa; color: #1c3555; border-color: #d5e0ee; }
+:root[data-theme="light"] .app-shell .btn-primary { background: linear-gradient(110deg,#2563eb,#0891b2); color: #fff; }
+:root[data-theme="light"] .app-shell input:not([type="checkbox"]),
+:root[data-theme="light"] .app-shell select,
+:root[data-theme="light"] .app-shell textarea {
+  background: #fff; color: #182438; border-color: #cbd6e4;
+}
+:root[data-theme="light"] .app-shell th { color: #526178; }
+:root[data-theme="light"] .app-shell td { color: #26364d; }
+:root[data-theme="light"] .app-shell tbody tr:hover { background: rgba(37,99,235,.055); }
+:root[data-theme="light"] .app-shell .business-hero {
+  background: radial-gradient(ellipse at 88% 10%, rgba(37,99,235,.07), transparent 46%), linear-gradient(135deg,#fff,#f5f8fc);
+  border-color: #dce4ef; box-shadow: 0 12px 34px rgba(30,50,80,.05);
+}
+:root[data-theme="light"] .app-shell .business-hero p { color: #5d6d82; }
+:root[data-theme="light"] .ndraaaid-theme-control {
+  background: rgba(255,255,255,.94); color: #1d2c42; border-color: #d3dfed; box-shadow: 0 8px 24px rgba(30,50,80,.12);
+}
+:root[data-theme="light"] .attendance-workspace:not(.attendance-employee) { background: #f4f7fb; color: #182438; }
+:root[data-theme="light"] .attendance-workspace:not(.attendance-employee) .panel { background: #fff; color: #182438; border-color: #dce4ef; }
+:root[data-theme="light"] .attendance-workspace:not(.attendance-employee) .subtle { color: #64748b; }
+/* Respect operating-system accessibility settings and keep printouts free of UI chrome. */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto !important; }
+  *, *::before, *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important; transition-duration: .01ms !important;
+  }
+}
+@media (max-width: 720px) {
+  .ndraaaid-theme-control { min-height: 40px; padding: 9px 11px; }
+}
+@media print {
+  .ndraaaid-theme-control { display: none !important; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
