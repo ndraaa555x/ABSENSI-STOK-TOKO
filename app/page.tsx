@@ -1,6 +1,8 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, ReactNode, useCallback, useEffect, useState } from "react";
+import { LayoutDashboard, UserRound, Users, CalendarCheck, ShoppingCart, RotateCcw, Banknote, Store, CalendarDays, Bell, Boxes, Settings, ArrowLeftRight } from "lucide-react";
+import { IconCategory, IconBarcode, IconCashRegister, IconPackage } from "@tabler/icons-react";
 import Link from "next/link";
 import { Session } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
@@ -11,7 +13,7 @@ type Counts = { employees: number; attendance: number; products: number; finance
 type AttendanceRow = { id: string; employee_id: string; work_date: string; check_in_at: string | null; check_out_at: string | null; status: string; check_in_method: string | null; check_out_method: string | null; notes?: string|null; recorded_by?: string|null; recorded_by_profile?: AuditProfile; evidence_path: string | null; employees: { full_name: string; employee_code: string } | null; evidence_url?: string | null };
 type DailyAttendanceRow = { employee_id: string; check_out_at: string | null; employees: { full_name: string; employee_code: string } | null };
 type AttendanceMode = "once_daily" | "multiple_sessions";
-type ModuleKey = "dashboard" | "profile" | "employees" | "attendance" | "orders" | "refunds" | "finance-reports" | "customers" | "inventory" | "finance" | "barcode" | "leave" | "notifications" | "settings";
+type ModuleKey = "dashboard" | "profile" | "employees" | "attendance" | "orders" | "transactions" | "refunds" | "finance-reports" | "customers" | "inventory" | "categories" | "products" | "cashier" | "finance" | "barcode" | "leave" | "notifications" | "settings";
 type OrderProduct = { id:string; name:string; sku:string; unit:string; sale_price:number; current_stock:number; is_active:boolean };
 type OrderItem = { id:string; quantity:number; unit_price:number; line_total:number; product_id:string; products:{name:string;sku:string;unit:string}|null };
 type OrderCartLine = { product_id:string; quantity:string };
@@ -32,28 +34,32 @@ type NotificationRow = {id:string;title:string;message:string;notification_type:
 type EmployeeRow = { id:string; employee_code:string; full_name:string; email:string|null; phone:string|null; job_title:string|null; employment_status:"active"|"inactive"; joined_on:string|null; notes:string|null; profile_id?:string|null };
 type AccountRow = { id:string; email:string; full_name:string|null; role:Role; is_active:boolean; employee?:{employee_code:string;employment_status:string;full_name:string}|null };
 const roleModules: Record<Role, ModuleKey[]> = {
-  owner: ["dashboard","profile","employees","attendance","orders","refunds","finance-reports","customers","inventory","finance","barcode","leave","notifications","settings"],
-  admin: ["dashboard","profile","employees","attendance","orders","refunds","finance-reports","customers","inventory","barcode","leave","notifications","settings"],
+  owner: ["dashboard","profile","employees","attendance","orders","transactions","refunds","finance-reports","customers","inventory","categories","products","cashier","finance","barcode","leave","notifications","settings"],
+  admin: ["dashboard","profile","employees","attendance","orders","transactions","refunds","finance-reports","customers","inventory","categories","products","cashier","barcode","leave","notifications","settings"],
   hrd: ["dashboard","profile","employees","attendance","leave","notifications"],
-  employee: ["dashboard","profile","attendance","orders","refunds","finance-reports","customers","leave","notifications"]
+  employee: ["dashboard","profile","attendance","orders","transactions","refunds","finance-reports","customers","leave","notifications"]
 };
 const canAccessModule = (role: Role | undefined, key: ModuleKey) => Boolean(role && roleModules[role]?.includes(key));
 const roleName = (role: Role | undefined) => role === "owner" ? "OWNER" : role === "admin" ? "ADMIN" : role === "hrd" ? "HRD / SDM" : "KARYAWAN";
-const navItems: { key: ModuleKey; icon: string; label: string; group: string }[] = [
-  { key: "dashboard", icon: "▦", label: "Dashboard", group: "UTAMA" },
-  { key: "profile", icon: "◉", label: "Profil Saya", group: "AKUN" },
-  { key: "employees", icon: "♙", label: "Karyawan", group: "OPERASIONAL" },
-  { key: "attendance", icon: "◷", label: "Absensi", group: "OPERASIONAL" },
-  { key: "orders", icon: "🛒", label: "Order Produk", group: "TRANSAKSI" },
-  { key: "refunds", icon: "↩", label: "Refund Produk", group: "TRANSAKSI" },
-  { key: "finance-reports", icon: "↗", label: "Laporan Uang", group: "TRANSAKSI" },
-  { key: "customers", icon: "🏪", label: "Data Toko / Member", group: "TRANSAKSI" },
-  { key: "leave", icon: "▣", label: "Izin / Cuti", group: "OPERASIONAL" },
-  { key: "notifications", icon: "♢", label: "Notifikasi", group: "UTAMA" },
-  { key: "inventory", icon: "▤", label: "Inventaris & Stok", group: "OPERASIONAL" },
-  { key: "barcode", icon: "▥", label: "Barcode", group: "OPERASIONAL" },
-  { key: "finance", icon: "◈", label: "Keuangan", group: "MANAJEMEN" },
-  { key: "settings", icon: "⚙", label: "Pengaturan", group: "MANAJEMEN" }
+const navItems: { key: ModuleKey; icon: ReactNode; label: string; group: string }[] = [
+  { key: "dashboard", icon: <LayoutDashboard size={18}/>, label: "Dashboard", group: "UTAMA" },
+  { key: "profile", icon: <UserRound size={18}/>, label: "Profil Saya", group: "AKUN" },
+  { key: "employees", icon: <Users size={18}/>, label: "Karyawan", group: "OPERASIONAL" },
+  { key: "attendance", icon: <CalendarCheck size={18}/>, label: "Absensi", group: "OPERASIONAL" },
+  { key: "categories", icon: <IconCategory size={18}/>, label: "Kategori Produk", group: "INVENTARIS" },
+  { key: "products", icon: <IconPackage size={18}/>, label: "Produk", group: "INVENTARIS" },
+  { key: "barcode", icon: <IconBarcode size={18}/>, label: "Barcode", group: "INVENTARIS" },
+  { key: "cashier", icon: <IconCashRegister size={18}/>, label: "Kasir / POS", group: "TRANSAKSI" },
+  { key: "transactions", icon: <ArrowLeftRight size={18}/>, label: "TRX / Transaksi", group: "TRANSAKSI" },
+  { key: "orders", icon: <ShoppingCart size={18}/>, label: "Order Produk", group: "TRANSAKSI" },
+  { key: "refunds", icon: <RotateCcw size={18}/>, label: "Refund Produk", group: "TRANSAKSI" },
+  { key: "finance-reports", icon: <Banknote size={18}/>, label: "Laporan Uang", group: "TRANSAKSI" },
+  { key: "customers", icon: <Store size={18}/>, label: "Data Toko / Member", group: "TRANSAKSI" },
+  { key: "leave", icon: <CalendarDays size={18}/>, label: "Izin / Cuti", group: "OPERASIONAL" },
+  { key: "notifications", icon: <Bell size={18}/>, label: "Notifikasi", group: "UTAMA" },
+  { key: "inventory", icon: <Boxes size={18}/>, label: "Inventaris & Stok", group: "INVENTARIS" },
+  { key: "finance", icon: <Banknote size={18}/>, label: "Keuangan", group: "MANAJEMEN" },
+  { key: "settings", icon: <Settings size={18}/>, label: "Pengaturan", group: "MANAJEMEN" }
 ];
 const descriptions: Record<ModuleKey, string> = {
   dashboard: "Pantau ringkasan data bisnis Anda.",
@@ -61,6 +67,10 @@ const descriptions: Record<ModuleKey, string> = {
   employees: "Kelola data dan akun karyawan sesuai kewenangan.",
   attendance: "Pantau kehadiran dan riwayat kerja sesuai hak akses.",
   orders: "Ajukan order produk untuk kebutuhan operasional kerja dan pantau status persetujuannya.",
+  transactions: "Lihat alur transaksi bisnis dan riwayat order.",
+  categories: "Kelola kategori produk dan klasifikasi katalog.",
+  products: "Kelola produk, SKU, harga, stok, dan informasi barcode.",
+  cashier: "Buka halaman kasir untuk transaksi penjualan toko offline.",
   refunds: "Ajukan pengembalian produk dari order yang sudah disetujui atau dipenuhi.",
   "finance-reports": "Catat uang masuk atau pengeluaran harian untuk diperiksa Admin/Owner.",
   customers: "Daftarkan toko/pembeli sebagai member dan pantau aktivitas order.",
@@ -240,7 +250,7 @@ export default function HomePage() {
   const [accountError, setAccountError] = useState("");
   const [accountNotice, setAccountNotice] = useState("");
   const storeScopedAccount = profile?.role === "employee" && storePlacementActive;
-  const canAccessCurrentModule = (key: ModuleKey) => canAccessModule(profile?.role, key) && (!storeScopedAccount || ["dashboard","profile","attendance","leave","notifications"].includes(key));
+  const canAccessCurrentModule = (key: ModuleKey) => (canAccessModule(profile?.role, key) || (key === "cashier" && storePlacementActive)) && (!storeScopedAccount || ["dashboard","profile","attendance","leave","notifications","cashier"].includes(key));
   useEffect(() => { if (storeScopedAccount && !["dashboard","profile","attendance","leave","notifications"].includes(activePage)) setActivePage("dashboard"); }, [storeScopedAccount,activePage]);
 
   const loadProfileAndCounts = useCallback(async (currentSession: Session) => {
@@ -1135,12 +1145,12 @@ export default function HomePage() {
       {mobileMenuOpen && <button type="button" className="mobile-menu-backdrop" aria-label="Tutup menu navigasi" onClick={() => setMobileMenuOpen(false)} />}
       <aside id="mobile-navigation" className="sidebar" aria-label="Navigasi utama">
         <div className="brand"><div className="brand-mark"><img src="/ndranexa-web.svg" alt="Logo NDRANEXA" style={{width:"100%",height:"100%",objectFit:"contain",display:"block"}} /></div><div><div className="brand-title">NDRANEXA</div><div className="brand-sub">BUSINESS PLATFORM</div></div></div>
-        {["UTAMA", "OPERASIONAL", "TRANSAKSI", "MANAJEMEN", "AKUN"].filter((group) => navItems.some((item) => item.group === group && (canAccessCurrentModule(item.key)) && item.label.toLowerCase().includes(menuSearch.trim().toLowerCase()))).map((group) => (
+        {["UTAMA", "OPERASIONAL", "INVENTARIS", "TRANSAKSI", "MANAJEMEN", "AKUN"].filter((group) => navItems.some((item) => item.group === group && (canAccessCurrentModule(item.key)) && item.label.toLowerCase().includes(menuSearch.trim().toLowerCase()))).map((group) => (
           <div key={group}>
             <div className="nav-label">{group}</div>
             <nav className="nav-list">
               {navItems.filter((item) => item.group === group && (canAccessCurrentModule(item.key)) && item.label.toLowerCase().includes(menuSearch.trim().toLowerCase())).map((item) => (
-                <button key={item.key} className={`nav-item ${activePage === item.key ? "active" : ""}`} onClick={() => { setActivePage(item.key); setMobileMenuOpen(false); }}>
+                <button key={item.key} className={`nav-item ${activePage === item.key || (["categories","products"].includes(item.key) && activePage === "inventory") || (item.key === "transactions" && activePage === "orders") ? "active" : ""}`} onClick={() => { if (item.key === "cashier") { window.location.href = "/offline-store?tab=pos"; return; } if (item.key === "categories" || item.key === "products") setActivePage("inventory"); else if (item.key === "transactions") setActivePage("orders"); else setActivePage(item.key); setMobileMenuOpen(false); }}>
                   <span className="nav-icon">{item.icon}</span>{item.label}
                 </button>
               ))}
