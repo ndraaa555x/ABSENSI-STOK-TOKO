@@ -95,26 +95,9 @@ movements AS (
  WHERE NOT EXISTS(SELECT 1 FROM public.stock_movements m WHERE m.product_id=p.id AND m.reference_code=s.reference_code)
  RETURNING id,reference_code
 ),
-expense_rows AS (
- SELECT s.reference_code,SUM(s.cost_price*s.stock) AS amount
- FROM new_products p JOIN seed s ON s.sku=p.sku
- GROUP BY s.reference_code
-),
-expenses AS (
- INSERT INTO public.financial_transactions(transaction_code,transaction_type,amount,payment_method,description,reference_code,evidence_path,status,created_by)
- SELECT CASE WHEN e.reference_code='INV-KP-20261017-02' THEN 'EXP-KP-20261017-02' ELSE 'EXP-KP-20261017-03' END,
-        'expense',e.amount,NULL,
-        CASE WHEN e.reference_code='INV-KP-20261017-02'
-          THEN 'Pembelian inventaris tambahan Kantor Pusat; nilai modal estimasi, faktur dan metode pembayaran belum diverifikasi.'
-          ELSE 'Estimasi nilai modal stok awal kategori HANDPHONE; faktur dan pembayaran belum diverifikasi.' END,
-        e.reference_code,NULL,'posted','d4d16695-edd9-42ed-81ac-676eed6c0c03'::uuid
- FROM expense_rows e
- WHERE NOT EXISTS(SELECT 1 FROM public.financial_transactions f WHERE f.reference_code=e.reference_code)
- RETURNING id,reference_code
-)
 SELECT
  (SELECT COUNT(*) FROM categories) AS categories_upserted,
  (SELECT COUNT(*) FROM new_products) AS products_inserted,
  (SELECT COUNT(*) FROM costs) AS product_costs_upserted,
  (SELECT COUNT(*) FROM movements) AS stock_movements_inserted,
- (SELECT COUNT(*) FROM expenses) AS expenses_inserted;
+ 0 AS expenses_inserted;
