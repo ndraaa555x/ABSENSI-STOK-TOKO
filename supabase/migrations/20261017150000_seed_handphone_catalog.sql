@@ -94,7 +94,7 @@ movements AS (
  FROM new_products p JOIN seed s ON s.sku=p.sku
  WHERE NOT EXISTS(SELECT 1 FROM public.stock_movements m WHERE m.product_id=p.id AND m.reference_code=s.reference_code)
  RETURNING id,reference_code
-),
+)
 SELECT
  (SELECT COUNT(*) FROM categories) AS categories_upserted,
  (SELECT COUNT(*) FROM new_products) AS products_inserted,
