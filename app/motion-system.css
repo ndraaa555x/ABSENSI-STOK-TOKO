@@ -157,3 +157,106 @@ button:active:not(:disabled), [role="button"]:active, .nav-item:active, .quick-c
   .ndraaaid-theme-control { display: none !important; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+
+/* Motion refinement — grounded, responsive and deliberately restrained. */
+:root {
+  --motion-fast: 135ms;
+  --motion-base: 220ms;
+  --motion-slow: 320ms;
+  --motion-ease: cubic-bezier(.22, 1, .36, 1);
+  --motion-ease-out: cubic-bezier(.16, 1, .3, 1);
+  --motion-press: cubic-bezier(.2, .7, .2, 1);
+}
+::selection { background: rgba(96, 165, 250, .28); }
+.app-shell .sidebar,
+.app-shell .main,
+.offline-store-shell,
+.attendance-workspace {
+  animation: ndraaaid-surface-in 360ms var(--motion-ease) both;
+}
+.app-shell .nav-item {
+  position: relative;
+  isolation: isolate;
+  transition: color var(--motion-fast) ease, background-color var(--motion-base) var(--motion-ease),
+    border-color var(--motion-base) ease, transform var(--motion-fast) var(--motion-press);
+}
+.app-shell .nav-item::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 25%;
+  bottom: 25%;
+  width: 2px;
+  border-radius: 4px;
+  background: var(--cyan);
+  opacity: 0;
+  transform: scaleY(.45);
+  transition: opacity var(--motion-base) ease, transform var(--motion-base) var(--motion-ease);
+}
+.app-shell .nav-item.active::after { opacity: 1; transform: scaleY(1); }
+.app-shell .stat-card,
+.app-shell .panel,
+.app-shell .module-card,
+.app-shell .quick-card,
+.offline-store-shell .pos-checkout,
+.offline-store-shell .cashier-launch-card {
+  transition: border-color var(--motion-base) ease, box-shadow var(--motion-base) ease,
+    background-color var(--motion-base) ease, transform var(--motion-base) var(--motion-ease);
+  backface-visibility: hidden;
+}
+.app-shell .stat-card:hover,
+.app-shell .module-card:hover,
+.app-shell .quick-card:hover,
+.offline-store-shell .cashier-launch-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--blue) 42%, var(--line));
+  box-shadow: 0 16px 34px rgba(0, 0, 0, .14);
+}
+.app-shell .btn,
+.app-shell .logout-button,
+.offline-store-shell .pos-focus-exit,
+.ndraaaid-theme-control {
+  transition: transform var(--motion-fast) var(--motion-press),
+    box-shadow var(--motion-base) var(--motion-ease), border-color var(--motion-base) ease,
+    background-color var(--motion-base) ease, filter var(--motion-base) ease;
+}
+.app-shell .btn:active:not(:disabled),
+.app-shell .logout-button:active:not(:disabled),
+.offline-store-shell .pos-focus-exit:active:not(:disabled) {
+  transform: scale(.975);
+}
+.app-shell .btn-primary:hover:not(:disabled) {
+  box-shadow: 0 7px 20px rgba(37, 99, 235, .22);
+  filter: saturate(1.08) brightness(1.035);
+}
+.app-shell input:not([type="checkbox"]):focus,
+.app-shell select:focus,
+.app-shell textarea:focus {
+  outline: none;
+  border-color: var(--motion-accent);
+  box-shadow: 0 0 0 3px rgba(139, 188, 255, .14);
+}
+.app-shell tbody tr {
+  transition: background-color var(--motion-fast) ease;
+}
+@keyframes ndraaaid-surface-in {
+  from { opacity: 0; transform: translate3d(0, 10px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@media (hover: none) {
+  .app-shell .stat-card:hover,
+  .app-shell .module-card:hover,
+  .app-shell .quick-card:hover,
+  .offline-store-shell .cashier-launch-card:hover {
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .sidebar,
+  .app-shell .main,
+  .offline-store-shell,
+  .attendance-workspace {
+    animation: none !important;
+  }
+}
