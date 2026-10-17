@@ -47,11 +47,11 @@ export default function CashierWorkspacePage(){
  const activeProducts=useMemo(()=>products.filter(p=>p.is_active&&Number(p.current_stock)>0),[products]);
  const filteredProducts=useMemo(()=>activeProducts.filter(p=>[p.name,p.sku,p.barcode_value||""].join(" ").toLowerCase().includes(search.trim().toLowerCase())),[activeProducts,search]);
  const cartDetails=useMemo(()=>cart.map(line=>{const product=activeProducts.find(p=>p.id===line.product_id)||products.find(p=>p.id===line.product_id);return product?{...line,product,lineTotal:Number(product.sale_price)*line.quantity}:null;}).filter((x):x is CartLine&{product:Product;lineTotal:number}=>Boolean(x)),[cart,activeProducts,products]);
- const subtotal=cartDetails.reduce((sum,line)=>sum+line.lineTotal,0);
- const discountPercent=Math.max(0,Number(discount)||0);
- const activePromotions=useMemo(()=>promotions.filter(p=>p.is_active&&new Date(p.starts_at).getTime()<=Date.now()&&(!p.ends_at||new Date(p.ends_at).getTime()>Date.now())),[promotions]);
- const promotionFor=(product:Product)=>activePromotions.filter(p=>!p.store_product_id||p.store_product_id===product.id).map(p=>({promotion:p,amount:Math.min(Number(product.sale_price)||0,p.discount_type==="percent"?(Number(product.sale_price)||0)*Number(p.discount_value)/100:Number(p.discount_value)||0)})).sort((a,b)=>b.amount-a.amount)[0]||null;
  const roundMoney=(n:number)=>Math.round((n+Number.EPSILON)*100)/100;
+ const subtotal=cartDetails.reduce((sum,line)=>sum+roundMoney(line.lineTotal),0);
+ const discountPercent=Math.max(0,Number(discount)||0);
+ const activePromotions=promotions.filter(p=>p.is_active&&new Date(p.starts_at).getTime()<=Date.now()&&(!p.ends_at||new Date(p.ends_at).getTime()>Date.now()));
+ const promotionFor=(product:Product)=>activePromotions.filter(p=>!p.store_product_id||p.store_product_id===product.id).map(p=>({promotion:p,amount:Math.min(Number(product.sale_price)||0,p.discount_type==="percent"?(Number(product.sale_price)||0)*Number(p.discount_value)/100:Number(p.discount_value)||0)})).sort((a,b)=>b.amount-a.amount)[0]||null;
  const lineDiscount=(line:CartLine&{product:Product;lineTotal:number})=>Math.max(roundMoney(line.lineTotal*discountPercent/100),roundMoney(line.quantity*(promotionFor(line.product)?.amount||0)));
  const discountTotal=cartDetails.reduce((sum,line)=>sum+lineDiscount(line),0);
  const total=Math.max(0,subtotal-discountTotal);
