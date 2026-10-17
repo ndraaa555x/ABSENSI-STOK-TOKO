@@ -11,7 +11,7 @@ const G = ["0100111","0110011","0011011","0100001","0011101","0111001","0000101"
 const R = ["1110010","1100110","1101100","1000010","1011100","1001110","1010000","1000100","1001000","1110100"];
 const PARITY = ["LLLLLL","LLGLGG","LLGGLG","LLGGGL","LGLLGG","LGGLLG","LGGGLL","LGLGLG","LGLGGL","LGGLGL"];
 function validEan13(value: string) {
-  if (!/^\\d{13}$/.test(value)) return false;
+  if (!/^\d{13}$/.test(value)) return false;
   const sum = value.slice(0, 12).split("").reduce((total, digit, index) => total + Number(digit) * (index % 2 === 0 ? 1 : 3), 0);
   return (10 - sum % 10) % 10 === Number(value[12]);
 }
