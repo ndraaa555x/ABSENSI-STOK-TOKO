@@ -552,3 +552,6 @@ input:focus,select:focus,textarea:focus{outline:3px solid #2f80ed20;border-color
 .trx-footer{padding:12px 3px;color:#8291a4;font-size:11px;line-height:1.5}
 @media(max-width:800px){.trx-toolbar{grid-template-columns:1fr 1fr}.trx-toolbar input{grid-column:1/-1}.trx-toolbar button{width:100%}.trx-hero{padding:18px}.trx-table{min-width:760px}.trx-summary{align-items:flex-start;flex-direction:column}}
 @media(max-width:480px){.trx-shell{padding:12px}.trx-toolbar{grid-template-columns:1fr}.trx-toolbar input{grid-column:auto}.trx-hero{gap:10px;padding:15px}.trx-icon-box{width:38px;height:38px;flex-basis:38px}.trx-summary{font-size:11px}}
+
+/* Hide module-local audit/history lists after their records have been centralized in TRX. */
+.centralized-history{display:none!important}
