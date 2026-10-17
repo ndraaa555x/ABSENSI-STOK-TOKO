@@ -1,6 +1,6 @@
 -- Idempotent inventory seed for PR #38.
 -- Includes all added central-office categories/products discussed with the owner:
--- 5 PC categories (10 SKUs) and HANDPHONE (12 SKUs). Existing rows are not restocked twice.
+-- 5 PC categories (10 SKUs) and HANDPHONE (11 SKUs). Existing rows are not restocked twice.
 -- Prices and starter quantities are estimates; verify physical stock, invoices, model/specs,
 -- device IMEI/condition/warranty, and payment before treating them as verified purchases.
 WITH category_seed(name, description) AS (
@@ -60,8 +60,7 @@ seed(sku,name,category_name,cost_price,sale_price,stock,unit,reference_code,desc
  ('IPH-17E-256','Apple iPhone 17e 256GB','HANDPHONE',11500000,12500000,2,'unit','INV-KP-20261017-03','Estimasi harga pasar; distributor dan ketersediaan dapat berubah.'),
  ('IPH-AIR-256','Apple iPhone Air 256GB','HANDPHONE',15500000,16800000,2,'unit','INV-KP-20261017-03','Estimasi harga pasar; konfirmasi varian dan ketersediaan Indonesia.'),
  ('IPH-18PRO-256','Apple iPhone 18 Pro 256GB','HANDPHONE',18500000,20500000,2,'unit','INV-KP-20261017-03','Harga provisional; konfirmasi ketersediaan resmi, varian dan garansi sebelum transaksi.'),
- ('IPH-18PM-256','Apple iPhone 18 Pro Max 256GB','HANDPHONE',21500000,23500000,2,'unit','INV-KP-20261017-03','Harga provisional; konfirmasi ketersediaan resmi, varian dan garansi sebelum transaksi.'),
- ('IPH-DUO-256','Apple iPhone Duo 256GB','HANDPHONE',25000000,27500000,2,'unit','INV-KP-20261017-03','Harga provisional untuk lini foldable; konfirmasi nama model, ketersediaan dan spesifikasi sebelum transaksi.')
+ ('IPH-18PM-256','Apple iPhone 18 Pro Max 256GB','HANDPHONE',21500000,23500000,2,'unit','INV-KP-20261017-03','Harga provisional; konfirmasi ketersediaan resmi, varian dan garansi sebelum transaksi.')
 ),
 new_products AS (
  INSERT INTO public.products(sku,barcode_value,name,category_id,unit,description,sale_price,current_stock,minimum_stock,storage_location,is_active,created_by)
