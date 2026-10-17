@@ -57,7 +57,7 @@ const navItems: { key: ModuleKey; icon: ReactNode; label: string; group: string 
   { key: "customers", icon: <Store size={18}/>, label: "Data Toko / Member", group: "TRANSAKSI" },
   { key: "leave", icon: <CalendarDays size={18}/>, label: "Izin / Cuti", group: "OPERASIONAL" },
   { key: "notifications", icon: <Bell size={18}/>, label: "Notifikasi", group: "UTAMA" },
-  
+  { key: "inventory", icon: <Boxes size={18}/>, label: "Inventaris & Stok", group: "INVENTARIS" },
   { key: "finance", icon: <Banknote size={18}/>, label: "Keuangan", group: "MANAJEMEN" },
   { key: "settings", icon: <Settings size={18}/>, label: "Pengaturan", group: "MANAJEMEN" }
 ];
