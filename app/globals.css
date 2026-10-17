@@ -527,3 +527,45 @@ input:focus,select:focus,textarea:focus{outline:3px solid #2f80ed20;border-color
 
 /* Brand mark consistency across login, dashboards, and any shared brand header. */
 .brand .brand-mark{font-size:0!important;color:transparent!important;background:#fff url('/ndranexa-web.svg') center/cover no-repeat!important;border:1px solid #d9dde1!important;border-radius:8px!important;box-shadow:none!important}
+
+/* Central TRX: hide legacy history panels while keeping source-module forms and controls. */
+.centralized-history{display:none!important}
+.trx-shell{max-width:1480px;margin:0 auto;padding:clamp(14px,2vw,28px);color:var(--text,#edf2f7)}
+.trx-hero{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:22px 24px;border:1px solid rgba(148,163,184,.18);border-radius:18px;background:linear-gradient(135deg,rgba(15,35,61,.96),rgba(20,31,48,.92));margin-bottom:18px}
+.trx-kicker{font-size:11px;letter-spacing:.14em;font-weight:800;color:#9bb6d4;text-transform:uppercase}
+.trx-title{font-size:clamp(22px,2.2vw,30px);line-height:1.2;letter-spacing:-.025em;margin:7px 0 8px;font-weight:750}
+.trx-subtitle{max-width:760px;margin:0;color:#aab8c8;font-size:13px;line-height:1.6}
+.trx-icon-box{display:grid;place-items:center;flex:0 0 46px;width:46px;height:46px;border-radius:13px;background:rgba(226,232,240,.09);color:#dbeafe}
+.trx-toolbar{display:grid;grid-template-columns:minmax(220px,1.6fr) repeat(2,minmax(150px,.7fr)) auto;gap:10px;align-items:center;padding:14px;border:1px solid var(--line,rgba(148,163,184,.2));border-radius:14px;background:rgba(15,23,42,.42);margin-bottom:14px}
+.trx-toolbar input,.trx-toolbar select{width:100%;min-width:0;height:39px;padding:8px 11px;border:1px solid rgba(148,163,184,.25);border-radius:9px;background:rgba(15,23,42,.7);color:inherit;font:inherit;font-size:12px}
+.trx-toolbar button{height:39px;display:inline-flex;gap:7px;align-items:center;justify-content:center;white-space:nowrap}
+.trx-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px 2px;color:#94a3b8;font-size:12px}
+.trx-table-wrap{overflow:auto;border:1px solid rgba(148,163,184,.2);border-radius:14px;background:rgba(15,23,42,.38)}
+.trx-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:12px}
+.trx-table th{padding:11px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#94a3b8;background:rgba(148,163,184,.07);font-weight:750}
+.trx-table td{padding:12px 13px;border-top:1px solid rgba(148,163,184,.12);vertical-align:top;line-height:1.45;overflow-wrap:anywhere}
+.trx-table tbody tr:hover{background:rgba(148,163,184,.045)}
+.trx-primary{font-size:12px;font-weight:700;color:#e2e8f0}
+.trx-secondary{font-size:11px;color:#94a3b8;margin-top:4px;line-height:1.45}
+.trx-tag{display:inline-flex;align-items:center;max-width:100%;padding:4px 8px;border:1px solid rgba(148,163,184,.2);border-radius:999px;font-size:10px;line-height:1.2;white-space:normal;color:#dbeafe;background:rgba(148,163,184,.08)}
+.trx-empty{padding:38px 18px;text-align:center;color:#94a3b8;font-size:13px}
+.trx-footer{padding:12px 3px;color:#8291a4;font-size:11px;line-height:1.5}
+@media(max-width:800px){.trx-toolbar{grid-template-columns:1fr 1fr}.trx-toolbar input{grid-column:1/-1}.trx-toolbar button{width:100%}.trx-hero{padding:18px}.trx-table{min-width:760px}.trx-summary{align-items:flex-start;flex-direction:column}}
+@media(max-width:480px){.trx-shell{padding:12px}.trx-toolbar{grid-template-columns:1fr}.trx-toolbar input{grid-column:auto}.trx-hero{gap:10px;padding:15px}.trx-icon-box{width:38px;height:38px;flex-basis:38px}.trx-summary{font-size:11px}}
+
+/* Hide module-local audit/history lists after their records have been centralized in TRX. */
+.centralized-history{display:none!important}
+
+
+.trx-module-link{display:flex;flex-direction:column;align-items:flex-start;gap:9px;min-width:0}
+.trx-module-link h2,.business-queue h2{margin:0;font-size:16px;line-height:1.35;letter-spacing:-.01em}
+.trx-module-link p,.business-queue p{font-size:12px;line-height:1.55;max-width:720px}
+.trx-module-link .btn{display:inline-flex;align-items:center;gap:7px;min-height:36px;font-size:12px}
+.business-queue{min-width:0;overflow:hidden}
+.business-queue .business-actions{display:flex;flex-wrap:wrap;gap:8px}
+.business-queue .business-record{min-width:0;padding:12px 0;border-bottom:1px solid rgba(148,163,184,.14)}
+.business-queue .business-record:last-child{border-bottom:0}
+.business-queue .business-record-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;min-width:0}
+.business-queue .business-record-head>div{min-width:0;overflow-wrap:anywhere}
+.business-queue .status-pill{flex-shrink:0;max-width:45%;white-space:normal;text-align:center}
+@media(max-width:600px){.business-queue .business-record-head{flex-direction:column;gap:6px}.business-queue .status-pill{max-width:100%}.trx-module-link .btn{width:100%;justify-content:center}}
