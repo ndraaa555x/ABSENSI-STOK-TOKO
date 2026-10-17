@@ -4,7 +4,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeftRight, RefreshCw, Search, ClipboardList, ShieldCheck, Printer, X, FileText, UserRound, History } from "lucide-react";
-import { IconClockHour4 } from "@tabler/icons-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
