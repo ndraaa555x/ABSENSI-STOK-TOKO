@@ -524,3 +524,6 @@ input:focus,select:focus,textarea:focus{outline:3px solid #2f80ed20;border-color
 .app-shell .brand-mark{font-size:0!important;color:transparent!important;background-color:#fff!important;background-image:url('/ndranexa-web.svg')!important;background-repeat:no-repeat!important;background-position:center!important;background-size:cover!important;border:1px solid #d9dde1!important;border-radius:8px!important;box-shadow:none!important}
 .brand-mark::after{content:none!important}
 @media print{.receipt-company-logo{display:block;max-width:168px;max-height:112px;object-fit:contain;margin:0 auto 10px}.receipt-company-name{font-weight:800;letter-spacing:.08em}.receipt-company-subtitle{letter-spacing:.16em;font-size:10px}}
+
+/* Brand mark consistency across login, dashboards, and any shared brand header. */
+.brand .brand-mark{font-size:0!important;color:transparent!important;background:#fff url('/ndranexa-web.svg') center/cover no-repeat!important;border:1px solid #d9dde1!important;border-radius:8px!important;box-shadow:none!important}
