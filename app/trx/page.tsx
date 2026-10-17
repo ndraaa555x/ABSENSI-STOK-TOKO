@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeftRight, RefreshCw, Search, ClipboardList, ShieldCheck } from "lucide-react";
 import { IconClockHour4 } from "@tabler/icons-react";
 import Link from "next/link";
@@ -15,6 +15,9 @@ const label=(v:string)=>String(v||"—").replaceAll("_"," ").replace(/\b\w/g,c=>
 
 export default function TrxPage(){
  const router=useRouter();
+ const searchParams=useSearchParams();
+ const storeId=searchParams.get("storeId");
+ const [verifiedStoreId,setVerifiedStoreId]=useState<string|null>(null);
  const [role,setRole]=useState("employee");
  const [loading,setLoading]=useState(true);
  const [refreshing,setRefreshing]=useState(false);
@@ -28,7 +31,8 @@ export default function TrxPage(){
  const load=useCallback(async(currentRole:string,currentStoreId:string|null)=>{
   setRefreshing(true);
   const canAll=["owner","admin"].includes(currentRole);
-  const canEmployee=currentRole==="employee";
+  const canEmployee=currentRole==="employee"&&!currentStoreId;
+  const canStoreScoped=currentRole==="employee"&&Boolean(currentStoreId);
   const canPeople=canAll||canEmployee||currentRole==="hrd";
   const skip=()=>Promise.resolve({data:[],error:null});
   const [orders,refunds,reports,attendance,leaves,movements,finances,submissions,receipts,sales,storeFinances,purchaseOrders]=await Promise.all([
@@ -39,11 +43,11 @@ export default function TrxPage(){
    canPeople?supabase.from("leave_requests").select("id,leave_type,start_date,end_date,reason,status,created_at,employees(full_name,employee_code)").order("created_at",{ascending:false}).limit(300):skip(),
    canAll?supabase.from("stock_movements").select("id,movement_type,quantity,reason,reference_code,movement_at,created_by,products(name,sku)").order("movement_at",{ascending:false}).limit(300):skip(),
    canAll?supabase.from("financial_transactions").select("id,transaction_code,transaction_type,amount,description,status,transaction_at,created_by").order("transaction_at",{ascending:false}).limit(300):skip(),
-   canAll?supabase.from("offline_product_submissions").select("id,proposed_name,proposed_sku,proposed_category_name,status,review_note,requested_at,requested_by").order("requested_at",{ascending:false}).limit(300):skip(),
-   canAll?supabase.from("offline_stock_receipts").select("id,receipt_code,status,supplier_name,created_at").order("created_at",{ascending:false}).limit(300):skip(),
-   canAll?supabase.from("offline_store_sales").select("id,sale_code,subtotal,discount_total,total,payment_method,cashier_id,created_at,status").order("created_at",{ascending:false}).limit(300):skip(),
-   canAll?supabase.from("offline_store_finance_entries").select("id,entry_type,amount,payment_method,description,reference_code,created_at").order("created_at",{ascending:false}).limit(300):skip(),
-   canAll?supabase.from("offline_store_purchase_orders").select("id,order_code,store_id,status,subtotal,paid_amount,notes,requested_at,requested_by,reviewed_by,reviewed_at").order("requested_at",{ascending:false}).limit(300):skip()
+   canAll?supabase.from("offline_product_submissions").select("id,proposed_name,proposed_sku,proposed_category_name,status,review_note,requested_at,requested_by,store_id").order("requested_at",{ascending:false}).limit(300):canStoreScoped?supabase.from("offline_product_submissions").select("id,proposed_name,proposed_sku,proposed_category_name,status,review_note,requested_at,requested_by,store_id").eq("store_id",currentStoreId).order("requested_at",{ascending:false}).limit(300):skip(),
+   canAll?supabase.from("offline_stock_receipts").select("id,receipt_code,status,supplier_name,created_at,store_id").order("created_at",{ascending:false}).limit(300):canStoreScoped?supabase.from("offline_stock_receipts").select("id,receipt_code,status,supplier_name,created_at,store_id").eq("store_id",currentStoreId).order("created_at",{ascending:false}).limit(300):skip(),
+   canAll?supabase.from("offline_store_sales").select("id,sale_code,subtotal,discount_total,total,payment_method,cashier_id,created_at,status,store_id").order("created_at",{ascending:false}).limit(300):canStoreScoped?supabase.from("offline_store_sales").select("id,sale_code,subtotal,discount_total,total,payment_method,cashier_id,created_at,status,store_id").eq("store_id",currentStoreId).order("created_at",{ascending:false}).limit(300):skip(),
+   canAll?supabase.from("offline_store_finance_entries").select("id,entry_type,amount,payment_method,description,reference_code,created_at,store_id").order("created_at",{ascending:false}).limit(300):canStoreScoped?supabase.from("offline_store_finance_entries").select("id,entry_type,amount,payment_method,description,reference_code,created_at,store_id").eq("store_id",currentStoreId).order("created_at",{ascending:false}).limit(300):skip(),
+   canAll?supabase.from("offline_store_purchase_orders").select("id,order_code,store_id,status,subtotal,paid_amount,notes,requested_at,requested_by,reviewed_by,reviewed_at").order("requested_at",{ascending:false}).limit(300):canStoreScoped?supabase.from("offline_store_purchase_orders").select("id,order_code,store_id,status,subtotal,paid_amount,notes,requested_at,requested_by,reviewed_by,reviewed_at").eq("store_id",currentStoreId).order("requested_at",{ascending:false}).limit(300):skip()
   ]);
   const next:Item[]=[];
   const actor=(p:any,id:any)=>p?.full_name||p?.email||(id?String(id).slice(0,8):"Tidak tercatat");
@@ -63,8 +67,8 @@ export default function TrxPage(){
   setErrors([orders,refunds,reports,attendance,leaves,movements,finances,submissions,receipts,sales,storeFinances,purchaseOrders].filter((x:any)=>x.error).map((x:any)=>x.error.message||"Sebagian sumber tidak dapat dibaca."));
   setRefreshing(false);setLoading(false);
  },[]);
- useEffect(()=>{let alive=true;supabase.auth.getSession().then(async({data})=>{if(!alive)return;if(!data.session){router.replace("/");return;}const {data:account}=await supabase.from("profiles").select("role,is_active").eq("id",data.session.user.id).maybeSingle();if(!alive)return;if(!account?.is_active){router.replace("/");return;}const currentRole=account.role||"employee";setRole(currentRole);if(currentRole==="employee"){const {data:membership,error:membershipError}=await supabase.from("offline_store_memberships").select("store_id").eq("user_id",data.session.user.id).eq("is_active",true).maybeSingle();if(!alive)return;if(membershipError){setErrors(["Penempatan toko tidak dapat diverifikasi; riwayat dibatasi demi keamanan."]);setLoading(false);setRefreshing(false);return;}const actualStoreId=membership?.store_id||null;if(storeId&&actualStoreId&&storeId!==actualStoreId){setErrors(["Penempatan toko pada tautan tidak cocok dengan akun."]);setLoading(false);setRefreshing(false);return;}setVerifiedStoreId(actualStoreId);void load(currentRole,actualStoreId);}else{setVerifiedStoreId(null);void load(currentRole,null);}});const {data:{subscription}}=supabase.auth.onAuthStateChange((_e,s)=>{if(!s)router.replace("/");});return()=>{alive=false;subscription.unsubscribe();};},[load,router]);
- const allowedKinds=useMemo<string[]|null>(()=>role==="owner"||role==="admin"?null:role==="hrd"?["Absensi","Izin/Cuti"]:["Order","Refund","Laporan uang","Absensi","Izin/Cuti"],[role]);
+ useEffect(()=>{let alive=true;supabase.auth.getSession().then(async({data})=>{if(!alive)return;if(!data.session){router.replace("/");return;}const {data:account}=await supabase.from("profiles").select("role,is_active").eq("id",data.session.user.id).maybeSingle();if(!alive)return;if(!account?.is_active){router.replace("/");return;}const currentRole=account.role||"employee";setRole(currentRole);if(currentRole==="employee"){const {data:membership,error:membershipError}=await supabase.from("offline_store_memberships").select("store_id").eq("user_id",data.session.user.id).eq("is_active",true).maybeSingle();if(!alive)return;if(membershipError){setErrors(["Penempatan toko tidak dapat diverifikasi; riwayat dibatasi demi keamanan."]);setLoading(false);setRefreshing(false);return;}const actualStoreId=membership?.store_id||null;if(storeId&&actualStoreId&&storeId!==actualStoreId){setErrors(["Penempatan toko pada tautan tidak cocok dengan akun."]);setLoading(false);setRefreshing(false);return;}setVerifiedStoreId(actualStoreId);void load(currentRole,actualStoreId);}else{setVerifiedStoreId(null);void load(currentRole,null);}});const {data:{subscription}}=supabase.auth.onAuthStateChange((_e,s)=>{if(!s)router.replace("/");});return()=>{alive=false;subscription.unsubscribe();};},[load,router,storeId]);
+ const allowedKinds=useMemo<string[]|null>(()=>role==="owner"||role==="admin"?null:role==="hrd"?["Absensi","Izin/Cuti"]:verifiedStoreId?["Pengajuan produk toko","Penerimaan stok toko","Penjualan toko","Keuangan toko","Pembelian toko"]:["Order","Refund","Laporan uang","Absensi","Izin/Cuti"],[role,verifiedStoreId]);
  const kinds=useMemo(()=>Array.from(new Set(items.map(i=>i.kind))).filter(k=>!allowedKinds||allowedKinds.includes(k)).sort(),[items,allowedKinds]);
  const filtered=useMemo(()=>items.filter(i=>(!allowedKinds||allowedKinds.includes(i.kind))&&(kind==="all"||i.kind===kind)&&(status==="all"||i.status===status)&&(!from||String(i.at||"").slice(0,10)>=from)&&(!to||String(i.at||"").slice(0,10)<=to)&&[i.code,i.kind,i.title,i.detail,i.status,i.actor,i.origin].join(" ").toLowerCase().includes(search.toLowerCase())),[items,kind,status,from,to,search,allowedKinds]);
  const statuses=useMemo(()=>Array.from(new Set(items.filter(i=>!allowedKinds||allowedKinds.includes(i.kind)).map(i=>i.status))).sort(),[items,allowedKinds]);
@@ -75,7 +79,7 @@ export default function TrxPage(){
    <div style={{position:"relative"}}><Search size={15} style={{position:"absolute",left:10,top:12,color:"#94a3b8"}}/><input style={{paddingLeft:32}} aria-label="Cari TRX" placeholder="Cari kode, keterangan, pembuat…" value={search} onChange={e=>setSearch(e.target.value)}/></div>
    <select aria-label="Jenis riwayat" value={kind} onChange={e=>setKind(e.target.value)}><option value="all">Semua jenis</option>{kinds.map(k=><option key={k} value={k}>{k}</option>)}</select>
    <select aria-label="Status" value={status} onChange={e=>setStatus(e.target.value)}><option value="all">Semua status</option>{statuses.map(s=><option key={s} value={s}>{label(s)}</option>)}</select>
-   <button className="btn" type="button" onClick={()=>{setFrom("");setTo("");setSearch("");setKind("all");setStatus("all");void load(role);}}><RefreshCw size={14}/> Muat ulang</button>
+   <button className="btn" type="button" onClick={()=>{setFrom("");setTo("");setSearch("");setKind("all");setStatus("all");void load(role,verifiedStoreId);}}><RefreshCw size={14}/> Muat ulang</button>
    <label style={{display:"flex",alignItems:"center",gap:7,fontSize:11,color:"#94a3b8"}}>Dari <input type="date" value={from} onChange={e=>setFrom(e.target.value)}/></label>
    <label style={{display:"flex",alignItems:"center",gap:7,fontSize:11,color:"#94a3b8"}}>Sampai <input type="date" value={to} onChange={e=>setTo(e.target.value)}/></label>
   </section>
