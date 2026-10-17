@@ -899,3 +899,10 @@ input:focus,select:focus,textarea:focus{outline:3px solid #2f80ed20;border-color
   .offline-store-shell .pos-focus-exit{width:100%}
   .offline-store-shell .pos-focus-page .pos-checkout{padding:17px}
 }
+
+/* Dashboard/catalog visual cleanup */
+.dashboard-welcome{align-items:center;gap:22px;padding:clamp(20px,3vw,30px)!important}
+.dashboard-welcome h1{font-size:clamp(25px,3vw,38px)!important;line-height:1.15;letter-spacing:-.035em;overflow-wrap:anywhere}
+.dashboard-content-grid{align-items:start;gap:16px}
+.dashboard-content-grid>.panel{min-width:0}
+@media(max-width:620px){.dashboard-welcome{display:grid!important;grid-template-columns:minmax(0,1fr);gap:14px!important}.dashboard-welcome .date-pill{justify-self:start;max-width:100%;font-size:13px}.dashboard-content-grid{grid-template-columns:minmax(0,1fr)!important}.user-menu-button{display:none!important}}
