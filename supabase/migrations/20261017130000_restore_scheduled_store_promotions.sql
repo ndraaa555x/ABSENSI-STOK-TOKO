@@ -36,7 +36,8 @@ declare
   v_manual_discount numeric(14,2);
 begin
   if auth.uid() is null
-     or not private.offline_store_member(p_store_id, array['manager','store_admin','cashier']) then
+     or (not private.is_admin_or_owner()
+         and not private.offline_store_member(p_store_id, array['manager','store_admin','cashier'])) then
     raise exception 'Akses kasir tidak diizinkan';
   end if;
 
