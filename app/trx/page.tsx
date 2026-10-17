@@ -25,20 +25,24 @@ export default function TrxPage(){
  const [status,setStatus]=useState("all");
  const [from,setFrom]=useState("");
  const [to,setTo]=useState("");
- const load=useCallback(async()=>{
+ const load=useCallback(async(currentRole:string)=>{
   setRefreshing(true);
+  const canAll=["owner","admin"].includes(currentRole);
+  const canEmployee=currentRole==="employee";
+  const canPeople=canAll||canEmployee||currentRole==="hrd";
+  const skip=()=>Promise.resolve({data:[],error:null});
   const [orders,refunds,reports,attendance,leaves,movements,finances,submissions,receipts,sales,storeFinances]=await Promise.all([
-   supabase.from("product_orders").select("id,order_code,status,notes,created_at,ordered_by,ordered_by_profile:profiles!product_orders_ordered_by_fkey(full_name,email)").order("created_at",{ascending:false}).limit(300),
-   supabase.from("product_refunds").select("id,refund_code,status,reason,amount,created_at,requested_by,requested_by_profile:profiles!product_refunds_requested_by_fkey(full_name,email)").order("created_at",{ascending:false}).limit(300),
-   supabase.from("financial_reports").select("id,report_code,report_type,status,description,amount,created_at,submitted_by,submitted_by_profile:profiles!financial_reports_submitted_by_fkey(full_name,email)").order("created_at",{ascending:false}).limit(300),
-   supabase.from("attendance_records").select("id,work_date,check_in_at,check_out_at,status,notes,recorded_by,employees(full_name,employee_code)").order("work_date",{ascending:false}).limit(300),
-   supabase.from("leave_requests").select("id,leave_type,start_date,end_date,reason,status,created_at,employees(full_name,employee_code)").order("created_at",{ascending:false}).limit(300),
-   supabase.from("stock_movements").select("id,movement_type,quantity,reason,reference_code,movement_at,created_by,products(name,sku)").order("movement_at",{ascending:false}).limit(300),
-   supabase.from("financial_transactions").select("id,transaction_code,transaction_type,amount,description,status,transaction_at,created_by").order("transaction_at",{ascending:false}).limit(300),
-   supabase.from("offline_product_submissions").select("id,proposed_name,proposed_sku,proposed_category_name,status,review_note,requested_at,requested_by").order("requested_at",{ascending:false}).limit(300),
-   supabase.from("offline_stock_receipts").select("id,receipt_code,status,supplier_name,created_at").order("created_at",{ascending:false}).limit(300),
-   supabase.from("offline_store_sales").select("id,sale_code,subtotal,discount_total,total,payment_method,cashier_id,created_at,status").order("created_at",{ascending:false}).limit(300),
-   supabase.from("offline_store_finance_entries").select("id,entry_type,amount,payment_method,description,reference_code,created_at").order("created_at",{ascending:false}).limit(300)
+   (canAll||canEmployee)?supabase.from("product_orders").select("id,order_code,status,notes,created_at,ordered_by,ordered_by_profile:profiles!product_orders_ordered_by_fkey(full_name,email)").order("created_at",{ascending:false}).limit(300):skip(),
+   (canAll||canEmployee)?supabase.from("product_refunds").select("id,refund_code,status,reason,amount,created_at,requested_by,requested_by_profile:profiles!product_refunds_requested_by_fkey(full_name,email)").order("created_at",{ascending:false}).limit(300):skip(),
+   (canAll||canEmployee)?supabase.from("financial_reports").select("id,report_code,report_type,status,description,amount,created_at,submitted_by,submitted_by_profile:profiles!financial_reports_submitted_by_fkey(full_name,email)").order("created_at",{ascending:false}).limit(300):skip(),
+   canPeople?supabase.from("attendance_records").select("id,work_date,check_in_at,check_out_at,status,notes,recorded_by,employees(full_name,employee_code)").order("work_date",{ascending:false}).limit(300):skip(),
+   canPeople?supabase.from("leave_requests").select("id,leave_type,start_date,end_date,reason,status,created_at,employees(full_name,employee_code)").order("created_at",{ascending:false}).limit(300):skip(),
+   canAll?supabase.from("stock_movements").select("id,movement_type,quantity,reason,reference_code,movement_at,created_by,products(name,sku)").order("movement_at",{ascending:false}).limit(300):skip(),
+   canAll?supabase.from("financial_transactions").select("id,transaction_code,transaction_type,amount,description,status,transaction_at,created_by").order("transaction_at",{ascending:false}).limit(300):skip(),
+   canAll?supabase.from("offline_product_submissions").select("id,proposed_name,proposed_sku,proposed_category_name,status,review_note,requested_at,requested_by").order("requested_at",{ascending:false}).limit(300):skip(),
+   canAll?supabase.from("offline_stock_receipts").select("id,receipt_code,status,supplier_name,created_at").order("created_at",{ascending:false}).limit(300):skip(),
+   canAll?supabase.from("offline_store_sales").select("id,sale_code,subtotal,discount_total,total,payment_method,cashier_id,created_at,status").order("created_at",{ascending:false}).limit(300):skip(),
+   canAll?supabase.from("offline_store_finance_entries").select("id,entry_type,amount,payment_method,description,reference_code,created_at").order("created_at",{ascending:false}).limit(300):skip()
   ]);
   const next:Item[]=[];
   const actor=(p:any,id:any)=>p?.full_name||p?.email||(id?String(id).slice(0,8):"Tidak tercatat");
@@ -57,7 +61,7 @@ export default function TrxPage(){
   setErrors([orders,refunds,reports,attendance,leaves,movements,finances,submissions,receipts,sales,storeFinances].filter((x:any)=>x.error).map((x:any)=>x.error.message||"Sebagian sumber tidak dapat dibaca."));
   setRefreshing(false);setLoading(false);
  },[]);
- useEffect(()=>{let alive=true;supabase.auth.getSession().then(async({data})=>{if(!alive)return;if(!data.session){router.replace("/");return;}const {data:account}=await supabase.from("profiles").select("role,is_active").eq("id",data.session.user.id).maybeSingle();if(!alive)return;if(!account?.is_active){router.replace("/");return;}setRole(account.role||"employee");void load();});const {data:{subscription}}=supabase.auth.onAuthStateChange((_e,s)=>{if(!s)router.replace("/");});return()=>{alive=false;subscription.unsubscribe();};},[load,router]);
+ useEffect(()=>{let alive=true;supabase.auth.getSession().then(async({data})=>{if(!alive)return;if(!data.session){router.replace("/");return;}const {data:account}=await supabase.from("profiles").select("role,is_active").eq("id",data.session.user.id).maybeSingle();if(!alive)return;if(!account?.is_active){router.replace("/");return;}setRole(account.role||"employee");void load(account.role||"employee");});const {data:{subscription}}=supabase.auth.onAuthStateChange((_e,s)=>{if(!s)router.replace("/");});return()=>{alive=false;subscription.unsubscribe();};},[load,router]);
  const allowedKinds=role==="owner"||role==="admin"?null:role==="hrd"?["Absensi","Izin/Cuti"]:["Order","Refund","Laporan uang","Absensi","Izin/Cuti"];
  const kinds=useMemo(()=>Array.from(new Set(items.map(i=>i.kind))).filter(k=>!allowedKinds||allowedKinds.includes(k)).sort(),[items,allowedKinds]);
  const filtered=useMemo(()=>items.filter(i=>(!allowedKinds||allowedKinds.includes(i.kind))&&(kind==="all"||i.kind===kind)&&(status==="all"||i.status===status)&&(!from||String(i.at||"").slice(0,10)>=from)&&(!to||String(i.at||"").slice(0,10)<=to)&&[i.code,i.kind,i.title,i.detail,i.status,i.actor,i.origin].join(" ").toLowerCase().includes(search.toLowerCase())),[items,kind,status,from,to,search,allowedKinds]);
@@ -69,7 +73,7 @@ export default function TrxPage(){
    <div style={{position:"relative"}}><Search size={15} style={{position:"absolute",left:10,top:12,color:"#94a3b8"}}/><input style={{paddingLeft:32}} aria-label="Cari TRX" placeholder="Cari kode, keterangan, pembuat…" value={search} onChange={e=>setSearch(e.target.value)}/></div>
    <select aria-label="Jenis riwayat" value={kind} onChange={e=>setKind(e.target.value)}><option value="all">Semua jenis</option>{kinds.map(k=><option key={k} value={k}>{k}</option>)}</select>
    <select aria-label="Status" value={status} onChange={e=>setStatus(e.target.value)}><option value="all">Semua status</option>{statuses.map(s=><option key={s} value={s}>{label(s)}</option>)}</select>
-   <button className="btn" type="button" onClick={()=>{setFrom("");setTo("");setSearch("");setKind("all");setStatus("all");void load();}}><RefreshCw size={14}/> Muat ulang</button>
+   <button className="btn" type="button" onClick={()=>{setFrom("");setTo("");setSearch("");setKind("all");setStatus("all");void load(role);}}><RefreshCw size={14}/> Muat ulang</button>
    <label style={{display:"flex",alignItems:"center",gap:7,fontSize:11,color:"#94a3b8"}}>Dari <input type="date" value={from} onChange={e=>setFrom(e.target.value)}/></label>
    <label style={{display:"flex",alignItems:"center",gap:7,fontSize:11,color:"#94a3b8"}}>Sampai <input type="date" value={to} onChange={e=>setTo(e.target.value)}/></label>
   </section>
