@@ -26,6 +26,7 @@ export default function CashierWorkspacePage(){
  const [products,setProducts]=useState<Product[]>([]);
  const [sales,setSales]=useState<Sale[]>([]);
  const [promotions,setPromotions]=useState<StoreDiscount[]>([]);
+ const [promotionLoadFailed,setPromotionLoadFailed]=useState(false);
  const [cart,setCart]=useState<CartLine[]>([]);
  const [search,setSearch]=useState("");
  const [discount,setDiscount]=useState("0");
@@ -95,7 +96,7 @@ export default function CashierWorkspacePage(){
   if(productResult.error)setError(productResult.error.message);else setProducts((productResult.data||[]) as Product[]);
   if(saleResult.error)setError(saleResult.error.message);else setSales((saleResult.data||[]) as Sale[]);
   if(policyResult.data){setCashierMax(Number(policyResult.data.cashier_max_percent)||0);setManagerMax(Number(policyResult.data.manager_max_percent)||0);}
-  if(promotionResult.error){setPromotions([]);setError("Promo toko tidak dapat dimuat; periksa koneksi dan akses sebelum checkout.");}else setPromotions((promotionResult.data||[]) as StoreDiscount[]);
+  if(promotionResult.error){setPromotions([]);setPromotionLoadFailed(true);setError("Promo toko tidak dapat dimuat; checkout dinonaktifkan sampai data promo berhasil diverifikasi.");}else{setPromotions((promotionResult.data||[]) as StoreDiscount[]);setPromotionLoadFailed(false);}
  },[storeId,profile]);
  useEffect(()=>{void loadStoreData();},[loadStoreData]);
 
@@ -104,6 +105,7 @@ export default function CashierWorkspacePage(){
  async function checkout(e:FormEvent){
   e.preventDefault();setNotice("");setError("");
   if(!storeId||!canSell){setError("Akun ini tidak memiliki hak kasir pada toko yang dipilih.");return;}
+  if(promotionLoadFailed){setError("Promo toko belum dapat diverifikasi. Muat ulang data sebelum melanjutkan transaksi.");return;}
   if(!cartDetails.length){setError("Tambahkan produk ke keranjang sebelum menyelesaikan transaksi.");return;}
   if(cartDetails.some(line=>line.quantity<=0||line.quantity>Number(line.product.current_stock))){setError("Jumlah keranjang melebihi stok tersedia.");return;}
   if(discountPercent>maxDiscount){setError("Diskon melebihi batas jabatan ("+maxDiscount+"%).");return;}
@@ -187,7 +189,7 @@ export default function CashierWorkspacePage(){
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(145px,1fr))",gap:12,marginTop:16}}><div className="field"><label>Diskon (%) · batas {maxDiscount}%</label><input type="number" min="0" max={maxDiscount} step="0.01" value={discount} onChange={e=>setDiscount(e.target.value)} disabled={!canSell}/></div><div className="field"><label>Metode pembayaran</label><select value={payment} onChange={e=>setPayment(e.target.value)}><option value="cash">Tunai</option><option value="bank_transfer">Transfer bank</option><option value="e_wallet">E-wallet / QRIS</option></select></div></div>
       {payment==="cash"&&<div className="field"><label>Uang diterima</label><input type="number" min={total} value={cashReceived} onChange={e=>setCashReceived(e.target.value)} placeholder="Masukkan nominal uang"/></div>}
       <div style={{display:"grid",gap:8,background:"var(--soft,#f7f8fa)",padding:14,borderRadius:12,marginTop:12}}><div style={{display:"flex",justifyContent:"space-between",gap:12}}><span className="subtle">Subtotal</span><strong>{money(subtotal)}</strong></div><div style={{display:"flex",justifyContent:"space-between",gap:12}}><span className="subtle">Diskon manual / promo otomatis</span><strong>− {money(discountTotal)}</strong></div><div style={{display:"flex",justifyContent:"space-between",gap:12,fontSize:19,borderTop:"1px solid var(--border,#d8dee8)",paddingTop:10}}><strong>Total</strong><strong>{money(total)}</strong></div>{payment==="cash"&&<div style={{display:"flex",justifyContent:"space-between",gap:12}}><span className="subtle">Kembalian</span><strong>{money(change)}</strong></div>}</div>
-      <button className="btn btn-primary" type="submit" disabled={busy||!canSell||!cartDetails.length} style={{width:"100%",justifyContent:"center",marginTop:14,minHeight:46}}><CreditCard size={17}/>{busy?"Memproses transaksi…":"Selesaikan pembayaran"}</button>
+      <button className="btn btn-primary" type="submit" disabled={busy||!canSell||!cartDetails.length||promotionLoadFailed} style={{width:"100%",justifyContent:"center",marginTop:14,minHeight:46}}><CreditCard size={17}/>{busy?"Memproses transaksi…":"Selesaikan pembayaran"}</button>
      </form>
     </section>
    </div>
