@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./ndraaaid-detail-polish.css";
+import "./ndraaaid-graphite-theme.css";
 
 export const metadata: Metadata = {
-  title: "SMART BUSINESS MANAGEMENT",
-  description: "Sistem manajemen bisnis, absensi, inventaris, dan keuangan."
+  title: "NDRANEXA — Business Operating System",
+  icons: { icon: "/ndranexa-logo.svg", shortcut: "/ndranexa-logo.svg", apple: "/ndranexa-logo.svg" },
+  description: "Platform operasional bisnis terpadu untuk tim, toko, inventaris, penjualan, absensi, dan keuangan."
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

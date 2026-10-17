@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import AppIcon, { type AppIconName } from "@/components/app-icon";
 
 type Role = "owner" | "admin" | "hrd" | "employee";
 type Profile = { id: string; full_name: string | null; role: Role; is_active: boolean };
@@ -35,6 +36,26 @@ type Trx = {
 const PAGE_SIZE = 20;
 const CATEGORIES = ["Semua", "Pesanan", "Refund", "Pengajuan Toko", "Produk Toko", "Penerimaan Stok", "Penjualan Toko", "Aktivitas Sistem", "Keuangan", "Stok", "Absensi", "Cuti"] as const;
 const VIEWS = ["Perlu Ditindaklanjuti", "Tugas Saya", "Selesai", "Semua Transaksi"] as const;
+const viewIcons: Record<(typeof VIEWS)[number], AppIconName> = {
+  "Perlu Ditindaklanjuti": "activity",
+  "Tugas Saya": "profile",
+  "Selesai": "check",
+  "Semua Transaksi": "transactions",
+};
+const categoryIcons: Record<(typeof CATEGORIES)[number], AppIconName> = {
+  "Semua": "filter",
+  "Pesanan": "orders",
+  "Refund": "refunds",
+  "Pengajuan Toko": "requests",
+  "Produk Toko": "products",
+  "Penerimaan Stok": "inventory",
+  "Penjualan Toko": "pos",
+  "Aktivitas Sistem": "activity",
+  "Keuangan": "finance",
+  "Stok": "inventory",
+  "Absensi": "attendance",
+  "Cuti": "leave",
+};
 const money = (value: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(value);
 const dateTime = (value: string) => new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 const normalize = (value: unknown) => String(value ?? "").trim().toLowerCase();
@@ -432,7 +453,7 @@ export default function TransactionsPage() {
       <div className="trx-shell">
         <div className="trx-top">
           <div><div className="trx-eyebrow">PUSAT PENGAJUAN & RIWAYAT</div><h1 className="trx-title">Transaksi (TRX)</h1><div className="trx-muted">Semua aktivitas yang diizinkan untuk akun ini, dengan prioritas pengajuan yang masih membutuhkan tindakan.</div></div>
-          <div style={{display:"flex",gap:7,flexWrap:"wrap"}}><Link href="/" className="trx-btn">← Dashboard</Link><button className="trx-btn" onClick={() => setRefresh((v) => v + 1)} disabled={loading}>{loading ? "Memuat…" : "↻ Segarkan"}</button></div>
+          <div style={{display:"flex",gap:7,flexWrap:"wrap"}}><Link href="/" className="trx-btn"><AppIcon name="back" size={15} /> Dashboard</Link><button className="trx-btn" onClick={() => setRefresh((v) => v + 1)} disabled={loading}><AppIcon name="refresh" size={15} /> {loading ? "Memuat…" : "Segarkan"}</button></div>
         </div>
         <section className="trx-stats">
           <div className="trx-stat"><div className="trx-stat-label">Belum selesai</div><div className="trx-stat-value">{loading ? "—" : openRows.length}</div><div className="trx-muted">Perlu ditindaklanjuti</div></div>
@@ -440,8 +461,8 @@ export default function TransactionsPage() {
           <div className="trx-stat"><div className="trx-stat-label">Total data terbaca</div><div className="trx-stat-value">{loading ? "—" : rows.length}</div><div className="trx-muted">Sumber data yang berhasil dibaca</div></div>
         </section>
         {error && <div role="status" style={{border:"1px solid #92400e",background:"#78350f33",borderRadius:9,padding:10,fontSize:12,marginBottom:12,color:"#fde68a"}}>{error}</div>}
-        <div className="trx-cats" aria-label="Tampilan transaksi">{VIEWS.map((item) => <button key={item} className={`trx-cat ${viewFilter === item ? "active" : ""}`} onClick={() => setViewFilter(item)}>{item}</button>)}</div>
-        <div className="trx-cats" aria-label="Kategori transaksi">{CATEGORIES.map((item) => <button key={item} className={`trx-cat ${category === item ? "active" : ""}`} onClick={() => setCategory(item)}>{item}</button>)}</div>
+        <div className="trx-cats" aria-label="Tampilan transaksi">{VIEWS.map((item) => <button key={item} className={`trx-cat ${viewFilter === item ? "active" : ""}`} onClick={() => setViewFilter(item)}><AppIcon name={viewIcons[item]} size={15} /> {item}</button>)}</div>
+        <div className="trx-cats" aria-label="Kategori transaksi">{CATEGORIES.map((item) => <button key={item} className={`trx-cat ${category === item ? "active" : ""}`} onClick={() => setCategory(item)}><AppIcon name={categoryIcons[item]} size={15} /> {item}</button>)}</div>
         <div className="trx-controls">
           <input className="trx-input" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari kode, nama, toko, aktivitas…" aria-label="Cari transaksi" />
           <select className="trx-input" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} aria-label="Filter status">
@@ -464,7 +485,7 @@ export default function TransactionsPage() {
         <p className="trx-muted" style={{marginTop:10}}>Data sumber tetap utuh. Tindakan yang tersedia mengikuti status transaksi dan kewenangan akun; riwayat yang tidak dapat dibaca akan ditandai di atas.</p>
       </div>
       {selected && <div className="trx-modal-backdrop" onClick={() => setSelected(null)}><section className="trx-modal" role="dialog" aria-modal="true" aria-label="Detail transaksi" onClick={(e) => e.stopPropagation()}>
-        <div style={{display:"flex",justifyContent:"space-between",gap:12,alignItems:"flex-start"}}><div><div className="trx-eyebrow">DETAIL TRANSAKSI</div><h2 style={{fontSize:19,margin:"7px 0"}}>{selected.code}</h2><div className="trx-muted">{selected.activity}</div></div><div style={{display:"flex",gap:7,flexWrap:"wrap"}}>{["owner","admin"].includes(profile?.role ?? "") && ["Pesanan","Refund","Pengajuan Toko","Produk Toko","Penerimaan Stok","Penjualan Toko","Keuangan"].includes(selected.category) && <button className="trx-btn" onClick={() => window.print()}>Cetak bukti transaksi</button>}<button className="trx-btn" onClick={() => setSelected(null)}>Tutup</button></div></div>
+        <div style={{display:"flex",justifyContent:"space-between",gap:12,alignItems:"flex-start"}}><div><div className="trx-eyebrow">DETAIL TRANSAKSI</div><h2 style={{fontSize:19,margin:"7px 0"}}>{selected.code}</h2><div className="trx-muted">{selected.activity}</div></div><div style={{display:"flex",gap:7,flexWrap:"wrap"}}>{["owner","admin"].includes(profile?.role ?? "") && ["Pesanan","Refund","Pengajuan Toko","Produk Toko","Penerimaan Stok","Penjualan Toko","Keuangan"].includes(selected.category) && <button className="trx-btn" onClick={() => window.print()}><AppIcon name="print" size={15} /> Cetak bukti transaksi</button>}<button className="trx-btn" onClick={() => setSelected(null)}><AppIcon name="close" size={15} /> Tutup</button></div></div>
         <div style={{marginTop:12}}><span className={badgeClass(selected.status)}>{selected.status}</span></div>
         <div className="trx-detail-grid">
           <div className="trx-detail"><label>Kategori</label><strong>{selected.category}</strong></div><div className="trx-detail"><label>Lokasi / penempatan</label><strong>{selected.location}</strong></div>
@@ -474,16 +495,16 @@ export default function TransactionsPage() {
         <div className="trx-detail" style={{marginTop:12}}><label>Catatan / rincian</label><strong>{selected.description || "Tidak ada catatan tambahan."}</strong></div>
         <div className="trx-print-signatures"><div>Dibuat oleh<strong>{selected.actor}</strong></div><div>Pelanggan / toko<strong>{selected.location}</strong></div><div>Karyawan / penanggung jawab<strong>{selected.processedBy}</strong></div><div>Owner<strong className="trx-owner-signature">INDRA SAPUTRA</strong></div></div>
         {((profile?.role === "owner" || profile?.role === "admin") || (profile?.role === "hrd" && selected.category === "Cuti") || (selected.storeId && storeMemberships.some((m) => m.store_id === selected.storeId && (selected.sourceTable === "offline_store_purchase_orders" ? ["manager","store_admin","inventory"].includes(m.store_role) : ["manager","store_admin","inventory"].includes(m.store_role))) && ["offline_store_purchase_orders","offline_stock_receipts"].includes(selected.sourceTable))) && <div style={{display:"flex",gap:7,flexWrap:"wrap",marginTop:14}}>
-          {["owner","admin"].includes(profile?.role ?? "") && selected.sourceStatus === "pending" && selected.sourceTable === "product_orders" && <><button className="trx-btn" onClick={() => void processSelected("approve")}>Setujui pesanan</button><button className="trx-btn" onClick={() => void processSelected("reject")}>Tolak</button></> }
-          {["owner","admin"].includes(profile?.role ?? "") && ["pending","under_review"].includes(normalize(selected.sourceStatus)) && selected.sourceTable === "product_refunds" && <><button className="trx-btn" onClick={() => void processSelected("approve")}>Setujui refund</button><button className="trx-btn" onClick={() => void processSelected("reject")}>Tolak</button></> }
-          {["owner","admin"].includes(profile?.role ?? "") && selected.sourceStatus === "pending" && selected.sourceTable === "financial_reports" && <><button className="trx-btn" onClick={() => void processSelected("approve")}>Setujui & catat</button><button className="trx-btn" onClick={() => void processSelected("reject")}>Tolak laporan</button></> }
-          {["owner","admin"].includes(profile?.role ?? "") && selected.sourceStatus === "requested" && selected.sourceTable === "offline_store_purchase_orders" && <><button className="trx-btn" onClick={() => void processSelected("ship")}>Setujui & proses pengiriman</button><button className="trx-btn" onClick={() => void processSelected("reject")}>Tolak pengajuan</button></> }
-          {selected.sourceStatus === "shipped" && selected.sourceTable === "offline_store_purchase_orders" && <button className="trx-btn" onClick={() => void processSelected("receive")}>Konfirmasi barang diterima</button>}
-           {selected.sourceStatus === "pending" && selected.sourceTable === "offline_stock_receipts" && <button className="trx-btn" onClick={() => void processSelected("receive")}>Konfirmasi stok diterima</button>}
-          {(["owner","admin"].includes(profile?.role ?? "") || storeMemberships.some((m) => m.store_id === selected.storeId && m.store_role === "manager")) && selected.sourceStatus === "received" && selected.sourceTable === "offline_store_purchase_orders" && Number(selected.dueAmount || 0) > 0 && <button className="trx-btn" onClick={() => void processSelected("pay")}>Catat pembayaran · {money(Number(selected.dueAmount || 0))}</button> }
-          {["owner","admin"].includes(profile?.role ?? "") && ["pending","under_review","requested"].includes(normalize(selected.sourceStatus)) && selected.sourceTable === "offline_product_submissions" && <><button className="trx-btn" onClick={() => void processSelected("approve")}>Setujui produk</button><button className="trx-btn" onClick={() => void processSelected("revise")}>Minta perbaikan</button><button className="trx-btn" onClick={() => void processSelected("reject")}>Tolak pengajuan</button></> }
-          {selected.sourceStatus === "pending" && selected.sourceTable === "leave_requests" && <><button className="trx-btn" onClick={() => void processSelected("approve")}>Setujui cuti</button><button className="trx-btn" onClick={() => void processSelected("reject")}>Tolak cuti</button></>}
-          {selected.sourceStatus === "approved" && selected.sourceTable === "product_orders" && <button className="trx-btn" onClick={() => void processSelected("fulfill")}>Tandai dipenuhi</button>}
+          {["owner","admin"].includes(profile?.role ?? "") && selected.sourceStatus === "pending" && selected.sourceTable === "product_orders" && <><button className="trx-btn" onClick={() => void processSelected("approve")}><AppIcon name="check" size={15} /> Setujui pesanan</button><button className="trx-btn" onClick={() => void processSelected("reject")}><AppIcon name="close" size={15} /> Tolak</button></> }
+          {["owner","admin"].includes(profile?.role ?? "") && ["pending","under_review"].includes(normalize(selected.sourceStatus)) && selected.sourceTable === "product_refunds" && <><button className="trx-btn" onClick={() => void processSelected("approve")}><AppIcon name="check" size={15} /> Setujui refund</button><button className="trx-btn" onClick={() => void processSelected("reject")}>Tolak</button></> }
+          {["owner","admin"].includes(profile?.role ?? "") && selected.sourceStatus === "pending" && selected.sourceTable === "financial_reports" && <><button className="trx-btn" onClick={() => void processSelected("approve")}><AppIcon name="check" size={15} /> Setujui & catat</button><button className="trx-btn" onClick={() => void processSelected("reject")}><AppIcon name="close" size={15} /> Tolak laporan</button></> }
+          {["owner","admin"].includes(profile?.role ?? "") && selected.sourceStatus === "requested" && selected.sourceTable === "offline_store_purchase_orders" && <><button className="trx-btn" onClick={() => void processSelected("ship")}><AppIcon name="truck" size={15} /> Setujui & proses pengiriman</button><button className="trx-btn" onClick={() => void processSelected("reject")}><AppIcon name="close" size={15} /> Tolak pengajuan</button></> }
+          {selected.sourceStatus === "shipped" && selected.sourceTable === "offline_store_purchase_orders" && <button className="trx-btn" onClick={() => void processSelected("receive")}><AppIcon name="check" size={15} /> Konfirmasi barang diterima</button>}
+           {selected.sourceStatus === "pending" && selected.sourceTable === "offline_stock_receipts" && <button className="trx-btn" onClick={() => void processSelected("receive")}><AppIcon name="check" size={15} /> Konfirmasi stok diterima</button>}
+          {(["owner","admin"].includes(profile?.role ?? "") || storeMemberships.some((m) => m.store_id === selected.storeId && m.store_role === "manager")) && selected.sourceStatus === "received" && selected.sourceTable === "offline_store_purchase_orders" && Number(selected.dueAmount || 0) > 0 && <button className="trx-btn" onClick={() => void processSelected("pay")}><AppIcon name="cash" size={15} /> Catat pembayaran · {money(Number(selected.dueAmount || 0))}</button> }
+          {["owner","admin"].includes(profile?.role ?? "") && ["pending","under_review","requested"].includes(normalize(selected.sourceStatus)) && selected.sourceTable === "offline_product_submissions" && <><button className="trx-btn" onClick={() => void processSelected("approve")}><AppIcon name="check" size={15} /> Setujui produk</button><button className="trx-btn" onClick={() => void processSelected("revise")}><AppIcon name="activity" size={15} /> Minta perbaikan</button><button className="trx-btn" onClick={() => void processSelected("reject")}>Tolak pengajuan</button></> }
+          {selected.sourceStatus === "pending" && selected.sourceTable === "leave_requests" && <><button className="trx-btn" onClick={() => void processSelected("approve")}><AppIcon name="check" size={15} /> Setujui cuti</button><button className="trx-btn" onClick={() => void processSelected("reject")}><AppIcon name="close" size={15} /> Tolak cuti</button></>}
+          {selected.sourceStatus === "approved" && selected.sourceTable === "product_orders" && <button className="trx-btn" onClick={() => void processSelected("fulfill")}><AppIcon name="check" size={15} /> Tandai dipenuhi</button>}
         </div>}
         <p className="trx-muted" style={{marginTop:12}}>Nama pemroses dan pemberi persetujuan ditampilkan jika dicatat oleh sumber. Aksi hanya tersedia untuk kategori dan status yang sesuai izin akun.</p>
       </section></div>}

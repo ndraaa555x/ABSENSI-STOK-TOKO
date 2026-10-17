@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Session } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import AppIcon from "@/components/app-icon";
 
 type Profile = { id: string; email: string; full_name: string | null; role: string; is_active: boolean };
 type Store = { id: string; store_code: string; name: string; is_active: boolean };
@@ -164,7 +165,7 @@ export default function OfflineStorePOSPage() {
       <div className="pos-brand"><div className="pos-brand-mark">POS</div><div><div className="eyebrow">SMART BUSINESS MANAGEMENT</div><h1>Kasir / POS</h1><p className="subtle">Halaman khusus transaksi agar kasir tetap fokus.</p></div></div>
       <div className="pos-header-actions">
         {stores.length > 1 && <label className="pos-store-select"><span>Toko aktif</span><select value={storeId} onChange={(e) => { setStoreId(e.target.value); setCart([]); setLastSaleCode(""); }}><option value="">Pilih toko</option>{stores.filter((s) => centralAdmin || memberships.some((m) => m.store_id === s.id && m.is_active)).map((s) => <option key={s.id} value={s.id}>{s.store_code} — {s.name}</option>)}</select></label>}
-        <Link className="btn" href="/offline-store">← Kembali ke modul toko</Link>
+        <Link className="btn" href="/offline-store"><AppIcon name="back" size={15} /> Kembali ke modul toko</Link>
       </div>
     </header>
     {notice && <div className="info-box" role="status">{notice}{lastSaleCode && <strong className="pos-receipt-code"> · Kode: {lastSaleCode}</strong>}</div>}
@@ -185,18 +186,18 @@ export default function OfflineStorePOSPage() {
               <span className="pos-product-sku">{p.sku}</span><strong>{p.name}</strong><span className="pos-product-price">{money(Number(p.sale_price))}</span>
               <span className={available <= 3 ? "pos-stock low" : "pos-stock"}>Stok {available.toLocaleString("id-ID")} {p.unit}</span>
               {inCart > 0 && <span className="pos-in-cart">Di order: {inCart.toLocaleString("id-ID")}</span>}
-              <span className="pos-add-label">{available <= 0 ? "Stok habis" : "+ Tambahkan"}</span>
+              <span className="pos-add-label">{available <= 0 ? "Stok habis" : <><AppIcon name="add" size={14} /> Tambahkan</>}</span>
             </button>;
           })}
         </div>}
       </section>
       <form className="pos-cart panel" onSubmit={checkout}>
-        <div className="pos-section-head"><div><div className="eyebrow">ORDER AKTIF</div><h2>Keranjang belanja</h2><p className="subtle">{cartRows.length} jenis produk · {cartRows.reduce((sum, line) => sum + line.quantity, 0).toLocaleString("id-ID")} unit</p></div><button type="button" className="btn btn-compact" disabled={!cart.length || busy} onClick={() => { setCart([]); setError(""); }}>Kosongkan</button></div>
-        {!cartRows.length ? <div className="pos-cart-empty"><span>▧</span><strong>Belum ada produk</strong><p className="subtle">Pilih satu atau beberapa produk.</p></div> : <div className="pos-cart-lines">
+        <div className="pos-section-head"><div><div className="eyebrow">ORDER AKTIF</div><h2>Keranjang belanja</h2><p className="subtle">{cartRows.length} jenis produk · {cartRows.reduce((sum, line) => sum + line.quantity, 0).toLocaleString("id-ID")} unit</p></div><button type="button" className="btn btn-compact" disabled={!cart.length || busy} onClick={() => { setCart([]); setError(""); }}><AppIcon name="delete" size={15} /> Kosongkan</button></div>
+        {!cartRows.length ? <div className="pos-cart-empty"><span><AppIcon name="products" size={22} /></span><strong>Belum ada produk</strong><p className="subtle">Pilih satu atau beberapa produk.</p></div> : <div className="pos-cart-lines">
           {cartRows.map((line) => <article className="pos-cart-line" key={line.product_id}>
             <div className="pos-cart-product"><strong>{line.product.name}</strong><span>{money(Number(line.product.sale_price))} / {line.product.unit}</span></div>
-            <div className="pos-quantity-control"><button type="button" aria-label={"Kurangi " + line.product.name} onClick={() => updateQuantity(line.product_id, String(line.quantity - 1))} disabled={busy}>−</button><input aria-label={"Jumlah " + line.product.name} type="number" min="0.001" step="0.001" value={line.quantity} onChange={(e) => updateQuantity(line.product_id, e.target.value)} disabled={busy}/><button type="button" aria-label={"Tambah " + line.product.name} onClick={() => updateQuantity(line.product_id, String(line.quantity + 1))} disabled={busy || line.quantity >= Number(line.product.current_stock)}>+</button></div>
-            <strong className="pos-line-total">{money(line.lineTotal)}</strong><button type="button" className="pos-remove" aria-label={"Hapus " + line.product.name} onClick={() => setCart((current) => current.filter((item) => item.product_id !== line.product_id))} disabled={busy}>Hapus</button>
+            <div className="pos-quantity-control"><button type="button" aria-label={"Kurangi " + line.product.name} onClick={() => updateQuantity(line.product_id, String(line.quantity - 1))} disabled={busy}><AppIcon name="minus" size={14} /></button><input aria-label={"Jumlah " + line.product.name} type="number" min="0.001" step="0.001" value={line.quantity} onChange={(e) => updateQuantity(line.product_id, e.target.value)} disabled={busy}/><button type="button" aria-label={"Tambah " + line.product.name} onClick={() => updateQuantity(line.product_id, String(line.quantity + 1))} disabled={busy || line.quantity >= Number(line.product.current_stock)}><AppIcon name="add" size={14} /></button></div>
+            <strong className="pos-line-total">{money(line.lineTotal)}</strong><button type="button" className="pos-remove" aria-label={"Hapus " + line.product.name} onClick={() => setCart((current) => current.filter((item) => item.product_id !== line.product_id))} disabled={busy}><AppIcon name="delete" size={14} /> Hapus</button>
           </article>)}
         </div>}
         <div className="pos-checkout-fields">
@@ -205,7 +206,7 @@ export default function OfflineStorePOSPage() {
           {payment === "cash" && <label className="field"><span>Uang diterima (Rp)</span><input type="number" min={total} step="1" value={cashReceived} onChange={(e) => setCashReceived(e.target.value)} placeholder="Masukkan uang dari pelanggan" disabled={busy}/><small className="subtle">Kembalian perkiraan: {money(changeDue)}</small></label>}
         </div>
         <div className="pos-totals"><div><span>Subtotal</span><strong>{money(subtotal)}</strong></div><div><span>Diskon manual</span><strong>− {money(discountAmount)}</strong></div><div className="pos-grand-total"><span>Total sementara</span><strong>{money(total)}</strong></div><p className="subtle">Total final dapat menyesuaikan promo aktif yang divalidasi server saat checkout.</p></div>
-        <button type="submit" className="btn btn-primary pos-checkout-button" disabled={busy || !canCashier || !cartRows.length || loadingProducts}>{busy ? "Memproses pembayaran…" : "OK Selesaikan checkout"}</button>
+        <button type="submit" className="btn btn-primary pos-checkout-button" disabled={busy || !canCashier || !cartRows.length || loadingProducts}>{busy ? "Memproses pembayaran…" : <><AppIcon name="cash" size={16} /> Selesaikan checkout</>}</button>
         <p className="pos-safe-note">Stok dan harga pokok hanya diperbarui setelah server menerima transaksi.</p>
       </form>
     </div>}

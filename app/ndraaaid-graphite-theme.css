@@ -1,0 +1,84 @@
+/* NDRAAAID graphite / silver / red visual system. Shared presentation only; no business logic changes. */
+:root {
+  color-scheme: dark;
+  --bg: #0d0f12;
+  --panel: #171a1f;
+  --line: #343941;
+  --text: #f1f3f5;
+  --muted: #a1a7b0;
+  --green: #d5d8dc;
+  --ndra-focus: rgba(239, 68, 68, .32);
+  --ndra-shadow: 0 12px 32px rgba(0, 0, 0, .28);
+  --ndra-radius: 14px;
+  --ndra-graphite: #111317;
+  --ndra-silver: #d5d8dc;
+  --ndra-red: #ef4444;
+}
+html, body { background: #0d0f12; color: #f1f3f5; }
+body { background-image: radial-gradient(ellipse at 80% -12%, rgba(239,68,68,.07), transparent 42%); }
+:where(input, select, textarea) { background-color: #101216; color: #f1f3f5; border-color: #3a3f47; }
+:where(input, select, textarea)::placeholder { color: #858b94; }
+:where(button, a, [role="button"], input, select, textarea):focus-visible { outline-color: rgba(239,68,68,.75); }
+:where(.panel, .stat-card, .module-card, .quick-card, .business-record, .trx-stat, .trx-detail, .pos-header, .pos-catalog, .pos-cart) {
+  background-color: #171a1f;
+  border-color: #343941;
+}
+:where(.btn-primary, .business-form .btn-primary, .trx-btn-primary) {
+  color: #fff;
+  background: linear-gradient(110deg, #b91c1c, #ef4444);
+  border-color: #ef4444;
+}
+:where(.btn-primary:hover, .business-form .btn-primary:hover, .trx-btn-primary:hover) { filter: brightness(1.12); }
+:where(.status, .status-pill) { border-color: #454b54; }
+:where(.status-pending) { color: #facc15; }
+:where(.status-approved, .status-fulfilled) { color: #d5d8dc; border-color: #686f79; background: rgba(213,216,220,.08); }
+:where(.status-rejected, .status-cancelled) { color: #fca5a5; border-color: rgba(239,68,68,.4); background: rgba(239,68,68,.1); }
+:where(.sidebar, .app-shell .sidebar) { background: linear-gradient(180deg, #15171b, #0d0f12); border-color: #343941; }
+:where(.brand-mark, .app-shell .brand-mark, .avatar, .app-shell .avatar) { background: linear-gradient(135deg, #ef4444, #8f1d1d); color: #fff; }
+:where(.eyebrow, .user-role, .app-shell .eyebrow, .app-shell .user-role) { color: #d5d8dc; }
+:where(.nav-item.active, .app-shell .nav-item.active) {
+  color: #fff;
+  background: linear-gradient(100deg, rgba(239,68,68,.16), rgba(239,68,68,.04));
+  border-color: rgba(239,68,68,.38);
+  box-shadow: inset 3px 0 #ef4444;
+}
+:where(.nav-item:hover, .app-shell .nav-item:hover) { border-color: #454b54; background: rgba(213,216,220,.06); }
+:where(.stat-icon, .activity-icon, .business-hero-icon) { color: #d5d8dc; background: #22262c; border-color: #454b54; }
+:where(.login-hero) {
+  background: radial-gradient(ellipse at 35% 35%, rgba(239,68,68,.18), transparent 55%), linear-gradient(145deg,#1b1d22,#0a0b0d 72%);
+  border-color: #343941;
+}
+:where(.gradient-text) { background-image: linear-gradient(90deg,#f1f3f5,#ef4444); }
+:where(.feature-pill) { color: #d5d8dc; border-color: #454b54; background: #1a1d22; }
+:where(.error-box) { border-color: rgba(239,68,68,.55); background: rgba(127,29,29,.22); color: #fecaca; }
+:where(.info-box) { border-color: #454b54; background: #1b1e23; color: #d5d8dc; }
+.role-owner, .role-admin, .role-employee {
+  --role-accent: #d5d8dc;
+  --role-accent-2: #ef4444;
+  --role-glow: rgba(239,68,68,.13);
+  --role-panel: #171a1f;
+  --role-line: #343941;
+}
+.attendance-manager, .attendance-employee {
+  --attendance-accent: #d5d8dc;
+  --attendance-line: #343941;
+}
+.attendance-employee { background: radial-gradient(ellipse at 80% 0%,rgba(239,68,68,.08),transparent 38%),#0d0f12; }
+:where(.business-hero, .business-page .panel, .business-record, .pos-page, .trx-page) {
+  border-color: #343941;
+}
+:where(.business-form input, .business-form select, .business-form textarea, .field input) {
+  background: #101216;
+  border-color: #3a3f47;
+  color: #f1f3f5;
+}
+:where(.business-form input:focus, .business-form select:focus, .business-form textarea:focus, .field input:focus) {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239,68,68,.14);
+}
+:where(table th) { color: #d5d8dc; }
+:where(table td) { color: #e5e7eb; }
+:where(tr:hover) { background-color: rgba(213,216,220,.035); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}

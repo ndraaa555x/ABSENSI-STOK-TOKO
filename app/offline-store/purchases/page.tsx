@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Session } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import AppIcon from "@/components/app-icon";
 
 type Profile = { id: string; email: string; role: string; is_active: boolean };
 type Store = { id: string; store_code: string; name: string };
@@ -130,10 +131,10 @@ export default function OfflineStorePurchasesPage() {
   if (!session || !profile) return <main className="main"><section className="panel"><h1>Pembelian Toko Offline</h1><p>Silakan login dari aplikasi utama terlebih dahulu.</p><Link href="/" className="btn btn-primary">Kembali ke aplikasi</Link></section></main>;
 
   return <main className="main">
-    <div className="topbar"><div><div className="eyebrow">SMART BUSINESS MANAGEMENT</div><h1>Pembelian Toko Offline</h1><p className="subtle">Permintaan stok dari kantor pusat dengan pencatatan keuangan terpisah per toko.</p></div><div className="business-actions"><Link href="/offline-store" className="btn">← Toko Offline</Link><Link href="/" className="btn">Dashboard</Link></div></div>
+    <div className="topbar"><div><div className="eyebrow">SMART BUSINESS MANAGEMENT</div><h1>Pembelian Toko Offline</h1><p className="subtle">Permintaan stok dari kantor pusat dengan pencatatan keuangan terpisah per toko.</p></div><div className="business-actions"><Link href="/offline-store" className="btn"><AppIcon name="back" size={15} /> Toko Offline</Link><Link href="/" className="btn">Dashboard</Link></div></div>
     {notice && <div className="info-box" role="status">{notice}</div>}{error && <div className="error-box" role="alert">{error}</div>}
     <section className="panel">
-      <div className="section-head"><div><h2>Pilih toko</h2><p className="subtle">Setiap toko memiliki tagihan dan catatan keuangan pembeliannya sendiri.</p></div><button className="btn" onClick={() => void load()} disabled={busy}>Muat ulang</button></div>
+      <div className="section-head"><div><h2>Pilih toko</h2><p className="subtle">Setiap toko memiliki tagihan dan catatan keuangan pembeliannya sendiri.</p></div><button className="btn" onClick={() => void load()} disabled={busy}><AppIcon name="refresh" size={15} /> Muat ulang</button></div>
       {stores.length === 0 ? <p className="subtle">Belum ada toko yang dapat diakses akun ini.</p> : <div className="field"><label>Toko</label><select value={storeId} onChange={e => setStoreId(e.target.value)}>{stores.map(s => <option key={s.id} value={s.id}>{s.store_code} — {s.name}</option>)}</select></div>}
       {selectedStore && <div className="stats-grid"><div className="stat-card"><div className="stat-top">Pesanan menunggu</div><div className="stat-value">{orders.filter(o => o.status === "requested").length}</div></div><div className="stat-card"><div className="stat-top">Dalam pengiriman</div><div className="stat-value">{orders.filter(o => o.status === "shipped").length}</div></div><div className="stat-card"><div className="stat-top">Sisa tagihan toko</div><div className="stat-value">{money(orders.filter(o => o.status === "received").reduce((n,o) => n + Math.max(0, Number(o.subtotal)-Number(o.paid_amount)),0))}</div></div></div>}
     </section>
@@ -145,8 +146,8 @@ export default function OfflineStorePurchasesPage() {
         <div className="field"><label>Catatan untuk kantor</label><textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Misalnya kebutuhan stok mingguan"/></div>
         <button className="btn btn-primary" disabled={busy || !productId}>{busy ? "Mengirim…" : "Kirim permintaan pembelian"}</button>
       </form>}
-      <div className="info-box">Riwayat pengajuan, pengiriman, penerimaan, dan pembayaran pembelian toko kini dipusatkan di <Link href="/transactions">Transaksi (TRX) →</Link>. Form pengajuan pembelian tetap tersedia di halaman ini.</div>
-      <section className="panel business-history" style={{display:"none"}}><h2>Pesanan pembelian</h2><p className="subtle">Alur: diajukan → dikirim kantor (stok kantor berkurang) → diterima toko (stok toko bertambah dan biaya masuk ke keuangan toko).</p>
+      <div className="info-box">Riwayat pengajuan, pengiriman, penerimaan, dan pembayaran pembelian toko kini dipusatkan di <Link href="/transactions">Transaksi (TRX) <AppIcon name="next" size={14} /></Link>. Form pengajuan pembelian tetap tersedia di halaman ini.</div>
+      <section className="panel business-history"><h2>Pesanan pembelian</h2><p className="subtle">Alur: pengajuan disetujui, barang dikirim kantor (stok kantor berkurang), lalu diterima toko (stok toko bertambah dan biaya masuk ke keuangan toko).</p>
         {orderItems.map(o => <article className="business-record" key={o.id}>
           <div className="business-record-head"><div><strong>{o.order_code}</strong><small>{new Date(o.requested_at).toLocaleString("id-ID")} · {o.lines.length} item</small></div><span className={"status-pill " + (o.status === "received" ? "status-approved" : o.status === "rejected" ? "status-rejected" : "")}>{fmtStatus(o.status)}</span></div>
           {o.lines.map(i => <div className="business-line" key={i.id}><span>{i.product?.name || "Produk kantor"} · {Number(i.quantity_requested).toLocaleString("id-ID")} {i.product?.unit || ""} × {money(Number(i.unit_cost))}</span><strong>{money(Number(i.line_total))}</strong></div>)}
@@ -159,7 +160,7 @@ export default function OfflineStorePurchasesPage() {
         </article>)}
         {orderItems.length === 0 && <p className="subtle">Belum ada pesanan pembelian.</p>}
       </section>
-      {canFinance && <section className="panel business-history" style={{display:"none"}}><h2>Keuangan toko · pembelian dari kantor</h2><p className="subtle">Catatan ini terpisah dari keuangan kantor dan tersedia untuk Owner/Admin, Manajer Toko, serta Admin Toko.</p>
+      {canFinance && <section className="panel business-history"><h2>Keuangan toko · pembelian dari kantor</h2><p className="subtle">Catatan ini terpisah dari keuangan kantor dan tersedia untuk Owner/Admin, Manajer Toko, serta Admin Toko.</p>
         {entries.map(e => <article className="business-record" key={e.id}><div className="business-record-head"><div><strong>{e.entry_type === "purchase_expense" ? "Beban pembelian stok" : "Pembayaran ke kantor"}</strong><small>{e.reference_code || "Tanpa referensi"} · {new Date(e.created_at).toLocaleString("id-ID")}</small></div><strong>{money(Number(e.amount))}</strong></div><p className="subtle">{e.description}{e.payment_method ? " · " + e.payment_method : ""}</p></article>)}
         {entries.length === 0 && <p className="subtle">Belum ada transaksi keuangan pembelian.</p>}
       </section>}

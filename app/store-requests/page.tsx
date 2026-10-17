@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Session } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import AppIcon from "@/components/app-icon";
 
 type Profile = { id: string; full_name: string | null; email: string | null; role: string; is_active: boolean };
 type Store = { id: string; store_code: string; name: string };
@@ -101,16 +102,16 @@ export default function CentralStoreRequestsPage() {
   if (!["owner", "admin"].includes(profile.role)) return <main className="main"><section className="panel"><h1>Akses terbatas</h1><p>Modul ini hanya tersedia untuk Owner/Admin Kantor Pusat.</p><Link href="/" className="btn">Kembali ke dashboard</Link></section></main>;
 
   return <main className="main">
-    <div className="topbar"><div><div className="eyebrow">KANTOR PUSAT · MODUL TOKO</div><h1>Pengajuan Permintaan Toko</h1><p className="subtle">Pusat kendali pengajuan barang dari seluruh toko offline. Proses semuanya dari halaman ini tanpa membuka modul toko satu per satu.</p></div><div className="business-actions"><Link href="/" className="btn">← Dashboard utama</Link><button className="btn" onClick={() => void load()} disabled={Boolean(busyId)}>Muat ulang</button></div></div>
+    <div className="topbar"><div><div className="eyebrow">KANTOR PUSAT · MODUL TOKO</div><h1>Pengajuan Permintaan Toko</h1><p className="subtle">Pusat kendali pengajuan barang dari seluruh toko offline. Proses semuanya dari halaman ini tanpa membuka modul toko satu per satu.</p></div><div className="business-actions"><Link href="/" className="btn"><AppIcon name="back" size={15} /> Dashboard utama</Link><button className="btn" onClick={() => void load()} disabled={Boolean(busyId)}><AppIcon name="refresh" size={15} /> Muat ulang</button></div></div>
     {notice && <div className="info-box" role="status">{notice}</div>}
     {error && <div className="error-box" role="alert">{error}</div>}
-    <div className="info-box">Seluruh daftar pengajuan dan tindak lanjut toko telah dipusatkan di <Link href="/transactions">Transaksi (TRX) →</Link>. Gunakan TRX untuk meninjau, menyetujui, menolak, dan memantau pengajuan. Data asli tetap tersimpan.</div>
-    <div className="stats-grid" style={{display:"none"}}>
+    <div className="info-box">Seluruh daftar pengajuan dan tindak lanjut toko telah dipusatkan di <Link href="/transactions">Transaksi (TRX) <AppIcon name="next" size={14} /></Link>. Gunakan TRX untuk meninjau, menyetujui, menolak, dan memantau pengajuan. Data asli tetap tersimpan.</div>
+    <div className="stats-grid">
       <div className="stat-card"><div className="stat-top">Menunggu keputusan</div><div className="stat-value">{pendingCount.toLocaleString("id-ID")}</div><div className="stat-note">Total nilai {money(totalPending)}</div></div>
       <div className="stat-card"><div className="stat-top">Dalam pengiriman</div><div className="stat-value">{shippingCount.toLocaleString("id-ID")}</div><div className="stat-note">Menunggu konfirmasi toko</div></div>
       <div className="stat-card"><div className="stat-top">Sudah diterima</div><div className="stat-value">{receivedCount.toLocaleString("id-ID")}</div><div className="stat-note">Riwayat permintaan selesai</div></div>
     </div>
-    <section className="panel" style={{display:"none"}}>
+    <section className="panel">
       <div className="section-head"><div><h2>Daftar permintaan seluruh toko</h2><p className="subtle">Setiap pengajuan ditampilkan satu kali, beserta detail barang, harga modal, pemohon, dan status proses.</p></div><span className="status">KANTOR PUSAT</span></div>
       <div className="business-columns">
         <div className="field"><label htmlFor="request-search">Cari pengajuan</label><input id="request-search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Nomor pengajuan, nama toko, pemohon…"/></div>
