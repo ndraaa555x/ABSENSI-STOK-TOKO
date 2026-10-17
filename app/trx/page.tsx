@@ -1,8 +1,8 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Session } from "@supabase/supabase-js";
 import { ArrowLeftRight, RefreshCw, Search, ClipboardList, ShieldCheck } from "lucide-react";
 import { IconClockHour4 } from "@tabler/icons-react";
 import Link from "next/link";
@@ -15,7 +15,7 @@ const label=(v:string)=>String(v||"—").replaceAll("_"," ").replace(/\b\w/g,c=>
 
 export default function TrxPage(){
  const router=useRouter();
- const [session,setSession]=useState<Session|null>(null);
+ const [role,setRole]=useState("employee");
  const [loading,setLoading]=useState(true);
  const [refreshing,setRefreshing]=useState(false);
  const [items,setItems]=useState<Item[]>([]);
@@ -57,9 +57,10 @@ export default function TrxPage(){
   setErrors([orders,refunds,reports,attendance,leaves,movements,finances,submissions,receipts,sales,storeFinances].filter((x:any)=>x.error).map((x:any)=>x.error.message||"Sebagian sumber tidak dapat dibaca."));
   setRefreshing(false);setLoading(false);
  },[]);
- useEffect(()=>{let alive=true;supabase.auth.getSession().then(({data})=>{if(!alive)return;if(!data.session){router.replace("/");return;}setSession(data.session);void load();});const {data:{subscription}}=supabase.auth.onAuthStateChange((_e,s)=>{setSession(s);if(!s)router.replace("/");});return()=>{alive=false;subscription.unsubscribe();};},[load,router]);
+ useEffect(()=>{let alive=true;supabase.auth.getSession().then(async({data})=>{if(!alive)return;if(!data.session){router.replace("/");return;}const {data:account}=await supabase.from("profiles").select("role,is_active").eq("id",data.session.user.id).maybeSingle();if(!alive)return;if(!account?.is_active){router.replace("/");return;}setRole(account.role||"employee");void load();});const {data:{subscription}}=supabase.auth.onAuthStateChange((_e,s)=>{if(!s)router.replace("/");});return()=>{alive=false;subscription.unsubscribe();};},[load,router]);
  const kinds=useMemo(()=>Array.from(new Set(items.map(i=>i.kind))).sort(),[items]);
- const filtered=useMemo(()=>items.filter(i=>(kind==="all"||i.kind===kind)&&(status==="all"||i.status===status)&&(!from||String(i.at||"").slice(0,10)>=from)&&(!to||String(i.at||"").slice(0,10)<=to)&&[i.code,i.kind,i.title,i.detail,i.status,i.actor,i.origin].join(" ").toLowerCase().includes(search.toLowerCase())),[items,kind,status,from,to,search]);
+ const allowedKinds=role==="owner"||role==="admin"?null:role==="hrd"?["Absensi","Izin/Cuti"]:["Order","Refund","Laporan uang","Absensi","Izin/Cuti"];
+ const filtered=useMemo(()=>items.filter(i=>(!allowedKinds||allowedKinds.includes(i.kind))&&(kind==="all"||i.kind===kind)&&(status==="all"||i.status===status)&&(!from||String(i.at||"").slice(0,10)>=from)&&(!to||String(i.at||"").slice(0,10)<=to)&&[i.code,i.kind,i.title,i.detail,i.status,i.actor,i.origin].join(" ").toLowerCase().includes(search.toLowerCase())),[items,kind,status,from,to,search]);
  const statuses=useMemo(()=>Array.from(new Set(items.map(i=>i.status))).sort(),[items]);
  return <main className="trx-shell">
   <header className="trx-hero"><div><div className="trx-kicker">Workspace · Riwayat terpusat</div><h1 className="trx-title">TRX & Aktivitas</h1><p className="trx-subtitle">Satu tempat untuk menelusuri transaksi, pengajuan, persetujuan, kehadiran, stok, dan keuangan. Sumber data tidak dihapus; hasil yang tampil mengikuti izin baca akun Anda.</p></div><div className="trx-icon-box"><ArrowLeftRight size={23}/></div></header>
@@ -68,7 +69,7 @@ export default function TrxPage(){
    <div style={{position:"relative"}}><Search size={15} style={{position:"absolute",left:10,top:12,color:"#94a3b8"}}/><input style={{paddingLeft:32}} aria-label="Cari TRX" placeholder="Cari kode, keterangan, pembuat…" value={search} onChange={e=>setSearch(e.target.value)}/></div>
    <select aria-label="Jenis riwayat" value={kind} onChange={e=>setKind(e.target.value)}><option value="all">Semua jenis</option>{kinds.map(k=><option key={k} value={k}>{k}</option>)}</select>
    <select aria-label="Status" value={status} onChange={e=>setStatus(e.target.value)}><option value="all">Semua status</option>{statuses.map(s=><option key={s} value={s}>{label(s)}</option>)}</select>
-   <button className="btn" type="button" onClick={()=>{setFrom("");setTo("");setSearch("");setKind("all");setStatus("all");}}><RefreshCw size={14}/> Reset</button>
+   <button className="btn" type="button" onClick={()=>{setFrom("");setTo("");setSearch("");setKind("all");setStatus("all");void load();}}><RefreshCw size={14}/> Muat ulang</button>
    <label style={{display:"flex",alignItems:"center",gap:7,fontSize:11,color:"#94a3b8"}}>Dari <input type="date" value={from} onChange={e=>setFrom(e.target.value)}/></label>
    <label style={{display:"flex",alignItems:"center",gap:7,fontSize:11,color:"#94a3b8"}}>Sampai <input type="date" value={to} onChange={e=>setTo(e.target.value)}/></label>
   </section>
