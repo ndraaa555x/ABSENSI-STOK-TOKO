@@ -65,7 +65,7 @@ button:active:not(:disabled), [role="button"]:active, .nav-item:active, .quick-c
   min-height: 42px; padding: 9px 12px; border: 1px solid rgba(139,188,255,.28);
   border-radius: 999px; background: rgba(13,23,39,.92); color: #edf5ff;
   box-shadow: 0 8px 28px rgba(0,0,0,.2); backdrop-filter: blur(14px);
-  font: 600 11px/1.2 inherit; cursor: pointer;
+  font-family: inherit; font-size: 11px; font-weight: 600; line-height: 1.2; cursor: pointer;
 }
 .ndraaaid-theme-control:hover { transform: translateY(-2px); border-color: rgba(139,188,255,.7); }
 .ndraaaid-theme-control:focus-visible { outline: 2px solid #8bbcff; outline-offset: 3px; }
@@ -80,7 +80,7 @@ button:active:not(:disabled), [role="button"]:active, .nav-item:active, .quick-c
   --bg: #f4f7fb; --panel: #ffffff; --panel2: #edf2f8; --line: #dce4ef;
   --muted: #64748b; --text: #182438; --blue: #2563eb; --cyan: #0e7490;
 }
-:root[data-theme="light"] body {
+:root[data-theme="light"] .login-wrap { background: #080d18; color: #f2f6ff; }\n:root[data-theme="light"] .login-wrap .login-card h2 { color: #f2f6ff; }\n:root[data-theme="light"] body {
   background: radial-gradient(ellipse at 80% -10%, rgba(37,99,235,.07), transparent 38%), #f4f7fb;
   color: #182438;
 }
