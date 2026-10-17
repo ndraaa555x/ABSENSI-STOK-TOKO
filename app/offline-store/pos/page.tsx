@@ -12,6 +12,7 @@ type Membership = { id:string; store_id:string; user_id:string; store_role:strin
 type Product = { id:string; store_id:string; name:string; sku:string; barcode_value:string|null; unit:string; sale_price:number; current_stock:number; is_active:boolean };
 type CartLine = { product_id:string; quantity:number };
 type Sale = { id:string; sale_code:string; total:number; discount_total:number; payment_method:string; created_at:string; status:string };
+type StoreDiscount = { id:string; store_id:string; name:string; discount_type:"percent"|"fixed"; discount_value:number; store_product_id:string|null; starts_at:string; ends_at:string|null; is_active:boolean };
 
 const money=(n:number)=>new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(Number(n)||0);
 const dateLabel=(v:string)=>new Date(v).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"});
@@ -24,6 +25,7 @@ export default function CashierWorkspacePage(){
  const [storeId,setStoreId]=useState("");
  const [products,setProducts]=useState<Product[]>([]);
  const [sales,setSales]=useState<Sale[]>([]);
+ const [promotions,setPromotions]=useState<StoreDiscount[]>([]);
  const [cart,setCart]=useState<CartLine[]>([]);
  const [search,setSearch]=useState("");
  const [discount,setDiscount]=useState("0");
@@ -46,7 +48,11 @@ export default function CashierWorkspacePage(){
  const cartDetails=useMemo(()=>cart.map(line=>{const product=activeProducts.find(p=>p.id===line.product_id)||products.find(p=>p.id===line.product_id);return product?{...line,product,lineTotal:Number(product.sale_price)*line.quantity}:null;}).filter((x):x is CartLine&{product:Product;lineTotal:number}=>Boolean(x)),[cart,activeProducts,products]);
  const subtotal=cartDetails.reduce((sum,line)=>sum+line.lineTotal,0);
  const discountPercent=Math.max(0,Number(discount)||0);
- const discountTotal=Math.round(subtotal*discountPercent/100);
+ const activePromotions=useMemo(()=>promotions.filter(p=>p.is_active&&new Date(p.starts_at).getTime()<=Date.now()&&(!p.ends_at||new Date(p.ends_at).getTime()>Date.now())),[promotions]);
+ const promotionFor=(product:Product)=>activePromotions.filter(p=>!p.store_product_id||p.store_product_id===product.id).map(p=>({promotion:p,amount:Math.min(Number(product.sale_price)||0,p.discount_type==="percent"?(Number(product.sale_price)||0)*Number(p.discount_value)/100:Number(p.discount_value)||0)})).sort((a,b)=>b.amount-a.amount)[0]||null;
+ const roundMoney=(n:number)=>Math.round((n+Number.EPSILON)*100)/100;
+ const lineDiscount=(line:CartLine&{product:Product;lineTotal:number})=>Math.max(roundMoney(line.lineTotal*discountPercent/100),roundMoney(line.quantity*(promotionFor(line.product)?.amount||0)));
+ const discountTotal=cartDetails.reduce((sum,line)=>sum+lineDiscount(line),0);
  const total=Math.max(0,subtotal-discountTotal);
  const change=Math.max(0,(Number(cashReceived)||0)-total);
  const maxDiscount=isManager?managerMax:cashierMax;
@@ -80,14 +86,16 @@ export default function CashierWorkspacePage(){
  const loadStoreData=useCallback(async()=>{
   if(!storeId||!profile)return;
   setError("");
-  const [productResult,saleResult,policyResult]=await Promise.all([
+  const [productResult,saleResult,policyResult,promotionResult]=await Promise.all([
    supabase.from("offline_store_products").select("id,store_id,name,sku,barcode_value,unit,sale_price,current_stock,is_active").eq("store_id",storeId).eq("is_active",true).order("name"),
    supabase.from("offline_store_sales").select("id,sale_code,total,discount_total,payment_method,created_at,status").eq("store_id",storeId).order("created_at",{ascending:false}).limit(8),
-   supabase.from("offline_store_discount_policies").select("cashier_max_percent,manager_max_percent").eq("store_id",storeId).maybeSingle()
+   supabase.from("offline_store_discount_policies").select("cashier_max_percent,manager_max_percent").eq("store_id",storeId).maybeSingle(),
+   supabase.from("offline_store_discounts").select("id,store_id,name,discount_type,discount_value,store_product_id,starts_at,ends_at,is_active").eq("store_id",storeId).eq("is_active",true)
   ]);
   if(productResult.error)setError(productResult.error.message);else setProducts((productResult.data||[]) as Product[]);
   if(saleResult.error)setError(saleResult.error.message);else setSales((saleResult.data||[]) as Sale[]);
   if(policyResult.data){setCashierMax(Number(policyResult.data.cashier_max_percent)||0);setManagerMax(Number(policyResult.data.manager_max_percent)||0);}
+  if(promotionResult.error){setPromotions([]);setError("Promo toko tidak dapat dimuat; periksa koneksi dan akses sebelum checkout.");}else setPromotions((promotionResult.data||[]) as StoreDiscount[]);
  },[storeId,profile]);
  useEffect(()=>{void loadStoreData();},[loadStoreData]);
 
@@ -165,7 +173,7 @@ export default function CashierWorkspacePage(){
     <section className="panel" style={{minWidth:0}}><div className="section-head"><div><div className="eyebrow">{activeStore?.store_code||"TOKO"}</div><h2>{activeStore?.name||"Pilih toko"}</h2><p className="subtle">{activeProducts.length} produk tersedia · data stok khusus toko ini</p></div><button className="btn" type="button" onClick={()=>void loadStoreData()}><RefreshCw size={15}/> Muat ulang</button></div>
      <div className="field" style={{position:"relative"}}><label>Cari nama, SKU, atau barcode</label><Search size={16} style={{position:"absolute",left:12,bottom:13,color:"var(--muted,#7c8796)"}}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Cari atau pindai barcode…" style={{paddingLeft:38}}/></div>
      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(100%,185px),1fr))",gap:10,marginTop:12}}>
-      {filteredProducts.map(p=><button key={p.id} type="button" onClick={()=>addProduct(p)} disabled={!canSell} className="panel" style={{textAlign:"left",padding:14,cursor:canSell?"pointer":"not-allowed",border:"1px solid var(--border,#d8dee8)",background:"var(--panel,#fff)",color:"var(--text,#1f2937)"}}><div style={{display:"flex",justifyContent:"space-between",gap:8}}><ShoppingBag size={18}/><span className="trx-tag">{p.current_stock} {p.unit}</span></div><strong style={{display:"block",marginTop:12,overflowWrap:"anywhere"}}>{p.name}</strong><small className="subtle">{p.sku}</small><div style={{fontWeight:750,marginTop:8}}>{money(Number(p.sale_price))}</div><div className="subtle" style={{marginTop:7,fontSize:12}}>Tambah ke keranjang <Plus size={13} style={{verticalAlign:"middle"}}/></div></button>)}
+      {filteredProducts.map(p=><button key={p.id} type="button" onClick={()=>addProduct(p)} disabled={!canSell} className="panel" style={{textAlign:"left",padding:14,cursor:canSell?"pointer":"not-allowed",border:"1px solid var(--border,#d8dee8)",background:"var(--panel,#fff)",color:"var(--text,#1f2937)"}}><div style={{display:"flex",justifyContent:"space-between",gap:8}}><ShoppingBag size={18}/><span className="trx-tag">{p.current_stock} {p.unit}</span></div><strong style={{display:"block",marginTop:12,overflowWrap:"anywhere"}}>{p.name}</strong><small className="subtle">{p.sku}</small><div style={{fontWeight:750,marginTop:8}}>{money(Number(p.sale_price))}</div>{promotionFor(p)&&<div style={{marginTop:6,fontSize:12,fontWeight:700,color:"var(--success,#16805d)"}}>Promo: {promotionFor(p)!.promotion.name} · hemat {money(promotionFor(p)!.amount)} / unit</div>}<div className="subtle" style={{marginTop:7,fontSize:12}}>Tambah ke keranjang <Plus size={13} style={{verticalAlign:"middle"}}/></div></button>)}
       {filteredProducts.length===0&&<p className="subtle">Tidak ada produk cocok atau stok tersedia habis.</p>}
      </div>
     </section>
@@ -173,12 +181,12 @@ export default function CashierWorkspacePage(){
      {!canSell&&<div className="info-box">Jabatan akun ini belum memiliki hak Kasir/POS pada toko yang dipilih.</div>}
      <form onSubmit={checkout}>
       <div style={{display:"grid",gap:9}}>
-       {cartDetails.map(line=><div key={line.product_id} style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) auto",gap:10,padding:"12px 0",borderBottom:"1px solid var(--border,#e5e7eb)"}}><div style={{minWidth:0}}><strong style={{overflowWrap:"anywhere"}}>{line.product.name}</strong><div className="subtle">{money(Number(line.product.sale_price))} / {line.product.unit} · stok {line.product.current_stock}</div><div style={{display:"flex",alignItems:"center",gap:8,marginTop:8}}><button className="btn btn-compact" type="button" aria-label="Kurangi jumlah" onClick={()=>changeQuantity(line.product_id,line.quantity-1)}><Minus size={14}/></button><strong>{line.quantity}</strong><button className="btn btn-compact" type="button" aria-label="Tambah jumlah" disabled={line.quantity>=Number(line.product.current_stock)} onClick={()=>changeQuantity(line.product_id,line.quantity+1)}><Plus size={14}/></button><button className="btn btn-compact" type="button" onClick={()=>changeQuantity(line.product_id,0)} aria-label="Hapus produk dari keranjang"><Trash2 size={14}/></button></div></div><strong>{money(line.lineTotal)}</strong></div>)}
+       {cartDetails.map(line=><div key={line.product_id} style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) auto",gap:10,padding:"12px 0",borderBottom:"1px solid var(--border,#e5e7eb)"}}><div style={{minWidth:0}}><strong style={{overflowWrap:"anywhere"}}>{line.product.name}</strong><div className="subtle">{money(Number(line.product.sale_price))} / {line.product.unit} · stok {line.product.current_stock}</div>{promotionFor(line.product)&&<div className="subtle" style={{marginTop:4,color:"var(--success,#16805d)"}}>{promotionFor(line.product)!.promotion.name}: hemat {money(roundMoney(line.quantity*promotionFor(line.product)!.amount))} untuk baris ini</div>}<div style={{display:"flex",alignItems:"center",gap:8,marginTop:8}}><button className="btn btn-compact" type="button" aria-label="Kurangi jumlah" onClick={()=>changeQuantity(line.product_id,line.quantity-1)}><Minus size={14}/></button><strong>{line.quantity}</strong><button className="btn btn-compact" type="button" aria-label="Tambah jumlah" disabled={line.quantity>=Number(line.product.current_stock)} onClick={()=>changeQuantity(line.product_id,line.quantity+1)}><Plus size={14}/></button><button className="btn btn-compact" type="button" onClick={()=>changeQuantity(line.product_id,0)} aria-label="Hapus produk dari keranjang"><Trash2 size={14}/></button></div></div><strong>{money(line.lineTotal)}</strong></div>)}
        {cartDetails.length===0&&<div style={{padding:24,textAlign:"center",border:"1px dashed var(--border,#cbd5e1)",borderRadius:12}}><ShoppingBag size={26}/><p className="subtle">Keranjang masih kosong. Pilih produk di sebelah kiri untuk memulai transaksi.</p></div>}
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(145px,1fr))",gap:12,marginTop:16}}><div className="field"><label>Diskon (%) · batas {maxDiscount}%</label><input type="number" min="0" max={maxDiscount} step="0.01" value={discount} onChange={e=>setDiscount(e.target.value)} disabled={!canSell}/></div><div className="field"><label>Metode pembayaran</label><select value={payment} onChange={e=>setPayment(e.target.value)}><option value="cash">Tunai</option><option value="bank_transfer">Transfer bank</option><option value="e_wallet">E-wallet / QRIS</option></select></div></div>
       {payment==="cash"&&<div className="field"><label>Uang diterima</label><input type="number" min={total} value={cashReceived} onChange={e=>setCashReceived(e.target.value)} placeholder="Masukkan nominal uang"/></div>}
-      <div style={{display:"grid",gap:8,background:"var(--soft,#f7f8fa)",padding:14,borderRadius:12,marginTop:12}}><div style={{display:"flex",justifyContent:"space-between",gap:12}}><span className="subtle">Subtotal</span><strong>{money(subtotal)}</strong></div><div style={{display:"flex",justifyContent:"space-between",gap:12}}><span className="subtle">Diskon ({discountPercent}%)</span><strong>− {money(discountTotal)}</strong></div><div style={{display:"flex",justifyContent:"space-between",gap:12,fontSize:19,borderTop:"1px solid var(--border,#d8dee8)",paddingTop:10}}><strong>Total</strong><strong>{money(total)}</strong></div>{payment==="cash"&&<div style={{display:"flex",justifyContent:"space-between",gap:12}}><span className="subtle">Kembalian</span><strong>{money(change)}</strong></div>}</div>
+      <div style={{display:"grid",gap:8,background:"var(--soft,#f7f8fa)",padding:14,borderRadius:12,marginTop:12}}><div style={{display:"flex",justifyContent:"space-between",gap:12}}><span className="subtle">Subtotal</span><strong>{money(subtotal)}</strong></div><div style={{display:"flex",justifyContent:"space-between",gap:12}}><span className="subtle">Diskon manual / promo otomatis</span><strong>− {money(discountTotal)}</strong></div><div style={{display:"flex",justifyContent:"space-between",gap:12,fontSize:19,borderTop:"1px solid var(--border,#d8dee8)",paddingTop:10}}><strong>Total</strong><strong>{money(total)}</strong></div>{payment==="cash"&&<div style={{display:"flex",justifyContent:"space-between",gap:12}}><span className="subtle">Kembalian</span><strong>{money(change)}</strong></div>}</div>
       <button className="btn btn-primary" type="submit" disabled={busy||!canSell||!cartDetails.length} style={{width:"100%",justifyContent:"center",marginTop:14,minHeight:46}}><CreditCard size={17}/>{busy?"Memproses transaksi…":"Selesaikan pembayaran"}</button>
      </form>
     </section>
