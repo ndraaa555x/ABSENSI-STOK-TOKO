@@ -247,8 +247,8 @@ export default function HomePage() {
   const [accountError, setAccountError] = useState("");
   const [accountNotice, setAccountNotice] = useState("");
   const storeScopedAccount = profile?.role === "employee" && storePlacementActive;
-  const canAccessCurrentModule = (key: ModuleKey) => (canAccessModule(profile?.role, key) || (key === "cashier" && storePlacementActive)) && (!storeScopedAccount || ["dashboard","profile","attendance","leave","notifications","cashier"].includes(key));
-  useEffect(() => { if (storeScopedAccount && !["dashboard","profile","attendance","leave","notifications"].includes(activePage)) setActivePage("dashboard"); }, [storeScopedAccount,activePage]);
+  const canAccessCurrentModule = (key: ModuleKey) => (canAccessModule(profile?.role, key) || (key === "cashier" && storePlacementActive)) && (!storeScopedAccount || ["dashboard","profile","attendance","leave","notifications","cashier","transactions"].includes(key));
+  useEffect(() => { if (storeScopedAccount && !["dashboard","profile","attendance","leave","notifications","transactions"].includes(activePage)) setActivePage("dashboard"); }, [storeScopedAccount,activePage]);
 
   const loadProfileAndCounts = useCallback(async (currentSession: Session) => {
     setDataLoading(true);
@@ -1147,7 +1147,7 @@ export default function HomePage() {
             <div className="nav-label">{group}</div>
             <nav className="nav-list">
               {navItems.filter((item) => item.group === group && (canAccessCurrentModule(item.key)) && item.label.toLowerCase().includes(menuSearch.trim().toLowerCase())).map((item) => (
-                <button key={item.key} className={`nav-item ${activePage === item.key || (["categories","products"].includes(item.key) && activePage === "inventory") ? "active" : ""}`} onClick={() => { if (item.key === "cashier") { window.location.href = "/offline-store?tab=pos"; return; } if (item.key === "transactions") { window.location.href = "/trx"; return; } if (item.key === "categories" || item.key === "products") setActivePage("inventory"); else setActivePage(item.key); setMobileMenuOpen(false); }}>
+                <button key={item.key} className={`nav-item ${activePage === item.key || (["categories","products"].includes(item.key) && activePage === "inventory") ? "active" : ""}`} onClick={() => { if (item.key === "cashier") { window.location.href = "/offline-store?tab=pos"; return; } if (item.key === "transactions") { window.location.href = storeScopedAccount && storePlacementInfo ? "/trx?storeId="+encodeURIComponent(storePlacementInfo.store_id) : "/trx"; return; } if (item.key === "categories" || item.key === "products") setActivePage("inventory"); else setActivePage(item.key); setMobileMenuOpen(false); }}>
                   <span className="nav-icon">{item.icon}</span>{item.label}
                 </button>
               ))}
