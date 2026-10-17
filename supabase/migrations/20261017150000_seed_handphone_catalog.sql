@@ -82,7 +82,7 @@ costs AS (
  INSERT INTO public.product_costs(product_id,cost_price,updated_by)
  SELECT p.id,s.cost_price,'d4d16695-edd9-42ed-81ac-676eed6c0c03'::uuid
  FROM product_rows p JOIN seed s ON s.sku=p.sku
- ON CONFLICT(product_id) DO UPDATE SET cost_price=EXCLUDED.cost_price,updated_by=EXCLUDED.updated_by,updated_at=now()
+ ON CONFLICT(product_id) DO NOTHING
  RETURNING product_id
 ),
 movements AS (
