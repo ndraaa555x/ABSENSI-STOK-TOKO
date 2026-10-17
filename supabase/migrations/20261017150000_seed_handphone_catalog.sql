@@ -36,10 +36,18 @@ new_products AS (
   WHERE NOT EXISTS (SELECT 1 FROM public.products p WHERE p.sku = s.sku)
   RETURNING id, sku
 ),
+product_rows AS (
+  SELECT id, sku FROM new_products
+  UNION ALL
+  SELECT p.id, p.sku
+  FROM public.products p
+  JOIN seed s ON s.sku = p.sku
+  WHERE NOT EXISTS (SELECT 1 FROM new_products n WHERE n.sku = p.sku)
+),
 costs AS (
   INSERT INTO public.product_costs (product_id, cost_price, updated_by)
   SELECT p.id, s.cost_price, 'd4d16695-edd9-42ed-81ac-676eed6c0c03'::uuid
-  FROM public.products p
+  FROM product_rows p
   JOIN seed s ON s.sku = p.sku
   ON CONFLICT (product_id) DO UPDATE
     SET cost_price = EXCLUDED.cost_price,
