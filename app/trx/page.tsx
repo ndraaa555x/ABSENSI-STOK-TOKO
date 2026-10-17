@@ -29,6 +29,7 @@ export default function TrxPage(){
  const load=useCallback(async(currentRole:string,currentStoreId:string|null)=>{
   setRefreshing(true);
   const canAll=["owner","admin"].includes(currentRole);
+  const canAudit=currentRole==="owner";
   const canEmployee=currentRole==="employee"&&!currentStoreId;
   const canStoreScoped=currentRole==="employee"&&Boolean(currentStoreId);
   const canPeople=canAll||canEmployee||currentRole==="hrd";
@@ -46,7 +47,7 @@ export default function TrxPage(){
    canAll?supabase.from("offline_store_sales").select("id,sale_code,subtotal,discount_total,total,payment_method,cashier_id,created_at,status,store_id").order("created_at",{ascending:false}).limit(300):canStoreScoped?supabase.from("offline_store_sales").select("id,sale_code,subtotal,discount_total,total,payment_method,cashier_id,created_at,status,store_id").eq("store_id",currentStoreId).order("created_at",{ascending:false}).limit(300):skip(),
    canAll?supabase.from("offline_store_finance_entries").select("id,entry_type,amount,payment_method,description,reference_code,created_at,store_id").order("created_at",{ascending:false}).limit(300):canStoreScoped?supabase.from("offline_store_finance_entries").select("id,entry_type,amount,payment_method,description,reference_code,created_at,store_id").eq("store_id",currentStoreId).order("created_at",{ascending:false}).limit(300):skip(),
    canAll?supabase.from("offline_store_purchase_orders").select("id,order_code,store_id,status,subtotal,paid_amount,notes,requested_at,requested_by,reviewed_by,reviewed_at").order("requested_at",{ascending:false}).limit(300):canStoreScoped?supabase.from("offline_store_purchase_orders").select("id,order_code,store_id,status,subtotal,paid_amount,notes,requested_at,requested_by,reviewed_by,reviewed_at").eq("store_id",currentStoreId).order("requested_at",{ascending:false}).limit(300):skip(),
-   canAll?supabase.from("audit_logs").select("id,actor_id,action,entity_table,entity_id,details,created_at,actor_profile:profiles!audit_logs_actor_id_fkey(full_name,email)").order("created_at",{ascending:false}).limit(500):skip()
+   canAudit?supabase.from("audit_logs").select("id,actor_id,action,entity_table,entity_id,details,created_at,actor_profile:profiles!audit_logs_actor_id_fkey(full_name,email)").order("created_at",{ascending:false}).limit(500):skip()
   ]);
   const next:Item[]=[];
   const actor=(p:any,id:any)=>p?.full_name||p?.email||(id?String(id).slice(0,8):"Tidak tercatat");
