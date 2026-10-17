@@ -921,13 +921,15 @@ export default function HomePage() {
   }
 
   function printBusinessReceipt(title: string, body: string) {
+    const lowerTitle = title.toLocaleLowerCase("id-ID");
+    const documentClass = lowerTitle.includes("refund") ? "receipt-refund" : lowerTitle.includes("laporan uang") || lowerTitle.includes("keuangan") ? "receipt-finance" : lowerTitle.includes("order") || lowerTitle.includes("produk") ? "receipt-order" : "receipt-general";
     const printWindow = window.open("", "_blank", "width=900,height=720");
     if (!printWindow) { window.alert("Izinkan pop-up browser untuk mencetak struk."); return; }
     printWindow.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><title>${receiptEscape(title)}</title><style>
       @page{size:A4;margin:14mm}*{box-sizing:border-box}body{font:12px Arial,sans-serif;color:#17345b;margin:0;background:#fff}
-      .receipt{max-width:760px;margin:auto;border:1px solid #cfe0f4;padding:24px;border-radius:8px}
+      .receipt{max-width:760px;margin:auto;border:1px solid #cfe0f4;padding:24px;border-radius:8px;position:relative;overflow:hidden}\n      .receipt-order{border-top:5px solid #173f70}.receipt-refund{border-top:5px solid #bd7a28;background:linear-gradient(180deg,#fffdf8 0%,#fff 180px)}.receipt-finance{border-top:5px double #173f70;background:linear-gradient(180deg,#f7faff 0%,#fff 180px)}.receipt-refund h1{color:#8a5317}.receipt-finance .meta-box{background:#e8f0fb;border-color:#bfd2ea}.receipt-refund .meta-box{background:#fff3df;border-color:#edd3a5}.receipt-refund th{background:#fff1d8;color:#74470e}.receipt-finance th{background:#e8f0fb}
       header{display:grid;grid-template-columns:1.2fr 1fr;gap:22px;align-items:center;border-bottom:2px solid #164b87;padding-bottom:14px;margin-bottom:16px}
-      .brand-wrap{display:flex;align-items:center;gap:12px}.brand-wrap img{width:132px;max-width:100%;height:auto;flex-shrink:0}
+      .brand-wrap{display:flex;align-items:center;gap:12px;min-width:0}.brand-wrap img{width:104px;max-width:100%;height:auto;flex:0 0 auto}
       .brand{font-size:17px;font-weight:800;letter-spacing:1px;color:#16345c}.subtitle{font-size:10px;letter-spacing:2px;color:#526b8a;margin-top:3px}
       .company-info{border-left:1px solid #9bbbe1;padding-left:16px;font-size:10px;line-height:1.8;color:#254b78}
       .doc-heading{display:grid;grid-template-columns:1.05fr 1fr;gap:16px;align-items:start;margin:18px 0 22px}
@@ -948,7 +950,7 @@ export default function HomePage() {
       footer{text-align:center;border-top:1px solid #cfe0f4;padding-top:10px;margin-top:22px;font-size:10px;color:#526b8a}
       .actions{text-align:center;margin:18px}@media print{.actions{display:none}.receipt{border:0;padding:0;max-width:none}.signatures{break-inside:avoid}}
       @media(max-width:600px){header,.doc-heading{grid-template-columns:1fr}.company-info{border-left:0;border-top:1px solid #9bbbe1;padding:10px 0 0}.grid{grid-template-columns:1fr}.signatures{gap:4px}.sign{padding:0 4px}.label{width:100px}}
-    </style></head><body><div class="actions"><button onclick="window.print()">Cetak struk</button> <button onclick="window.close()">Tutup</button></div><main class="receipt"><header><div class="brand-wrap"><img src="/ndranexa-company.svg" alt="NDRANEXA NIAGA NUSANTARA" style="display:block;width:132px;max-width:100%;height:auto"/></div><div class="company-info"><strong>NDRANEXA NIAGA NUSANTARA</strong><br>Kantor Pusat<br>Dokumen transaksi internal</div></header><section class="doc-heading"><div><h1>${receiptEscape(title)}</h1><div class="doc-number">Bukti transaksi / administrasi</div></div><div class="meta-box"><strong>BUKTI TRANSAKSI</strong><br>NDRANEXA NIAGA NUSANTARA<br><span style="color:#58708c">Simpan sebagai bukti administrasi</span></div></section>${body}<footer>Dokumen dibuat dari catatan sistem. Periksa data transaksi sebelum ditandatangani atau diarsipkan.</footer></main></body></html>`);
+    </style></head><body><div class="actions"><button onclick="window.print()">Cetak struk</button> <button onclick="window.close()">Tutup</button></div><main class="receipt ${documentClass}"><header><div class="brand-wrap"><img src="/ndranexa-company.svg" alt="Logo NDRANEXA NIAGA NUSANTARA" style="display:block;width:104px;max-width:100%;height:auto;object-fit:contain"/></div><div class="company-info"><strong>NDRANEXA NIAGA NUSANTARA</strong><br>Kantor Pusat<br>Dokumen transaksi internal</div></header><section class="doc-heading"><div><h1>${receiptEscape(title)}</h1><div class="doc-number">Bukti transaksi / administrasi</div></div><div class="meta-box"><strong>BUKTI TRANSAKSI</strong><br>NDRANEXA NIAGA NUSANTARA<br><span style="color:#58708c">Simpan sebagai bukti administrasi</span></div></section>${body}<footer>Dokumen dibuat dari catatan sistem. Periksa data transaksi sebelum ditandatangani atau diarsipkan.</footer></main></body></html>`);
     printWindow.document.close();
   }
 
