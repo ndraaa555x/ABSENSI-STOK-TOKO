@@ -64,7 +64,7 @@ export default function TrxPage(){
   setRefreshing(false);setLoading(false);
  },[]);
  useEffect(()=>{let alive=true;supabase.auth.getSession().then(async({data})=>{if(!alive)return;if(!data.session){router.replace("/");return;}const {data:account}=await supabase.from("profiles").select("role,is_active").eq("id",data.session.user.id).maybeSingle();if(!alive)return;if(!account?.is_active){router.replace("/");return;}setRole(account.role||"employee");void load(account.role||"employee");});const {data:{subscription}}=supabase.auth.onAuthStateChange((_e,s)=>{if(!s)router.replace("/");});return()=>{alive=false;subscription.unsubscribe();};},[load,router]);
- const allowedKinds=role==="owner"||role==="admin"?null:role==="hrd"?["Absensi","Izin/Cuti"]:["Order","Refund","Laporan uang","Absensi","Izin/Cuti"];
+ const allowedKinds=useMemo<string[]|null>(()=>role==="owner"||role==="admin"?null:role==="hrd"?["Absensi","Izin/Cuti"]:["Order","Refund","Laporan uang","Absensi","Izin/Cuti"],[role]);
  const kinds=useMemo(()=>Array.from(new Set(items.map(i=>i.kind))).filter(k=>!allowedKinds||allowedKinds.includes(k)).sort(),[items,allowedKinds]);
  const filtered=useMemo(()=>items.filter(i=>(!allowedKinds||allowedKinds.includes(i.kind))&&(kind==="all"||i.kind===kind)&&(status==="all"||i.status===status)&&(!from||String(i.at||"").slice(0,10)>=from)&&(!to||String(i.at||"").slice(0,10)<=to)&&[i.code,i.kind,i.title,i.detail,i.status,i.actor,i.origin].join(" ").toLowerCase().includes(search.toLowerCase())),[items,kind,status,from,to,search,allowedKinds]);
  const statuses=useMemo(()=>Array.from(new Set(items.filter(i=>!allowedKinds||allowedKinds.includes(i.kind)).map(i=>i.status))).sort(),[items,allowedKinds]);
