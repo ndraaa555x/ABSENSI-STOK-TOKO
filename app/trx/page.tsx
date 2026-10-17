@@ -61,7 +61,7 @@ export default function TrxPage(){
  const allowedKinds=role==="owner"||role==="admin"?null:role==="hrd"?["Absensi","Izin/Cuti"]:["Order","Refund","Laporan uang","Absensi","Izin/Cuti"];
  const kinds=useMemo(()=>Array.from(new Set(items.map(i=>i.kind))).filter(k=>!allowedKinds||allowedKinds.includes(k)).sort(),[items,allowedKinds]);
  const filtered=useMemo(()=>items.filter(i=>(!allowedKinds||allowedKinds.includes(i.kind))&&(kind==="all"||i.kind===kind)&&(status==="all"||i.status===status)&&(!from||String(i.at||"").slice(0,10)>=from)&&(!to||String(i.at||"").slice(0,10)<=to)&&[i.code,i.kind,i.title,i.detail,i.status,i.actor,i.origin].join(" ").toLowerCase().includes(search.toLowerCase())),[items,kind,status,from,to,search,allowedKinds]);
- const statuses=useMemo(()=>Array.from(new Set(items.map(i=>i.status))).sort(),[items]);
+ const statuses=useMemo(()=>Array.from(new Set(items.filter(i=>!allowedKinds||allowedKinds.includes(i.kind)).map(i=>i.status))).sort(),[items,allowedKinds]);
  return <main className="trx-shell">
   <header className="trx-hero"><div><div className="trx-kicker">Workspace · Riwayat terpusat</div><h1 className="trx-title">TRX & Aktivitas</h1><p className="trx-subtitle">Satu tempat untuk menelusuri transaksi, pengajuan, persetujuan, kehadiran, stok, dan keuangan. Sumber data tidak dihapus; hasil yang tampil mengikuti izin baca akun Anda.</p></div><div className="trx-icon-box"><ArrowLeftRight size={23}/></div></header>
   {errors.length>0&&<div className="info-box" role="status">Sebagian sumber riwayat tidak tersedia untuk akun ini atau dibatasi kebijakan akses. Data yang berhasil dibaca tetap ditampilkan.</div>}
