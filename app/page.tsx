@@ -24,7 +24,6 @@ type CustomerRow = {id:string;customer_code:string;store_name:string;owner_name:
 type RefundRow = { id:string; refund_code:string; order_id:string; order_item_id:string; requested_by:string; reviewed_by?:string|null; reviewed_at?:string|null; requested_by_profile?:AuditProfile; reviewed_by_profile?:AuditProfile; quantity:number; amount:number; reason:string; status:string; created_at:string; product_orders:{order_code:string;customer_id?:string|null;business_customers?:{store_name:string;customer_code:string}|null}|null };
 type FinanceReportRow = { id:string; report_code:string; report_type:string; amount:number; description:string; payment_method:string|null; status:string; created_at:string; submitted_by:string; reviewed_by?:string|null; reviewed_at?:string|null; submitted_by_profile?:AuditProfile; reviewed_by_profile?:AuditProfile; related_order_id?:string|null; related_customer_id?:string|null; business_customers?:{store_name:string;customer_code:string}|null; product_orders?:{order_code:string;business_customers?:{store_name:string;customer_code:string}|null}|null };
 type ProductRow = {id:string;sku:string;barcode_value:string;name:string;category_id:string|null;unit:string;description:string|null;sale_price:number;current_stock:number;minimum_stock:number;storage_location:string|null;is_active:boolean;product_categories:{name:string}|null;product_costs?:{cost_price:number}|null};
-type ProductCategory = {id:string;name:string};
 type StockMovementRow = {id:string;product_id:string;movement_type:string;quantity:number;unit_cost:number|null;reference_code:string|null;reason:string|null;movement_at:string;created_by?:string|null;created_by_profile?:AuditProfile;products:{name:string;sku:string}|null};
 type FinancialCategory = {id:string;name:string;transaction_type:"income"|"expense"};
 type FinancialTransactionRow = {id:string;transaction_code:string;transaction_type:"income"|"expense";amount:number;transaction_at:string;payment_method:string|null;description:string;reference_code:string|null;status:string;created_by?:string|null;created_by_profile?:AuditProfile;financial_categories:{name:string}|null};
@@ -57,7 +56,7 @@ const navItems: { key: ModuleKey; icon: ReactNode; label: string; group: string 
   { key: "customers", icon: <Store size={18}/>, label: "Data Toko / Member", group: "TRANSAKSI" },
   { key: "leave", icon: <CalendarDays size={18}/>, label: "Izin / Cuti", group: "OPERASIONAL" },
   { key: "notifications", icon: <Bell size={18}/>, label: "Notifikasi", group: "UTAMA" },
-  { key: "inventory", icon: <Boxes size={18}/>, label: "Inventaris & Stok", group: "INVENTARIS" },
+  { key: "inventory", icon: <Boxes size={18}/>, label: "Kontrol Stok Terpadu", group: "INVENTARIS" },
   { key: "finance", icon: <Banknote size={18}/>, label: "Keuangan", group: "MANAJEMEN" },
   { key: "settings", icon: <Settings size={18}/>, label: "Pengaturan", group: "MANAJEMEN" }
 ];
@@ -76,7 +75,7 @@ const descriptions: Record<ModuleKey, string> = {
   customers: "Daftarkan toko/pembeli sebagai member dan pantau aktivitas order.",
   leave: "Ajukan izin/cuti dan pantau statusnya; Admin/Owner meninjau permohonan karyawan.",
   notifications: "Pusat notifikasi dan pembaruan aktivitas akun.",
-  inventory: "Pantau produk dan ketersediaan stok untuk mendukung order kerja.",
+  inventory: "Pantau stok, produk menipis, dan riwayat pergerakan tanpa menggandakan input operasional.",
   barcode: "Cari produk berdasarkan SKU atau barcode.",
   finance: "Lihat ringkasan transaksi keuangan yang dikelola Owner.",
   settings: "Kelola pengaturan bisnis dan kontrol akses sesuai role."
@@ -152,7 +151,6 @@ export default function HomePage() {
   const [moneyHistoryFrom,setMoneyHistoryFrom]=useState("");
   const [moneyHistoryTo,setMoneyHistoryTo]=useState("");
   const [selectedCustomerProfileId, setSelectedCustomerProfileId] = useState<string|null>(null);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string|null>(null);
   const [grossProfit, setGrossProfit] = useState(0);
   const [grossProfitMissingCostCount,setGrossProfitMissingCostCount]=useState(0);
   const [orderNotes, setOrderNotes] = useState("");
@@ -180,19 +178,12 @@ export default function HomePage() {
   const [financeReportNotice, setFinanceReportNotice] = useState("");
   const [financeReportError, setFinanceReportError] = useState("");
   const [productRows,setProductRows]=useState<ProductRow[]>([]);
-  const [productCategories,setProductCategories]=useState<ProductCategory[]>([]);
   const [stockMovementRows,setStockMovementRows]=useState<StockMovementRow[]>([]);
-  const [inventorySearch,setInventorySearch]=useState("");
-  const [showInactiveProducts,setShowInactiveProducts]=useState(false);
   const [inventoryNotice,setInventoryNotice]=useState("");
   const [inventoryError,setInventoryError]=useState("");
-  const [inventorySaving,setInventorySaving]=useState(false);
-  const [editingProductId,setEditingProductId]=useState<string|null>(null);
-  const [newProductCategoryName,setNewProductCategoryName]=useState("");
   const [newFinancialCategoryName,setNewFinancialCategoryName]=useState("");
   const [newFinancialCategoryType,setNewFinancialCategoryType]=useState<"income"|"expense">("income");
-  const [inventoryForm,setInventoryForm]=useState({sku:"",barcode_value:"",name:"",category_id:"",unit:"pcs",description:"",sale_price:"0",cost_price:"0",initial_stock:"0",minimum_stock:"0",storage_location:""});
-  const [stockForm,setStockForm]=useState({product_id:"",movement_type:"purchase_in",quantity:"1",unit_cost:"",reference_code:"",reason:"",notes:""});
+  const [stockForm,setStockForm]=useState({product_id:"",movement_type:"adjustment_in",quantity:"1",unit_cost:"",reference_code:"",reason:"",notes:""});
   const [stockSaving,setStockSaving]=useState(false);
   const [barcodeSearch,setBarcodeSearch]=useState("");
   const [financialRows,setFinancialRows]=useState<FinancialTransactionRow[]>([]);
@@ -422,14 +413,12 @@ export default function HomePage() {
     let alive=true;
     async function loadAdditionalModules(){
       if(activePage==="inventory"){
-        const [p,c,m]=await Promise.all([
-          supabase.from("products").select("id,sku,barcode_value,name,category_id,unit,description,sale_price,current_stock,minimum_stock,storage_location,is_active,product_categories(name),product_costs(cost_price)").order("name").limit(500),
-          supabase.from("product_categories").select("id,name").order("name"),
+        const [p,m]=await Promise.all([
+          supabase.from("products").select("id,sku,barcode_value,name,category_id,unit,description,sale_price,current_stock,minimum_stock,storage_location,is_active").order("name").limit(500),
           supabase.from("stock_movements").select("id,product_id,movement_type,quantity,unit_cost,reference_code,reason,movement_at,created_by,created_by_profile:profiles!stock_movements_created_by_fkey(full_name,email),products(name,sku)").order("movement_at",{ascending:false}).limit(50)
         ]);
         if(!alive)return;
-        if(p.error)setInventoryError("Produk belum dapat dimuat. Periksa izin inventaris.");else setProductRows((p.data??[]) as unknown as ProductRow[]);
-        if(!c.error)setProductCategories((c.data??[]) as ProductCategory[]);
+        if(p.error)setInventoryError("Data stok belum dapat dimuat. Periksa izin akses akun.");else setProductRows((p.data??[]) as unknown as ProductRow[]);
         if(!m.error)setStockMovementRows((m.data??[]) as unknown as StockMovementRow[]);
       } else if(activePage==="barcode"){
         const {data:p,error:productError}=await supabase.from("products").select("id,sku,barcode_value,name,category_id,unit,description,sale_price,current_stock,minimum_stock,storage_location,is_active").eq("is_active",true).order("name").limit(500);
@@ -1012,52 +1001,6 @@ export default function HomePage() {
     setBusinessRefresh(v=>v+1);
   }
 
-  async function saveProduct(event:FormEvent<HTMLFormElement>){
-    event.preventDefault();
-    if(!profile||!["owner","admin"].includes(profile.role)){setInventoryError("Hanya Admin/Owner yang dapat mengelola produk.");return;}
-    const salePrice=Number(inventoryForm.sale_price);
-    const costPrice=Number(inventoryForm.cost_price);
-    const targetStock=Number(inventoryForm.initial_stock);
-    const minimumStock=Number(inventoryForm.minimum_stock);
-    if(!inventoryForm.sku.trim()||!inventoryForm.barcode_value.trim()||!inventoryForm.name.trim()||
-       ![salePrice,costPrice,targetStock,minimumStock].every(Number.isFinite)||
-       salePrice<0||costPrice<0||targetStock<0||minimumStock<0){
-      setInventoryError("SKU, barcode, nama, harga, dan stok wajib valid serta tidak boleh negatif.");return;
-    }
-    setInventorySaving(true);setInventoryError("");setInventoryNotice("");
-    const {data:productId,error:saveError}=await supabase.rpc("save_product_with_stock",{
-      p_product_id:editingProductId,
-      p_sku:inventoryForm.sku.trim(),
-      p_barcode_value:inventoryForm.barcode_value.trim(),
-      p_name:inventoryForm.name.trim(),
-      p_category_id:inventoryForm.category_id||null,
-      p_unit:inventoryForm.unit.trim()||"pcs",
-      p_description:inventoryForm.description.trim()||null,
-      p_sale_price:salePrice,
-      p_cost_price:costPrice,
-      p_target_stock:targetStock,
-      p_minimum_stock:minimumStock,
-      p_storage_location:inventoryForm.storage_location.trim()||null
-    });
-    if(saveError||!productId){
-      setInventoryError("Produk, harga pokok, dan stok tidak disimpan karena transaksi gagal: "+(saveError?.message??"Tidak ada ID produk yang dikembalikan."));
-    }else{
-      setInventoryNotice(editingProductId
-        ?"Perubahan produk, harga pokok, stok, dan riwayat penyesuaian tersimpan bersama."
-        :"Produk, harga pokok, stok awal, dan riwayat stok berhasil dicatat bersama.");
-      setEditingProductId(null);
-      setInventoryForm({sku:"",barcode_value:"",name:"",category_id:"",unit:"pcs",description:"",sale_price:"0",cost_price:"0",initial_stock:"0",minimum_stock:"0",storage_location:""});
-      setBusinessRefresh(v=>v+1);
-    }
-    setInventorySaving(false);
-  }
-  async function saveProductCategory(event:FormEvent<HTMLFormElement>){
-    event.preventDefault();if(!profile||!["owner","admin"].includes(profile.role))return;
-    const name=newProductCategoryName.trim();if(!name)return;
-    if(productCategories.some(c=>c.name.toLowerCase()===name.toLowerCase())){setInventoryError("Kategori dengan nama tersebut sudah ada.");return;}
-    const {data,error:saveError}=await supabase.from("product_categories").insert({name}).select("id,name").single();
-    if(saveError)setInventoryError("Kategori gagal dibuat: "+saveError.message);else{setProductCategories(rows=>[...rows,data as ProductCategory].sort((a,b)=>a.name.localeCompare(b.name)));setNewProductCategoryName("");setInventoryNotice("Kategori produk berhasil ditambahkan.");}
-  }
   async function saveFinancialCategory(event:FormEvent<HTMLFormElement>){
     event.preventDefault();if(!profile||profile.role!=="owner")return;
     const name=newFinancialCategoryName.trim();if(!name)return;
@@ -1101,38 +1044,6 @@ export default function HomePage() {
     const {error:saveError}=await supabase.from("notifications").update({read_at:new Date().toISOString()}).eq("id",id);
     if(saveError)setNotificationError("Notifikasi gagal diperbarui.");else setNotificationRows(rows=>rows.map(n=>n.id===id?{...n,read_at:new Date().toISOString()}:n));
   }
-  async function deleteProduct(product:ProductRow){
-    if(!profile||!["owner","admin"].includes(profile.role))return;
-    if(!window.confirm(`Hapus produk “${product.name}”? Produk yang sudah masuk riwayat order tidak bisa dihapus agar catatan transaksi tetap utuh.`))return;
-    const [ordersRef,movementsRef,costRef]=await Promise.all([
-      supabase.from("product_order_items").select("id",{count:"exact",head:true}).eq("product_id",product.id),
-      supabase.from("stock_movements").select("id",{count:"exact",head:true}).eq("product_id",product.id),
-      supabase.from("product_costs").select("product_id",{count:"exact",head:true}).eq("product_id",product.id)
-    ]);
-    if(ordersRef.error||movementsRef.error||costRef.error){setInventoryError("Riwayat produk tidak dapat diverifikasi; produk tidak dihapus.");return;}
-    if((ordersRef.count??0)>0||(movementsRef.count??0)>0||(costRef.count??0)>0){
-      const {error:archiveError}=await supabase.from("products").update({is_active:false,updated_at:new Date().toISOString()}).eq("id",product.id);
-      if(archiveError)setInventoryError("Produk gagal diarsipkan: "+archiveError.message);else{setInventoryNotice("Produk dihapus dari katalog aktif dan diarsipkan agar riwayat order, stok, serta keuangan tetap utuh.");setShowInactiveProducts(false);setBusinessRefresh(v=>v+1);}return;
-    }
-    const {error:deleteError}=await supabase.from("products").delete().eq("id",product.id);
-    if(deleteError)setInventoryError("Produk gagal dihapus: "+deleteError.message);else{setInventoryNotice("Produk berhasil dihapus permanen karena belum memiliki riwayat.");setBusinessRefresh(v=>v+1);}
-  }
-
-  async function deleteProductCategory(category:ProductCategory){
-    if(!profile||!["owner","admin"].includes(profile.role))return;
-    if(!window.confirm(`Hapus kategori “${category.name}”? Produk di kategori ini akan tetap ada dan dipindahkan menjadi tanpa kategori.`))return;
-    setInventoryError("");setInventoryNotice("");
-    const {error:deleteError}=await supabase.rpc("delete_product_category",{p_category_id:category.id});
-    if(deleteError)setInventoryError("Kategori dan tautan produk tidak diubah karena penghapusan gagal: "+deleteError.message);
-    else{setInventoryNotice("Kategori dihapus dan produk dipindahkan menjadi tanpa kategori dalam satu transaksi.");setSelectedCategoryId(null);setBusinessRefresh(v=>v+1);}
-  }
-
-  async function toggleProductActive(product:ProductRow){
-    if(!profile||!["owner","admin"].includes(profile.role))return;
-    const {error:saveError}=await supabase.from("products").update({is_active:!product.is_active,updated_at:new Date().toISOString()}).eq("id",product.id);
-    if(saveError)setInventoryError("Status produk gagal diperbarui.");else{setInventoryNotice(product.is_active?"Produk dinonaktifkan.":"Produk diaktifkan.");setBusinessRefresh(v=>v+1);}
-  }
-
   const displayName = profile?.full_name || profile?.email || session.user.email || "Pengguna";
   const isActive = Boolean(profile?.is_active);
   const moduleTitle = navItems.find((item) => item.key === activePage)?.label ?? "Ringkasan";
@@ -1307,38 +1218,45 @@ export default function HomePage() {
             <div className="panel business-queue"><div className="eyebrow">PEMANTAUAN</div><h2>Laporan uang perlu ditinjau</h2><div className="business-actions"><input aria-label="Cari riwayat uang" placeholder="Cari kode / keterangan / toko…" value={moneyHistorySearch} onChange={e=>setMoneyHistorySearch(e.target.value)}/><label className="field"><span>Dari</span><input type="date" value={moneyHistoryFrom} onChange={e=>setMoneyHistoryFrom(e.target.value)}/></label><label className="field"><span>Sampai</span><input type="date" value={moneyHistoryTo} onChange={e=>setMoneyHistoryTo(e.target.value)}/></label></div>{financeReportRows.filter(r=>r.status==="pending"&&(!moneyHistoryFrom||r.created_at.slice(0,10)>=moneyHistoryFrom)&&(!moneyHistoryTo||r.created_at.slice(0,10)<=moneyHistoryTo)&&(`${r.report_code} ${r.description} ${r.business_customers?.store_name??r.product_orders?.business_customers?.store_name??""}`).toLowerCase().includes(moneyHistorySearch.toLowerCase())).length===0?<p className="subtle">Tidak ada laporan uang yang menunggu tindakan.</p>:financeReportRows.filter(r=>r.status==="pending"&&(!moneyHistoryFrom||r.created_at.slice(0,10)>=moneyHistoryFrom)&&(!moneyHistoryTo||r.created_at.slice(0,10)<=moneyHistoryTo)&&(`${r.report_code} ${r.description} ${r.business_customers?.store_name??r.product_orders?.business_customers?.store_name??""}`).toLowerCase().includes(moneyHistorySearch.toLowerCase())).map(r=><article className="business-record" key={r.id}><div className="business-record-head"><div><strong>{r.report_code}</strong><small>{new Date(r.created_at).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})} · Order {r.product_orders?.order_code??"tanpa order"} · Toko: {r.business_customers?.store_name??r.product_orders?.business_customers?.store_name??"Tidak ditautkan"}</small></div><span className={`status-pill status-${r.status}`}>{r.status==="pending"?"Menunggu":r.status==="approved"?"Disetujui":"Ditolak"}</span></div><div className="business-line"><span>{r.report_type==="income"?"Uang masuk":"Uang keluar"} · {r.description}</span><strong>{new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(r.amount)}</strong></div><small className="subtle">Metode pembayaran: {r.payment_method??"Belum dicatat"}</small><p className="subtle">Diajukan oleh: <strong>{r.submitted_by_profile?.full_name||r.submitted_by_profile?.email||(r.submitted_by===profile?.id?(profile?.full_name||profile?.email):"Akun "+r.submitted_by.slice(0,8))}</strong></p>{r.reviewed_by&&<p className="subtle">Ditinjau oleh: <strong>{r.reviewed_by_profile?.full_name||r.reviewed_by_profile?.email||"Akun "+r.reviewed_by.slice(0,8)}</strong>{r.reviewed_at?` · ${new Date(r.reviewed_at).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}`:""}</p>}{["owner","admin"].includes(profile?.role??"")&&<div className="business-actions"><button className="btn" type="button" onClick={()=>printBusinessReceipt("Struk Laporan Uang",`<h2>Informasi Laporan</h2><div class="grid">${receiptField("Nomor laporan",r.report_code)}${receiptField("Tanggal",new Date(r.created_at).toLocaleString("id-ID"))}${receiptField("Jenis",r.report_type==="income"?"Uang masuk":"Uang keluar")}${receiptField("Toko / pembeli",r.business_customers?.store_name||r.product_orders?.business_customers?.store_name)}${receiptField("Nomor order",r.product_orders?.order_code)}${receiptField("Pengaju",r.submitted_by===profile?.id?(profile?.full_name||profile?.email):"Lihat detail pengaju di riwayat")}${receiptField("Status",r.status)}${receiptField("Metode pembayaran",r.payment_method)}</div><h2>Rincian transaksi</h2><div class="note">${receiptEscape(r.description)}</div><div class="total"><span>Nominal</span><span>${new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(r.amount)}</span></div>${receiptSignatures(r.submitted_by===profile?.id?(profile?.full_name||profile?.email||"Nama pengaju"):"ID "+r.submitted_by.slice(0,8),r.business_customers?.store_name||r.product_orders?.business_customers?.store_name||"Nama pelanggan",r.submitted_by===profile?.id?(profile?.full_name||profile?.email||"Nama karyawan"):"ID "+r.submitted_by.slice(0,8),new Date(r.created_at).toLocaleDateString("id-ID"))}`)}>Cetak struk</button></div>}{["owner","admin"].includes(profile?.role??"")&&r.status==="pending"&&<div className="business-actions"><button className="btn btn-primary" onClick={()=>void reviewBusinessItem("financial_reports",r.id,"approved")}>Setujui</button><button className="btn" onClick={()=>void reviewBusinessItem("financial_reports",r.id,"rejected")}>Tolak</button></div>}</article>)}</div>
           </div>
         </section> : activePage === "inventory" ? <section className="business-page">
-          <div className="business-hero"><div><div className="eyebrow">KONTROL STOK TERPADU</div><h1>Inventaris & Stok</h1><p>Kelola katalog, stok minimum, barcode dan riwayat pergerakan dalam satu sumber data.</p></div><div className="business-hero-icon"><Boxes size={24}/></div></div>
+          <div className="business-hero"><div><div className="eyebrow">PUSAT PEMANTAUAN PERSEDIAAN</div><h1>Kontrol Stok Terpadu</h1><p>Pantau ketersediaan stok pusat, produk yang perlu diisi ulang, dan jejak pergerakan barang. Pembuatan produk, kategori, barcode, serta penjualan tetap dilakukan dari modul masing-masing.</p></div><div className="business-hero-icon"><Boxes size={24}/></div></div>
           {inventoryNotice&&<div className="info-box" role="status">{inventoryNotice}</div>}{inventoryError&&<div className="error-box" role="alert">{inventoryError}</div>}
-          <div className="stats-grid"><div className="stat-card"><div className="stat-top">Produk aktif</div><div className="stat-value">{productRows.filter(p=>p.is_active).length}</div></div><div className="stat-card"><div className="stat-top">Stok menipis</div><div className="stat-value">{productRows.filter(p=>p.is_active&&Number(p.current_stock)<=Number(p.minimum_stock)).length}</div></div><div className="stat-card"><div className="stat-top">Total unit</div><div className="stat-value">{productRows.reduce((n,p)=>n+Number(p.current_stock),0).toLocaleString("id-ID")}</div></div></div>
-          {["owner","admin"].includes(profile?.role??"")&&<div className="business-columns">
-            <form className="panel business-form" onSubmit={saveProduct}><h2>{editingProductId?"Edit informasi produk":"Tambah produk"}</h2>
-              <div className="field"><label>Nama produk *</label><input value={inventoryForm.name} onChange={e=>setInventoryForm(v=>({...v,name:e.target.value}))} required/></div>
-              <div className="field"><label>SKU unik *</label><input value={inventoryForm.sku} onChange={e=>setInventoryForm(v=>({...v,sku:e.target.value}))} required/></div>
-              <div className="field"><label>Barcode unik *</label><input value={inventoryForm.barcode_value} onChange={e=>setInventoryForm(v=>({...v,barcode_value:e.target.value}))} required/></div>
-              <div className="field"><label>Kategori</label><select value={inventoryForm.category_id} onChange={e=>setInventoryForm(v=>({...v,category_id:e.target.value}))}><option value="">Tanpa kategori</option>{productCategories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
-              <div className="field"><label>Satuan barang</label><input value={inventoryForm.unit} onChange={e=>setInventoryForm(v=>({...v,unit:e.target.value}))} placeholder="Contoh: pcs, kg, box" required/><small className="subtle">Isi jenis satuan barang, bukan angka stok. Contoh: pcs. Jumlah stok diisi terpisah pada kolom Stok awal.</small></div>
-              <div className="field"><label>Harga jual per satuan (Rp)</label><input type="number" min="0" value={inventoryForm.sale_price} onChange={e=>setInventoryForm(v=>({...v,sale_price:e.target.value}))} required/></div><div className="field"><label>Harga pokok / modal per satuan (Rp)</label><input type="number" min="0" value={inventoryForm.cost_price} onChange={e=>setInventoryForm(v=>({...v,cost_price:e.target.value}))} required/><small className="subtle">Dipakai untuk menghitung laba kotor order. Isi modal barang yang benar agar laba tidak keliru.</small></div>
-              <div className="field"><label>{editingProductId?"Stok fisik yang ingin ditetapkan":"Stok awal"}</label><input type="number" min="0" step="0.01" value={inventoryForm.initial_stock} onChange={e=>setInventoryForm(v=>({...v,initial_stock:e.target.value}))} required/><small className="subtle">{editingProductId?"Isi jumlah stok akhir yang benar. Selisih akan dicatat otomatis sebagai penyesuaian stok.":"Jumlah ini dicatat sebagai stok awal saat produk dibuat."}</small></div>
-              <div className="field"><label>Batas minimum stok</label><input type="number" min="0" step="0.01" value={inventoryForm.minimum_stock} onChange={e=>setInventoryForm(v=>({...v,minimum_stock:e.target.value}))} required/></div>
-              <div className="field"><label>Lokasi penyimpanan</label><input value={inventoryForm.storage_location} onChange={e=>setInventoryForm(v=>({...v,storage_location:e.target.value}))}/></div>
-              <div className="field"><label>Deskripsi</label><textarea value={inventoryForm.description} onChange={e=>setInventoryForm(v=>({...v,description:e.target.value}))} rows={2}/></div>
-              <button className="btn btn-primary" type="submit" disabled={inventorySaving}>{inventorySaving?"Menyimpan…":editingProductId?"Simpan perubahan produk":"Simpan produk + stok awal"}</button>
-            </form>
-            <form className="panel business-form" onSubmit={saveStockMovement}><h2>Catat pergerakan stok</h2>
-              <div className="field"><label>Produk (stok saat ini)</label><select value={stockForm.product_id} onChange={e=>setStockForm(v=>({...v,product_id:e.target.value}))} required><option value="">Pilih produk…</option>{productRows.map(p=><option key={p.id} value={p.id}>{p.name} — Stok tersedia: {p.current_stock} {p.unit}</option>)}</select></div>
-              <div className="field"><label>Jenis</label><select value={stockForm.movement_type} onChange={e=>setStockForm(v=>({...v,movement_type:e.target.value}))}><option value="purchase_in">Barang masuk</option><option value="customer_return_in">Retur pelanggan masuk</option><option value="adjustment_in">Penyesuaian (+)</option><option value="sale_out">Penjualan keluar</option><option value="internal_out">Pemakaian/order internal</option><option value="damaged_out">Barang rusak</option><option value="lost_out">Barang hilang</option><option value="supplier_return_out">Retur pemasok</option><option value="adjustment_out">Penyesuaian (-)</option></select></div>
-              <div className="field"><label>Jumlah</label><input type="number" min="0.01" step="0.01" value={stockForm.quantity} onChange={e=>setStockForm(v=>({...v,quantity:e.target.value}))} required/></div>
-              <div className="field"><label>Harga pokok per unit</label><input type="number" min="0" step="0.01" value={stockForm.unit_cost} onChange={e=>setStockForm(v=>({...v,unit_cost:e.target.value}))}/></div>
-              <div className="field"><label>Referensi</label><input value={stockForm.reference_code} onChange={e=>setStockForm(v=>({...v,reference_code:e.target.value}))}/></div>
-              <div className="field"><label>Alasan</label><input value={stockForm.reason} onChange={e=>setStockForm(v=>({...v,reason:e.target.value}))}/></div>
-              <div className="field"><label>Catatan</label><textarea rows={2} value={stockForm.notes} onChange={e=>setStockForm(v=>({...v,notes:e.target.value}))}/></div>
-              <button className="btn btn-primary" type="submit" disabled={stockSaving||!productRows.length}>{stockSaving?"Memproses…":"Simpan pergerakan stok"}</button>
+          <div className="stats-grid">
+            <div className="stat-card"><div className="stat-top">Produk aktif</div><div className="stat-value">{productRows.filter(p=>p.is_active).length}</div><small className="subtle">Katalog pusat</small></div>
+            <div className="stat-card"><div className="stat-top">Stok menipis / habis</div><div className="stat-value">{productRows.filter(p=>p.is_active&&Number(p.current_stock)<=Number(p.minimum_stock)).length}</div><small className="subtle">Termasuk stok nol</small></div>
+            <div className="stat-card"><div className="stat-top">Total unit tersedia</div><div className="stat-value">{productRows.filter(p=>p.is_active).reduce((n,p)=>n+Number(p.current_stock),0).toLocaleString("id-ID")}</div><small className="subtle">Akumulasi stok pusat</small></div>
+            <div className="stat-card"><div className="stat-top">Pergerakan tercatat</div><div className="stat-value">{stockMovementRows.length}</div><small className="subtle">Catatan terbaru yang dimuat</small></div>
+          </div>
+          <div className="panel business-history">
+            <div className="section-head"><div><div className="eyebrow">TINDAKAN CEPAT</div><h2>Kelola dari modul yang tepat</h2><p className="subtle">Hindari input produk atau penjualan yang sama di dua tempat.</p></div></div>
+            <div className="business-actions">
+              <Link className="btn btn-primary" href="/products">Buka Katalog Produk</Link>
+              <Link className="btn" href="/categories">Kelola Kategori</Link>
+              <Link className="btn" href="/barcode">Cari / Cetak Barcode</Link>
+              <Link className="btn" href="/offline-store">Operasional Toko Offline</Link>
+              <Link className="btn" href="/trx">Lihat Riwayat TRX</Link>
+            </div>
+          </div>
+          <div className="panel business-history">
+            <div className="section-head"><div><div className="eyebrow">PERLU PERHATIAN</div><h2>Produk menipis atau habis</h2><p className="subtle">Daftar berdasarkan stok saat ini dibanding batas minimum produk.</p></div><span className="subtle">{productRows.filter(p=>p.is_active&&Number(p.current_stock)<=Number(p.minimum_stock)).length} produk</span></div>
+            {productRows.filter(p=>p.is_active&&Number(p.current_stock)<=Number(p.minimum_stock)).length===0?<p className="subtle">Tidak ada produk aktif yang berada di bawah batas minimum.</p>:<div className="table-wrap"><table><thead><tr><th>Produk</th><th>Lokasi</th><th>Stok saat ini</th><th>Batas minimum</th><th>Status</th></tr></thead><tbody>{productRows.filter(p=>p.is_active&&Number(p.current_stock)<=Number(p.minimum_stock)).sort((x,y)=>Number(x.current_stock)-Number(y.current_stock)).slice(0,20).map(p=><tr key={p.id}><td><strong>{p.name}</strong><div className="subtle"><code>{p.sku}</code></div></td><td>{p.storage_location||"Belum ditentukan"}</td><td><strong>{p.current_stock} {p.unit}</strong></td><td>{p.minimum_stock} {p.unit}</td><td><span className="status-pill status-pending">{Number(p.current_stock)<=0?"Stok habis":"Stok menipis"}</span></td></tr>)}</tbody></table></div>}
+            <div className="business-actions" style={{marginTop:12}}><Link className="btn" href="/products">Periksa / perbarui katalog</Link><Link className="btn" href="/offline-store">Periksa stok Toko Offline</Link></div>
+          </div>
+          <div className="panel business-history">
+            <div className="section-head"><div><div className="eyebrow">AUDIT PERSEDIAAN</div><h2>Pergerakan stok terbaru</h2><p className="subtle">Catatan stok yang berhasil tersimpan di database.</p></div><Link className="btn" href="/trx">Buka riwayat lengkap di TRX</Link></div>
+            {stockMovementRows.length===0?<p className="subtle">Belum ada data pergerakan stok yang dapat ditampilkan atau data tidak dapat dibaca oleh akun ini.</p>:<div className="table-wrap"><table><thead><tr><th>Waktu</th><th>Produk</th><th>Jenis pergerakan</th><th>Jumlah</th><th>Referensi / alasan</th><th>Dibuat oleh</th></tr></thead><tbody>{stockMovementRows.slice(0,15).map(m=><tr key={m.id}><td>{new Date(m.movement_at).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</td><td><strong>{m.products?.name??"Produk tidak tersedia"}</strong><div className="subtle"><code>{m.products?.sku??"—"}</code></div></td><td>{({purchase_in:"Barang masuk",customer_return_in:"Retur pelanggan masuk",adjustment_in:"Penyesuaian (+)",adjustment_out:"Penyesuaian (-)",sale_out:"Penjualan keluar",internal_out:"Pemakaian / order internal",damaged_out:"Barang rusak",lost_out:"Barang hilang",supplier_return_out:"Retur pemasok"} as Record<string,string>)[m.movement_type]??m.movement_type}</td><td>{m.quantity}</td><td>{m.reference_code||"—"}{m.reason&&<div className="subtle">{m.reason}</div>}</td><td>{m.created_by_profile?.full_name||m.created_by_profile?.email||"—"}</td></tr>)}</tbody></table></div>}
+          </div>
+          {["owner","admin"].includes(profile?.role??"")&&<div className="panel business-form">
+            <div className="eyebrow">AKSI TERBATAS</div><h2>Penyesuaian stok</h2><p className="subtle">Gunakan hanya untuk koreksi hasil stok opname atau kehilangan/kerusakan yang sudah diperiksa. Barang masuk dan penjualan dicatat melalui proses penerimaan atau POS masing-masing.</p>
+            <form onSubmit={saveStockMovement}>
+              <div className="field"><label>Produk</label><select value={stockForm.product_id} onChange={e=>setStockForm(v=>({...v,product_id:e.target.value}))} required><option value="">Pilih produk…</option>{productRows.filter(p=>p.is_active).map(p=><option key={p.id} value={p.id}>{p.name} — Stok: {p.current_stock} {p.unit}</option>)}</select></div>
+              <div className="field"><label>Jenis penyesuaian</label><select value={stockForm.movement_type} onChange={e=>setStockForm(v=>({...v,movement_type:e.target.value}))}><option value="adjustment_in">Koreksi tambah (+)</option><option value="adjustment_out">Koreksi kurang (-)</option><option value="damaged_out">Barang rusak</option><option value="lost_out">Barang hilang</option></select></div>
+              <div className="field"><label>Jumlah unit</label><input type="number" min="0.01" step="0.01" value={stockForm.quantity} onChange={e=>setStockForm(v=>({...v,quantity:e.target.value}))} required/></div>
+              <div className="field"><label>Referensi (opsional)</label><input value={stockForm.reference_code} onChange={e=>setStockForm(v=>({...v,reference_code:e.target.value}))}/></div>
+              <div className="field"><label>Alasan wajib diisi</label><input value={stockForm.reason} onChange={e=>setStockForm(v=>({...v,reason:e.target.value}))} required/></div>
+              <div className="field"><label>Catatan pemeriksaan</label><textarea rows={2} value={stockForm.notes} onChange={e=>setStockForm(v=>({...v,notes:e.target.value}))}/></div>
+              <button className="btn btn-primary" type="submit" disabled={stockSaving||!productRows.length}>{stockSaving?"Menyimpan…":"Catat penyesuaian stok"}</button>
             </form>
           </div>}
-          {["owner","admin"].includes(profile?.role??"")&&<form className="panel business-form" onSubmit={saveProductCategory}><h2>Tambah kategori produk</h2><div className="field"><label>Nama kategori</label><input value={newProductCategoryName} onChange={e=>setNewProductCategoryName(e.target.value)} placeholder="Contoh: Aksesoris" required/></div><button className="btn" type="submit">Simpan kategori</button></form>}<div className="panel business-history"><div className="section-head"><div><div className="eyebrow">KATEGORI</div><h2>Kategori produk</h2></div><span className="subtle">{productCategories.length} kategori</span></div><div className="grid-cards">{productCategories.map(category=><article className="panel" key={category.id}><h3>{category.name}</h3><div className="business-line"><span>Jumlah produk</span><strong>{productRows.filter(p=>p.category_id===category.id).length}</strong></div><button className="btn btn-primary" type="button" onClick={()=>setSelectedCategoryId(selectedCategoryId===category.id?null:category.id)}>{selectedCategoryId===category.id?"Tutup detail":"Buka detail kategori →"}</button>{selectedCategoryId===category.id&&<><div className="divider"/>{productRows.filter(p=>p.category_id===category.id).length===0?<p className="subtle">Belum ada produk di kategori ini.</p>:productRows.filter(p=>p.category_id===category.id).map(p=><div className="business-line" key={p.id}><span><strong>{p.name}</strong><small className="subtle" style={{display:"block"}}>{p.sku} · Stok {p.current_stock} {p.unit}</small></span><strong>{new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(p.sale_price)}</strong></div>)}{["owner","admin"].includes(profile?.role??"")&&<button className="btn" type="button" onClick={()=>void deleteProductCategory(category)}>Hapus kategori</button>}</>}</article>)}</div></div>
-          <div className="panel business-history"><div className="section-head"><div><div className="eyebrow">KATALOG</div><h2>Daftar produk</h2></div><div className="business-actions"><input aria-label="Cari produk" placeholder="Cari nama / SKU / barcode…" value={inventorySearch} onChange={e=>setInventorySearch(e.target.value)}/><label className="subtle"><input type="checkbox" checked={showInactiveProducts} onChange={e=>setShowInactiveProducts(e.target.checked)}/> Tampilkan produk nonaktif/terarsip</label></div></div>
-          <div className="table-wrap"><table><thead><tr><th>Produk</th><th>SKU / Barcode</th><th>Harga per unit</th><th>Stok tersedia</th><th>Status</th>{["owner","admin"].includes(profile?.role??"")&&<th>Aksi</th>}</tr></thead><tbody>{productRows.filter(p=>(showInactiveProducts||p.is_active)&&(p.name+" "+p.sku+" "+p.barcode_value).toLowerCase().includes(inventorySearch.toLowerCase())).map(p=><tr key={p.id}><td><strong>{p.name}</strong><div className="subtle">{p.product_categories?.name??"Tanpa kategori"}</div></td><td><code>{p.sku}</code><div className="subtle">{p.barcode_value}</div></td><td>{new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(p.sale_price)} / {p.unit}</td><td><strong>{p.current_stock} {p.unit}</strong><div className="subtle">Jumlah barang yang tersedia</div>{Number(p.current_stock)<=Number(p.minimum_stock)&&<div className="status-pill status-pending">Stok menipis</div>}</td><td><span className={`status-pill ${p.is_active?"status-approved":"status-rejected"}`}>{p.is_active?"Aktif":"Nonaktif"}</span></td>{["owner","admin"].includes(profile?.role??"")&&<td><div className="business-actions"><button className="btn" onClick={()=>{setEditingProductId(p.id);setInventoryForm({sku:p.sku,barcode_value:p.barcode_value,name:p.name,category_id:p.category_id??"",unit:p.unit,description:p.description??"",sale_price:String(p.sale_price),cost_price:String(p.product_costs?.cost_price??0),initial_stock:String(p.current_stock),minimum_stock:String(p.minimum_stock),storage_location:p.storage_location??""});}}>Edit</button><button className="btn" onClick={()=>void toggleProductActive(p)}>{p.is_active?"Nonaktifkan":"Aktifkan"}</button><button className="btn" type="button" onClick={()=>void deleteProduct(p)}>Hapus</button></div></td>}</tr>)}</tbody></table></div></div>
-          {["owner","admin"].includes(profile?.role??"")&&<div className="panel trx-module-link"><h2>Riwayat pergerakan stok ada di TRX</h2><p className="subtle">Catatan perubahan stok tetap tersimpan dan dapat ditelusuri di TRX.</p><Link className="btn" href="/trx">Buka TRX</Link></div>}
         </section> : activePage === "barcode" ? <section className="business-page">
           <div className="business-hero"><div><div className="eyebrow">PENCARIAN PRODUK CEPAT</div><h1>Barcode & SKU</h1><p>Masukkan atau scan barcode menggunakan scanner keyboard untuk melihat produk dan stok terkini.</p></div><div className="business-hero-icon"><IconBarcode size={24}/></div></div>
           <div className="panel business-form"><div className="field"><label>Scan / ketik barcode, SKU, atau nama produk</label><input autoFocus value={barcodeSearch} onChange={e=>setBarcodeSearch(e.target.value)} placeholder="Arahkan scanner ke kolom ini…"/></div><p className="subtle">Scanner barcode USB/Bluetooth yang mengetik kode ke kolom ini dapat digunakan.</p></div>
