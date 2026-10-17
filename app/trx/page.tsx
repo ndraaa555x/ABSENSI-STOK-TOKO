@@ -85,3 +85,4 @@ export default function TrxPage(){
   <div style={{marginTop:14}}><Link className="btn" href="/"><ArrowLeftRight size={14}/> Kembali ke workspace</Link></div>
  </main>;
 }
+
